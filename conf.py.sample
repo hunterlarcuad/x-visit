@@ -1,0 +1,76 @@
+"""
+Config File
+"""
+import logging
+
+# 本地启动端口
+# 查看端口是否被占用 netstat -ant|grep 9311
+DEF_LOCAL_PORT = 9311
+
+# 是否使用无痕模式
+DEF_INCOGNITO = False
+
+# 是否使用无头浏览器模式
+DEF_USE_HEADLESS = True
+# DEF_USE_HEADLESS = False
+
+# 调试模式
+# DEF_DEBUG = True
+DEF_DEBUG = False
+
+# 浏览器路径，置空时取 Chrome 的默认路径
+DEF_PATH_BROWSER = ''
+
+DEF_PATH_USER_DATA = 'chrome_profile'
+
+DEF_NUM_TRY = 5
+
+# 每个账号每天最大重试次数
+NUM_MAX_TRY_PER_DAY = 5
+
+DEF_ENCODE_HANDLE = 'ak6UVCToc32H9#mSAMPLE'
+
+# 设置时间的时区 (0 for UTC, 8 for Asia/Shanghai)
+TZ_OFFSET = 0
+# 清空浏览器目录
+DEL_PROFILE_DIR = False
+
+FILENAME_LOG = 'run.log'
+
+# Chrome 插件所在的目录
+DEF_OKX_EXTENSION_PATH = 'extensions/okx'
+EXTENSION_ID_OKX = 'mcohilncbfahbmgdjkbpemcciiolgcge'
+
+# https://yescaptcha.com/i/Af32Me
+DEF_CAPTCHA_KEY = 'your_key'
+# Chrome 插件所在的目录
+DEF_CAPTCHA_EXTENSION_PATH = 'extensions/YesCaptcha'
+EXTENSION_ID_YESCAPTCHA = 'jiofmdifioeejeilfkpegipdjiopiekl'
+
+# 遇到异常发钉钉消息，如果没有，置空，则不发钉钉消息
+DEF_DING_TOKEN = ''  # noqa
+
+# 账号列表
+DEF_PATH_DATA_ACCOUNT = 'datas/account'
+DEF_HEADER_ACCOUNT = 'account,x_username,x_pwd,x_verifycode,proxy'
+
+# 记录账号状态信息
+DEF_PATH_DATA_STATUS = 'datas/status'
+DEF_HEADER_STATUS = 'account,status,visit_date,num_visit,update_time'
+
+############################################################
+# 配置日志
+s_format = '%(asctime)s %(levelname)s %(message)s'
+logging.basicConfig(
+    filename=FILENAME_LOG, level=logging.INFO,
+    format=s_format,
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
+############################################################
+DEF_LIST_APPEAL_DESC = [
+    "Hi, I’m having trouble with my account. I can't like or comment on anything. Could you help me figure out if it's banned or restricted? Thanks!",
+    "I’m unable to interact with posts or follow new accounts. Can you check if my account has been mistakenly restricted? I would appreciate your help.",
+    "I don’t know why, but my account seems to have lost the ability to engage with posts or leave comments. Can you kindly look into this and assist with resolving it?",
+]
+############################################################

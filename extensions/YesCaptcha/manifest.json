@@ -1,0 +1,70 @@
+{
+"update_url": "https://clients2.google.com/service/update2/crx",
+
+  "name": "__MSG_name__",
+  "version": "1.1.57",
+  "manifest_version": 3,
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvq5tg/YY/doeKnQB2Sk2ctcKPyhUqaCX0bGYEObcYT9lui79ffV8qJabouja3Wz2lAn018elm2/kD8uYXG/kKeHOHr3DJh8Yv9VD6TCC/D3bT1DyhIRv7pBEnh8One2D2owsk8kb/WusxiSVZPkksJHT3s3axAKsvPT67c3HOIq3jYkBkDXkudLilEXbf9fml/lZzFXuIUpTzzFC/S93y59FtQHLcrFv1bH2rOeFP7G19ozRFxMa8NH7dNVDKoVhuepuJ8qlAOEAqAfHM8oTjc4bGyo7rglO/7fRzTLx3b1dKW0SQVuBctKtE/8vfo9iDlSvUYJOZyR1SfpI0flRsQIDAQAB",
+  "description": "__MSG_pluginDesc__",
+  "default_locale": "en",
+  "icons": {
+    "128": "image/log.png"
+  },
+  "action": {
+    "default_title": "__MSG_name__",
+    "default_icon": "image/log.png",
+    "default_popup": "popup/index.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "options_page": "option/index.html",
+  "content_scripts": [
+    {
+      "all_frames": true,
+      "js": [
+        "content/captcha_manager.js",
+        "content/index.js"
+      ],
+      "css": [
+        "content/index.css"
+      ],
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "run_at": "document_end"
+    },
+    {
+      "all_frames": false,
+      "js": [
+        "content/context_responder.js"
+      ],
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "run_at": "document_start"
+    }
+  ],
+  "permissions": [
+    "storage",
+    "contextMenus",
+    "alarms"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "content/injected.js",
+        "content/workStatus.js"
+      ],
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ]
+    }
+  ]
+}
