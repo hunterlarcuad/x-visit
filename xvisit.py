@@ -78,7 +78,7 @@ DEF_STATUS_SUSPEND = 'SUSPEND'
 DEF_STATUS_APPEALED = 'APPEALED'
 
 
-class MonadTask():
+class X():
     def __init__(self) -> None:
         self.args = None
 
@@ -822,13 +822,13 @@ class MonadTask():
         return True
 
 
-def send_msg(instMonadTask, lst_success):
+def send_msg(instXVisit, lst_success):
     if len(DEF_DING_TOKEN) > 0 and len(lst_success) > 0:
         s_info = ''
         for s_profile in lst_success:
             lst_status = None
-            if s_profile in instMonadTask.dic_status:
-                lst_status = instMonadTask.dic_status[s_profile]
+            if s_profile in instXVisit.dic_status:
+                lst_status = instXVisit.dic_status[s_profile]
 
             if lst_status is None:
                 lst_status = [s_profile, -1]
@@ -859,13 +859,13 @@ def main(args):
         shutil.rmtree(DEF_PATH_USER_DATA)
         logger.info(f'Directory {DEF_PATH_USER_DATA} is deleted') # noqa
 
-    instMonadTask = MonadTask()
+    instXVisit = XVisit()
 
     if len(args.profile) > 0:
         items = args.profile.split(',')
     else:
         # 从配置文件里获取钱包名称列表
-        items = list(instMonadTask.dic_account.keys())
+        items = list(instXVisit.dic_account.keys())
 
     profiles = copy.deepcopy(items)
 
@@ -886,12 +886,12 @@ def main(args):
         return n_sec_wait
 
     # 将已完成的剔除掉
-    instMonadTask.status_load()
+    instXVisit.status_load()
     # 从后向前遍历列表的索引
     for i in range(len(profiles) - 1, -1, -1):
         s_profile = profiles[i]
-        if s_profile in instMonadTask.dic_status:
-            lst_status = instMonadTask.dic_status[s_profile]
+        if s_profile in instXVisit.dic_status:
+            lst_status = instXVisit.dic_status[s_profile]
             n_sec_wait = get_sec_wait(lst_status)
             if n_sec_wait > 0:
                 lst_wait.append([s_profile, n_sec_wait])
@@ -920,7 +920,7 @@ def main(args):
 
         args.s_profile = s_profile
 
-        if s_profile not in instMonadTask.dic_account:
+        if s_profile not in instXVisit.dic_account:
             logger.info(f'{s_profile} is not in account conf [ERROR]')
             sys.exit(0)
 
@@ -930,13 +930,13 @@ def main(args):
                 pass
             else:
                 # Create new profile
-                # instMonadTask.initChrome(args.s_profile)
-                # instMonadTask.init_okx()
-                # instMonadTask.close()
+                # instXVisit.initChrome(args.s_profile)
+                # instXVisit.init_okx()
+                # instXVisit.close()
                 pass
 
-            instMonadTask.initChrome(args.s_profile)
-            is_claim = instMonadTask.xvisit_run()
+            instXVisit.initChrome(args.s_profile)
+            is_claim = instXVisit.xvisit_run()
             return is_claim
 
         # 如果出现异常(与页面的连接已断开)，增加重试
@@ -946,11 +946,11 @@ def main(args):
                 if j > 1:
                     logger.info(f'⚠️ 正在重试，当前是第{j}次执行，最多尝试{max_try_except}次 [{s_profile}]') # noqa
 
-                instMonadTask.set_args(args)
-                instMonadTask.status_load()
+                instXVisit.set_args(args)
+                instXVisit.status_load()
 
-                if s_profile in instMonadTask.dic_status:
-                    lst_status = instMonadTask.dic_status[s_profile]
+                if s_profile in instXVisit.dic_status:
+                    lst_status = instXVisit.dic_status[s_profile]
                 else:
                     lst_status = None
 
@@ -961,16 +961,16 @@ def main(args):
                 else:
                     if _run():
                         lst_success.append(s_profile)
-                        instMonadTask.close()
+                        instXVisit.close()
                         break
 
             except Exception as e:
                 logger.info(f'[{s_profile}] An error occurred: {str(e)}')
-                instMonadTask.close()
+                instXVisit.close()
                 if j < max_try_except:
                     time.sleep(5)
 
-        if instMonadTask.is_update is False:
+        if instXVisit.is_update is False:
             continue
 
         logger.info(f'Progress: {percent}% [{n}/{total}] [{s_profile} Finish]')
@@ -983,7 +983,7 @@ def main(args):
                 logger.info('sleep {} seconds ...'.format(int(sleep_time)))
             time.sleep(sleep_time)
 
-    send_msg(instMonadTask, lst_success)
+    send_msg(instXVisit, lst_success)
 
 
 if __name__ == '__main__':
