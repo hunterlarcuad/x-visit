@@ -20,7 +20,6 @@ from fun_utils import load_file
 from fun_utils import save2file
 from fun_utils import format_ts
 from fun_utils import time_difference
-from fun_utils import seconds_to_hms
 from fun_utils import get_index_from_header
 
 from fun_encode import decrypt
@@ -403,7 +402,7 @@ class XVisit():
     def get_pre_num_visit(self, s_profile=None):
         num_visit_pre = 0
 
-        s_val = self.get_status_by_idx(IDX_NUM_TRY, s_profile)
+        s_val = self.get_status_by_idx(IDX_NUM_VISIT, s_profile)
 
         try:
             num_visit_pre = int(s_val)
@@ -437,7 +436,7 @@ class XVisit():
         self.update_status(idx_status, claim_date)
 
     def wait_log_in_button(self, max_wait_sec=30):
-        i = 1
+        i = 0
         while i < max_wait_sec:
             tab = self.browser.latest_tab
             ele_info = tab.ele('@@tag()=span@@class=css-1jxf684 r-bcqeeo r-1ttztb7 r-qvutc0 r-poiln3@@text()=Sign in', timeout=2) # noqa
@@ -458,14 +457,15 @@ class XVisit():
         return False
 
     def wait_sign_in_to_x(self, max_wait_sec=30):
-        i = 1
+        i = 0
         while i < max_wait_sec:
+            i += 1
             tab = self.browser.latest_tab
             ele_info = tab.ele('@@tag()=span@@class=css-1jxf684 r-bcqeeo r-1ttztb7 r-qvutc0 r-poiln3@@text()=Sign in to X', timeout=2) # noqa
             if not isinstance(ele_info, NoneElement):
                 self.logit(None, 'Success to load popup x window ...')
                 return True
-            i += 1
+
             self.browser.wait(1)
             self.logit(None, f'Wait to load popup x window ... {i}/{max_wait_sec}') # noqa
 
@@ -474,7 +474,7 @@ class XVisit():
         return False
 
     def wait_countdown(self, s_info='', max_wait_sec=30):
-        i = 1
+        i = 0
         while i < max_wait_sec:
             i += 1
             self.browser.wait(1)
@@ -530,7 +530,7 @@ class XVisit():
 
         # There was unusual login activity on your account.
         # Enter your phone number or email address
-        s_path = '@@tag()=span@@text():Enter your phone number or email address'
+        s_path = '@@tag()=span@@text():Enter your phone number or email address' # noqa
         ele_info = tab.ele(s_path, timeout=2)
         if not isinstance(ele_info, NoneElement):
             logger.info('There was unusual login activity on your account.')
@@ -778,9 +778,9 @@ class XVisit():
                     self.logit(None, 'Fail to load email, retry ...') # noqa
                     continue
 
-            ele_input = tab.ele('@@tag()=textarea@@name=DescriptionText', timeout=2)
+            ele_input = tab.ele('@@tag()=textarea@@name=DescriptionText', timeout=2) # noqa
             if not isinstance(ele_input, NoneElement):
-                # s_text = input('Tell us if you’re having a problem accessing your account:')
+                # s_text = input('Tell us if you’re having a problem accessing your account:') # noqa
                 s_text = random.choice(DEF_LIST_APPEAL_DESC)
                 tab.actions.move_to(ele_input).click().type(s_text) # noqa
                 self.logit(None, f'{s_text}') # noqa
@@ -792,15 +792,16 @@ class XVisit():
                     tab.wait(2)
 
                     max_wait_sec = 60
-                    i = 1
+                    i = 0
                     while i < max_wait_sec:
+                        i += 1
                         tab = self.browser.latest_tab
                         ele_info = tab.ele('@@tag()=h2@@class:headline@@text()=Thank you!', timeout=2) # noqa
                         if not isinstance(ele_info, NoneElement):
-                            self.logit(None, 'We’ve received your request. We’ll review, and take further action if appropriate.')
+                            self.logit(None, 'We’ve received your request. We’ll review, and take further action if appropriate.') # noqa
                             self.update_status(IDX_STATUS, DEF_STATUS_APPEALED)
                             return True
-                        i += 1
+
                         self.browser.wait(1)
 
                         # <span id="feather-form-field-text-173">Your original case is already in the queue. Please wait to hear back from us on the original case.</span> # noqa
@@ -818,7 +819,7 @@ class XVisit():
         <span class="css-1jxf684 r-bcqeeo r-1ttztb7 r-qvutc0 r-poiln3">Retry</span>
         """
         tab = self.browser.latest_tab
-        ele_info = tab.ele('@@tag()=span@@text()=Something went wrong. Try reloading.', timeout=2)
+        ele_info = tab.ele('@@tag()=span@@text()=Something went wrong. Try reloading.', timeout=2) # noqa
         if not isinstance(ele_info, NoneElement):
             s_info = ele_info.text
             self.logit(None, f'{s_info}') # noqa
@@ -849,7 +850,7 @@ class XVisit():
         ele_input = tab.ele('@@tag()=div@@class=PageHeader Edge', timeout=2)
         if not isinstance(ele_input, NoneElement):
             s_info = ele_input.text
-            self.logit(None, f'{s_info}') # noqa
+            self.logit(None, f'PageHeader Info: {s_info}') # noqa
             if s_info in ['账号已解锁。', 'Account unlocked.']:
                 ele_btn = tab.ele('@@tag()=input@@type=submit@@class:EdgeButton', timeout=2) # noqa
                 if not isinstance(ele_btn, NoneElement):
@@ -859,14 +860,15 @@ class XVisit():
         return False
 
     def wait_loading(self, max_wait_sec=60):
-        i = 1
+        i = 0
         while i < max_wait_sec:
+            i += 1
             tab = self.browser.latest_tab
             ele_info = tab.ele('@@tag()=div@@aria-label=Loading@@role=progressbar', timeout=2) # noqa
             if isinstance(ele_info, NoneElement):
                 self.logit(None, 'Finished loading ...')
                 return True
-            i += 1
+
             self.logit(None, f'Loading ... {i}/{max_wait_sec}') # noqa
             tab.wait(1)
 
@@ -904,7 +906,7 @@ class XVisit():
                 if self.args.auto_appeal is True:
                     is_appeal = 'y'
                 else:
-                    is_appeal = input('Your account is suspended. Will you appeal now ? [y/n]')
+                    is_appeal = input('Your account is suspended. Will you appeal now ? [y/n]') # noqa
 
                 if is_appeal == 'y':
                     self.logit(None, 'appealing ...')

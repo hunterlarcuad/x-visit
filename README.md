@@ -1,5 +1,15 @@
+# X-Assistant Change List
+## 2025.04.11
+- 通过 Clash Verge API 设置代理
+- 通过 Gmail API 获取邮件验证码
+- 通过 YesCaptcha Chrome 插件过图形验证码
+- 登录后，随机点赞
+- 点赞后如果提示账号封禁，跳转到申诉页面，提交申诉
+
 # Twitter
 X-Assistant
+
+https://github.com/hunterlarcuad/x-visit.git
 
 # venv
 ```
