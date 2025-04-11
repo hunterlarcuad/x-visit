@@ -30,6 +30,9 @@ NUM_MAX_TRY_PER_DAY = 5
 
 DEF_ENCODE_HANDLE = 'ak6UVCToc32H9#mSAMPLE'
 
+# encrypt & decrypt
+DEF_ENCODE_HANDLE = 'ak6UVCxxx32H9#mSAMPLE'
+
 # 设置时间的时区 (0 for UTC, 8 for Asia/Shanghai)
 TZ_OFFSET = 0
 # 清空浏览器目录
@@ -58,6 +61,10 @@ DEF_HEADER_ACCOUNT = 'account,x_username,x_pwd,x_verifycode,proxy'
 DEF_PATH_DATA_STATUS = 'datas/status'
 DEF_HEADER_STATUS = 'account,status,visit_date,num_visit,update_time'
 
+############################################################
+# Clash Verge
+DEF_CLASH_API_PORT = 9097
+DEF_CLASH_API_SECRETKEY = 'your_key'
 ############################################################
 # 配置日志
 s_format = '%(asctime)s %(levelname)s %(message)s'

@@ -24,6 +24,11 @@ from fun_utils import seconds_to_hms
 from fun_utils import get_index_from_header
 
 from fun_encode import decrypt
+from fun_gmail import get_verify_code_from_gmail
+
+from proxy_api import set_proxy
+
+from fun_okx import OkxUtils
 
 from conf import DEF_LOCAL_PORT
 from conf import DEF_INCOGNITO
@@ -31,7 +36,6 @@ from conf import DEF_USE_HEADLESS
 from conf import DEF_DEBUG
 from conf import DEF_PATH_USER_DATA
 from conf import DEF_NUM_TRY
-from conf import NUM_MAX_TRY_PER_DAY
 from conf import DEF_DING_TOKEN
 from conf import DEF_PATH_BROWSER
 from conf import DEF_PATH_DATA_STATUS
@@ -49,6 +53,9 @@ from conf import DEF_CAPTCHA_KEY
 from conf import EXTENSION_ID_YESCAPTCHA
 from conf import DEF_LIST_APPEAL_DESC
 
+from conf import DEF_OKX_EXTENSION_PATH
+
+from conf import FILENAME_LOG
 from conf import logger
 
 """
@@ -77,8 +84,10 @@ DEF_STATUS_OK = 'OK'
 DEF_STATUS_SUSPEND = 'SUSPEND'
 DEF_STATUS_APPEALED = 'APPEALED'
 
+DEF_OKX = False
 
-class X():
+
+class XVisit():
     def __init__(self) -> None:
         self.args = None
 
@@ -91,6 +100,11 @@ class X():
         self.dic_account = {}
 
         self.account_load()
+
+        if DEF_OKX:
+            self.okx = OkxUtils()
+        else:
+            self.okx = None
 
     def set_args(self, args):
         self.args = args
@@ -180,13 +194,18 @@ class X():
         # 获取当前工作目录
         current_directory = os.getcwd()
 
-        # 检查目录是否存在
-        if os.path.exists(os.path.join(current_directory, DEF_CAPTCHA_EXTENSION_PATH)): # noqa
-            logger.info(f'YesCaptcha plugin path: {DEF_CAPTCHA_EXTENSION_PATH}') # noqa
-            co.add_extension(DEF_CAPTCHA_EXTENSION_PATH)
-        else:
-            print("YesCaptcha plugin directory is not exist. Exit!")
-            sys.exit(1)
+        def addon(s_name, s_path):
+            # 检查目录是否存在
+            if os.path.exists(os.path.join(current_directory, s_path)): # noqa
+                logger.info(f'{s_name} plugin path: {s_path}')
+                co.add_extension(s_path)
+            else:
+                print("{s_name} plugin directory is not exist. Exit!")
+                sys.exit(1)
+
+        addon(s_name='YesCaptcha', s_path=DEF_CAPTCHA_EXTENSION_PATH)
+        if DEF_OKX:
+            addon(s_name='okx', s_path=DEF_OKX_EXTENSION_PATH)
 
         # https://drissionpage.cn/ChromiumPage/browser_opt
         co.headless(DEF_USE_HEADLESS)
@@ -429,6 +448,12 @@ class X():
                 return True
             i += 1
             self.browser.wait(1)
+
+            if self.x_unlocked():
+                break
+
+            # ERR_CONNECTION_RESET
+
             self.logit(None, f'Wait to load login in button ... {i}/{max_wait_sec}') # noqa
         return False
 
@@ -460,6 +485,22 @@ class X():
         ele_input = tab.ele('@@tag()=a@@href=/home', timeout=2)
         if not isinstance(ele_input, NoneElement):
             self.logit(None, f'Already login !') # noqa
+            return True
+        return False
+
+    def get_tag_info(self, s_tag, s_text):
+        """
+        s_tag:
+            span
+            div
+        """
+        tab = self.browser.latest_tab
+        s_path = f'@@tag()={s_tag}@@text():{s_text}'
+        ele_info = tab.ele(s_path, timeout=1)
+        if not isinstance(ele_info, NoneElement):
+            # self.logit(None, f'[html] {s_text}: {ele_info.html}')
+            s_info = ele_info.text.replace('\n', ' ')
+            self.logit(None, f'[info][{s_tag}] {s_text}: {s_info}')
             return True
         return False
 
@@ -568,8 +609,11 @@ class X():
 
             self.x_locked()
 
-            if self.verify_email():
-                self.enter_verification_code()
+            # if self.verify_email():
+            #     self.enter_verification_code()
+
+            self.verify_email()
+            self.enter_verification_code()
 
             self.x_unlocked()
 
@@ -584,39 +628,75 @@ class X():
         except: # noqa
             s_vpn = 'NULL'
         self.logit(None, f'[X] Set VPN to {s_vpn} ...')
-        d_cont = {
-            'title': f'Set VPN to {s_vpn} ! [x_login]',
-            'text': (
-                '[X] Set VPN [x_login]\n'
-                f'- profile: {self.args.s_profile}\n'
-                f'- vpn: {s_vpn}\n'
-            )
-        }
-        ding_msg(d_cont, DEF_DING_TOKEN, msgtype="markdown")
-        s_msg = f'[{self.args.s_profile}] Set VPN to {s_vpn} and press Enter to continue! ⚠️' # noqa
-        input(s_msg)
+        # d_cont = {
+        #     'title': f'Set VPN to {s_vpn} ! [x_login]',
+        #     'text': (
+        #         '[X] Set VPN [x_login]\n'
+        #         f'- profile: {self.args.s_profile}\n'
+        #         f'- vpn: {s_vpn}\n'
+        #     )
+        # }
+        # ding_msg(d_cont, DEF_DING_TOKEN, msgtype="markdown")
+        # s_msg = f'[{self.args.s_profile}] Set VPN to {s_vpn} and press Enter to continue! ⚠️' # noqa
+        # input(s_msg)
+        # print('Executing ...')
 
-        print('Executing ...')
+        if set_proxy(s_vpn):
+            self.logit(None, f'Set VPN Success [VPN: {s_vpn}]')
+            self.browser.wait(3)
+            return True
+        else:
+            d_cont = {
+                'title': f'Fail to set VPN to {s_vpn} ! [x_login]',
+                'text': (
+                    '[X] Fail to set VPN [x_login]\n'
+                    f'- profile: {self.args.s_profile}\n'
+                    f'- vpn: {s_vpn}\n'
+                )
+            }
+            ding_msg(d_cont, DEF_DING_TOKEN, msgtype="markdown")
+            return False
 
     def enter_verification_code(self):
         tab = self.browser.latest_tab
         ele_input = tab.ele('@@tag()=div@@class=PageHeader Edge', timeout=2)
         if not isinstance(ele_input, NoneElement):
             s_info = ele_input.text
-            self.logit(None, f'{s_info}') # noqa
-            if s_info in ['xxx', 'We sent your verification code.']:
+            self.logit(None, f'{s_info}')
+            if s_info in ['我们发送了你的验证码。', 'We sent your verification code.']:
 
                 ele_input = tab.ele('@@tag()=input@@class:Edge-textbox', timeout=1) # noqa
                 if not isinstance(ele_input, NoneElement):
-                    s_code = input('Enter Verification Code:')
-                    tab.actions.move_to(ele_input).click().type(s_code) # noqa
+                    # s_code = input('Enter Verification Code:')
 
+                    s_code = None
+                    max_wait_sec = 120
+                    i = 0
+                    while i < max_wait_sec:
+                        i += 1
+                        self.browser.wait(1)
+                        s_code = get_verify_code_from_gmail()
+                        if s_code is not None:
+                            break
+                        self.logit(None, f'Try to get verification code from gmail ... {i}/{max_wait_sec}') # noqa
+
+                    if s_code is None:
+                        self.logit(None, 'Fail to get verification code from gmail') # noqa
+                    else:
+                        self.logit(None, f'verification code is {s_code}')
+
+                    tab.actions.move_to(ele_input).click().type(s_code)
+                    tab.wait(2)
 
                     ele_btn = tab.ele('@@tag()=input@@type=submit@@class:EdgeButton', timeout=2) # noqa
                     if not isinstance(ele_btn, NoneElement):
+                        btn_text = ele_btn.value
+                        self.logit(None, f'Button text: {btn_text}')
                         ele_btn.wait.clickable(timeout=30).click(by_js=True)
                         tab.wait(2)
                         return True
+                    else:
+                        self.logit(None, 'Verify Button not found.')
         return False
 
     def verify_email(self):
@@ -625,11 +705,21 @@ class X():
         if not isinstance(ele_input, NoneElement):
             s_info = ele_input.text
             self.logit(None, f'{s_info}') # noqa
-            if s_info in ['xxx', 'Please verify your email address.']:
+            if s_info in ['请验证你的邮件地址。', 'Please verify your email address.']:
                 ele_btn = tab.ele('@@tag()=input@@type=submit@@class:EdgeButton', timeout=2) # noqa
                 if not isinstance(ele_btn, NoneElement):
                     ele_btn.wait.clickable(timeout=30).click(by_js=True)
                     tab.wait(2)
+
+                    # d_cont = {
+                    #     'title': 'verify by email [x_login]',
+                    #     'text': (
+                    #         '[X] verify by email [x_login]\n'
+                    #         f'- profile: {self.args.s_profile}\n'
+                    #     )
+                    # }
+                    # ding_msg(d_cont, DEF_DING_TOKEN, msgtype="markdown")
+
                     return True
         return False
 
@@ -645,7 +735,6 @@ class X():
                 tab.wait(2)
                 return True
             else:
-                pdb.set_trace()
                 self.logit(None, 'Fail to load posts ...')
                 if self.wrong_retry():
                     self.wait_loading()
@@ -713,6 +802,11 @@ class X():
                             return True
                         i += 1
                         self.browser.wait(1)
+
+                        # <span id="feather-form-field-text-173">Your original case is already in the queue. Please wait to hear back from us on the original case.</span> # noqa
+                        if self.get_tag_info('span', 'Your original case is already in the queue'): # noqa
+                            return True
+
                         self.logit(None, f'Submiting appeal request ... {i}/{max_wait_sec}') # noqa
 
         return False
@@ -760,7 +854,7 @@ class X():
                 ele_btn = tab.ele('@@tag()=input@@type=submit@@class:EdgeButton', timeout=2) # noqa
                 if not isinstance(ele_btn, NoneElement):
                     ele_btn.wait.clickable(timeout=30).click(by_js=True)
-                    tab.wait(1)
+                    tab.wait(3)
                     return True
         return False
 
@@ -779,7 +873,8 @@ class X():
         return False
 
     def xvisit_run(self):
-        self.set_vpn()
+        if self.set_vpn() is False:
+            return False
 
         self.update_num_visit()
 
@@ -794,15 +889,23 @@ class X():
         if self.wrong_retry():
             self.wait_loading()
 
-        print(f'[{self.args.s_profile}] Success to log in !')
+        if self.args.auto_like:
+            is_like = 'y'
+        else:
+            print(f'[{self.args.s_profile}] Success to log in !')
+            # s_msg = 'Press any key to continue! ⚠️' # noqa
+            s_msg = 'Will you Like a post ? [y/n]' # noqa
+            is_like = input(s_msg)
 
-        # s_msg = 'Press any key to continue! ⚠️' # noqa
-        s_msg = 'Will you Like a post ? [y/n]' # noqa
-        is_like = input(s_msg)
         if is_like == 'y':
-            self.click_like()
+            if not self.click_like():
+                return False
             if self.is_suspend():
-                is_appeal = input('Your account is suspended. Will you appeal now ? [y/n]')
+                if self.args.auto_appeal is True:
+                    is_appeal = 'y'
+                else:
+                    is_appeal = input('Your account is suspended. Will you appeal now ? [y/n]')
+
                 if is_appeal == 'y':
                     self.logit(None, 'appealing ...')
                     self.do_appeal()
@@ -813,8 +916,9 @@ class X():
 
         self.update_date(IDX_VISIT_DATE)
 
-        s_msg = 'Press any key to exit! ⚠️' # noqa
-        input(s_msg)
+        if self.args.manual_exit:
+            s_msg = 'Press any key to exit! ⚠️' # noqa
+            input(s_msg)
 
         self.logit('xvisit_run', 'Finished!')
         self.close()
@@ -849,6 +953,20 @@ def send_msg(instXVisit, lst_success):
         ding_msg(d_cont, DEF_DING_TOKEN, msgtype="markdown")
 
 
+def show_msg():
+    current_directory = os.getcwd()
+    FILE_LOG = f'{current_directory}/{FILENAME_LOG}'
+    FILE_STATUS = f'{current_directory}/{DEF_PATH_DATA_STATUS}/status.csv'
+
+    print('########################################')
+    print('The program is running')
+    print('Location of the running result file:')
+    print(f'{FILE_STATUS}')
+    print('The running process is in the log file:')
+    print(f'{FILE_LOG}')
+    print('########################################')
+
+
 def main(args):
     if args.sleep_sec_at_start > 0:
         logger.info(f'Sleep {args.sleep_sec_at_start} seconds at start !!!') # noqa
@@ -874,7 +992,23 @@ def main(args):
     n = 0
 
     lst_success = []
-    lst_wait = []
+
+    def is_complete(lst_status):
+        if args.force:
+            return False
+
+        b_ret = True
+        date_now = format_ts(time.time(), style=1, tz_offset=TZ_OFFSET)
+
+        if lst_status:
+            for idx_status in [IDX_VISIT_DATE]:
+                s_date = lst_status[idx_status]
+                if date_now != s_date:
+                    b_ret = b_ret and False
+        else:
+            b_ret = False
+
+        return b_ret
 
     def get_sec_wait(lst_status):
         n_sec_wait = 0
@@ -892,21 +1026,15 @@ def main(args):
         s_profile = profiles[i]
         if s_profile in instXVisit.dic_status:
             lst_status = instXVisit.dic_status[s_profile]
-            n_sec_wait = get_sec_wait(lst_status)
-            if n_sec_wait > 0:
-                lst_wait.append([s_profile, n_sec_wait])
-                # logger.info(f'[{s_profile}] 还需等待{n_sec_wait}秒') # noqa
+
+            if is_complete(lst_status):
                 n += 1
                 profiles.pop(i)
+
         else:
             continue
     logger.info('#'*40)
-    if len(lst_wait) > 0:
-        n_top = 5
-        logger.info(f'***** Top {n_top} wait list')
-        sorted_lst_wait = sorted(lst_wait, key=lambda x: x[1], reverse=False)
-        for (s_profile, n_sec_wait) in sorted_lst_wait[:n_top]:
-            logger.info(f'[{s_profile}] 还需等待{seconds_to_hms(n_sec_wait)}') # noqa
+
     percent = math.floor((n / total) * 100)
     logger.info(f'Progress: {percent}% [{n}/{total}]') # noqa
 
@@ -954,8 +1082,7 @@ def main(args):
                 else:
                     lst_status = None
 
-                n_sec_wait = get_sec_wait(lst_status)
-                if n_sec_wait > 0:
+                if is_complete(lst_status):
                     logger.info(f'[{s_profile}] Last update at {lst_status[IDX_UPDATE]}') # noqa
                     break
                 else:
@@ -1011,6 +1138,25 @@ if __name__ == '__main__':
         '--profile', required=False, default='',
         help='按指定的 profile 执行，多个用英文逗号分隔'
     )
+    parser.add_argument(
+        '--auto_like', required=False, action='store_true',
+        help='Like a post after login automatically'
+    )
+    parser.add_argument(
+        '--auto_appeal', required=False, action='store_true',
+        help='Auto appeal when account is suspended'
+    )
+    parser.add_argument(
+        '--force', required=False, action='store_true',
+        help='Run ignore status'
+    )
+    parser.add_argument(
+        '--manual_exit', required=False, action='store_true',
+        help='Close chrome manual'
+    )
+
+    show_msg()
+
     args = parser.parse_args()
     if args.loop_interval <= 0:
         main(args)
@@ -1022,7 +1168,10 @@ if __name__ == '__main__':
 
 """
 # noqa
-python xvisit.py --sleep_sec_min=30 --sleep_sec_max=60 --loop_interval=60
-python xvisit.py --sleep_sec_min=600 --sleep_sec_max=1800 --loop_interval=180
-python xvisit.py --sleep_sec_min=60 --sleep_sec_max=180
+python xvisit.py --auto_like --auto_appeal --sleep_sec_min=30 --sleep_sec_max=60 --loop_interval=60
+python xvisit.py --auto_like --auto_appeal --sleep_sec_min=600 --sleep_sec_max=1800 --loop_interval=180
+python xvisit.py --auto_like --auto_appeal --sleep_sec_min=60 --sleep_sec_max=180
+python xvisit.py --auto_like --auto_appeal --sleep_sec_min=120 --sleep_sec_max=360
+
+python xvisit.py --auto_like --auto_appeal --profile=g05
 """
