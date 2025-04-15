@@ -12,6 +12,9 @@ from datetime import timedelta
 import socket
 import time
 import re
+import random
+import string
+
 
 DEF_URL_DINGTALK = "https://oapi.dingtalk.com/robot/send"
 access_token = "0313ed7471f2910596c1d91cef6569c132"  # noqa
@@ -324,9 +327,42 @@ def seconds_to_hms(seconds):
     return ''.join(parts)
 
 
+def generate_password(length):
+    """
+    生成指定长度的密码
+    :param length: 密码长度
+    :return: 生成的密码
+    """
+    if length < 4:
+        raise ValueError("密码长度至少为4")
+
+    # 包含大小写字母、数字和特殊字符的字符集
+    # characters = string.ascii_letters + string.digits + string.punctuation
+    characters = string.ascii_letters + string.digits + '_'
+    # 确保密码中包含至少一个大写字母、一个小写字母、一个数字和一个特殊字符
+    password = [
+        random.choice(string.ascii_uppercase),
+        random.choice(string.ascii_lowercase),
+        random.choice(string.digits),
+        '_'
+        # random.choice(string.punctuation)
+    ]
+    # 填充剩余的字符
+    password += random.choices(characters, k=length - 4)
+    # 打乱密码字符顺序
+    random.shuffle(password)
+    return ''.join(password)
+
+
 if __name__ == "__main__":
     """
     """
+
+    # 示例用法
+    password_length = 20  # 指定密码长度
+    password = generate_password(password_length)
+    print(f"生成的密码为: {password}")
+    sys.exit(-1)
 
     input_time_str = "2024-09-09T18:21:22+0800"
     n_sec = time_difference(input_time_str)
