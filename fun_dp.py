@@ -173,8 +173,8 @@ class DpUtils():
         co.set_user_agent(user_agent='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36') # noqa
 
         try:
-            browser = Chromium(co)
-            return browser
+            self.browser = Chromium(co)
+            return self.browser
         except Exception as e:
             logger.info(f'Error: {e}')
         finally:
@@ -219,26 +219,30 @@ class DpUtils():
         self.logit(None, f'Fail to set n_max_times! [n_max_times={n_max_times}] [Error]') # noqa
         return False
 
-    def set_auto_start(self, b_auto_start=True):
-        n_max_times = 3
-        self.logit(None, f'To set max try times: {n_max_times}') # noqa
+    def set_checkbox(self, s_path, is_select=True, s_display=''):
+        """
+        is_select:
+            True / False
+        s_display:
+            display info
+        """
+        n_max_times = 5
+        self.logit(None, f'To set checkbox try times: {n_max_times}') # noqa
 
-        max_try = 20
         i = 0
-        while i < max_try:
+        while i < n_max_times:
             i += 1
             tab = self.browser.latest_tab
-            x_path = 'x://*[@id="app"]/div/div[2]/div[2]/div/div[6]/div[2]/span/input' # noqa
-            checkbox = tab.ele(x_path, timeout=2)
+            checkbox = tab.ele(s_path, timeout=2)
             if not isinstance(checkbox, NoneElement):
-                if checkbox.states.is_checked == b_auto_start:
-                    self.logit(None, f'Set auto_start success! [auto_start={b_auto_start}]') # noqa
+                if checkbox.states.is_checked == is_select:
+                    self.logit(None, f'Set {s_display} success! [checked={is_select}]') # noqa
                     return True
                 checkbox.click()
-                self.logit(None, 'Save button is clicked')
+                self.logit(None, 'checkbox is clicked')
                 tab.wait(1)
 
-        self.logit(None, f'Fail to set auto_start! [Error]') # noqa
+        self.logit(None, f'Fail to set {s_display} ! [Error]') # noqa
         return False
 
     def init_yescaptcha(self):
@@ -287,8 +291,12 @@ class DpUtils():
             self.set_max_try_times()
 
             # 自动开启
-            # self.set_auto_start(b_auto_start=True)
-            self.set_auto_start(b_auto_start=False)
+            s_path = 'x://*[@id="app"]/div/div[2]/div[2]/div/div[6]/div[2]/span/input' # noqa
+            self.set_checkbox(s_path, False, 'auto_start')
+
+            # Cloudflare
+            s_path = 'x://*[@id="app"]/div/div[2]/div[3]/div/div[5]/label/span[1]/input' # noqa
+            self.set_checkbox(s_path, False, 'Cloudflare')
 
             logger.info('yescaptcha init success')
             self.save_screenshot(name='yescaptcha_2.jpg')

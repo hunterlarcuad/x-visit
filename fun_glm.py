@@ -12,6 +12,7 @@ import sys
 import csv
 import argparse
 import time
+import pdb
 
 from conf import DEF_LLM_ZHIPUAI
 
@@ -53,9 +54,21 @@ def get_rsp_by_id(task_id):
 
 
 def gene_repeal_msg(s_in):
+    """
+    Return:
+        None: Fail to generate msg by llm
+        string: generated content by llm
+    """
     client = get_glm_client()
     s_prompt = (
-        "对下面的一段申诉内容进行改写:"
+        "【功能】"
+        "对申诉内容进行改写"
+        "【要求】"
+        "改写后的申诉与原申诉内容的相似度不超过70%"
+        "要有礼貌，在最后对审核人员表示感谢"
+        "请用英语输出"
+        "输出不要出现换行符"
+        "【参考申诉内容如下】"
         f"{s_in}"
     )
     response = client.chat.asyncCompletions.create(
@@ -73,11 +86,17 @@ def gene_repeal_msg(s_in):
 
     while task_status != 'SUCCESS' and task_status != 'FAILED' and get_cnt <= 40:
         result_response = client.chat.asyncCompletions.retrieve_completion_result(id=task_id)
-        print(result_response)
+        # print(result_response)
         task_status = result_response.task_status
+
+        if task_status == 'SUCCESS':
+            s_cont = result_response.choices[0].message.content
+            return s_cont
 
         time.sleep(2)
         get_cnt += 1
+
+    return None
 
 
 # def main():

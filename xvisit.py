@@ -103,7 +103,7 @@ class XVisit():
 
         self.dic_account = {}
 
-        self.account_load()
+        # self.account_load()
 
         if DEF_OKX:
             self.inst_okx = OkxUtils()
@@ -118,7 +118,8 @@ class XVisit():
         self.is_update = False
 
     def __del__(self):
-        self.status_save()
+        pass
+        # self.status_save()
 
     # def account_load(self):
     #     self.file_account = DEF_FILE_X_ENCRIYPT
@@ -261,7 +262,6 @@ class XVisit():
         self.update_status(idx_status, claim_date)
 
     def xvisit_run(self):
-
         self.browser = self.inst_dp.get_browser(self.args.s_profile)
 
         self.inst_x.status_load()
@@ -270,6 +270,9 @@ class XVisit():
         idx_vpn = get_index_from_header(DEF_HEADER_ACCOUNT, 'proxy')
         s_vpn = self.inst_x.dic_account[self.args.s_profile][idx_vpn]
         if self.inst_dp.set_vpn(s_vpn) is False:
+            return False
+
+        if self.inst_dp.init_yescaptcha() is False:
             return False
 
         self.inst_x.twitter_run()
@@ -284,13 +287,13 @@ class XVisit():
         return True
 
 
-def send_msg(instXVisit, lst_success):
+def send_msg(x_visit, lst_success):
     if len(DEF_DING_TOKEN) > 0 and len(lst_success) > 0:
         s_info = ''
         for s_profile in lst_success:
             lst_status = None
-            if s_profile in instXVisit.dic_status:
-                lst_status = instXVisit.dic_status[s_profile]
+            if s_profile in x_visit.inst_x.dic_status:
+                lst_status = x_visit.inst_x.dic_status[s_profile]
 
             if lst_status is None:
                 lst_status = [s_profile, -1]
@@ -335,13 +338,13 @@ def main(args):
         shutil.rmtree(DEF_PATH_USER_DATA)
         logger.info(f'Directory {DEF_PATH_USER_DATA} is deleted') # noqa
 
-    instXVisit = XVisit()
+    x_visit = XVisit()
 
     if len(args.profile) > 0:
         items = args.profile.split(',')
     else:
         # 从配置文件里获取钱包名称列表
-        items = list(instXVisit.dic_account.keys())
+        items = list(x_visit.inst_x.dic_account.keys())
 
     profiles = copy.deepcopy(items)
 
@@ -378,12 +381,12 @@ def main(args):
         return n_sec_wait
 
     # 将已完成的剔除掉
-    instXVisit.status_load()
+    x_visit.inst_x.status_load()
     # 从后向前遍历列表的索引
     for i in range(len(profiles) - 1, -1, -1):
         s_profile = profiles[i]
-        if s_profile in instXVisit.dic_status:
-            lst_status = instXVisit.dic_status[s_profile]
+        if s_profile in x_visit.inst_x.dic_status:
+            lst_status = x_visit.inst_x.dic_status[s_profile]
 
             if is_complete(lst_status):
                 n += 1
@@ -406,7 +409,7 @@ def main(args):
 
         args.s_profile = s_profile
 
-        if s_profile not in instXVisit.dic_account:
+        if s_profile not in x_visit.inst_x.dic_account:
             logger.info(f'{s_profile} is not in account conf [ERROR]')
             sys.exit(0)
 
@@ -417,10 +420,12 @@ def main(args):
                 if j > 1:
                     logger.info(f'⚠️ 正在重试，当前是第{j}次执行，最多尝试{max_try_except}次 [{s_profile}]') # noqa
 
-                instXVisit.set_args(args)
+                x_visit.set_args(args)
+                x_visit.inst_dp.set_args(args)
+                x_visit.inst_x.set_args(args)
 
-                if s_profile in instXVisit.dic_status:
-                    lst_status = instXVisit.dic_status[s_profile]
+                if s_profile in x_visit.inst_x.dic_status:
+                    lst_status = x_visit.inst_x.dic_status[s_profile]
                 else:
                     lst_status = None
 
@@ -428,17 +433,17 @@ def main(args):
                     logger.info(f'[{s_profile}] Last update at {lst_status[IDX_UPDATE]}') # noqa
                     break
                 else:
-                    if instXVisit.xvisit_run():
+                    if x_visit.xvisit_run():
                         lst_success.append(s_profile)
                         break
 
             except Exception as e:
                 logger.info(f'[{s_profile}] An error occurred: {str(e)}')
-                instXVisit.close()
+                x_visit.close()
                 if j < max_try_except:
                     time.sleep(5)
 
-        if instXVisit.is_update is False:
+        if x_visit.inst_x.is_update is False:
             continue
 
         logger.info(f'Progress: {percent}% [{n}/{total}] [{s_profile} Finish]')
@@ -451,7 +456,7 @@ def main(args):
                 logger.info('sleep {} seconds ...'.format(int(sleep_time)))
             time.sleep(sleep_time)
 
-    send_msg(instXVisit, lst_success)
+    send_msg(x_visit, lst_success)
 
 
 if __name__ == '__main__':
@@ -515,4 +520,7 @@ python xvisit.py --auto_like --auto_appeal --sleep_sec_min=60 --sleep_sec_max=18
 python xvisit.py --auto_like --auto_appeal --sleep_sec_min=120 --sleep_sec_max=360
 
 python xvisit.py --auto_like --auto_appeal --profile=g05
+python xvisit.py --auto_like --auto_appeal --force --profile=g05
+
+python xvisit.py --auto_like --auto_appeal --force --profile=t33
 """

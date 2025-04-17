@@ -155,7 +155,7 @@ def get_proxy_current():
     """
     # Set up a session with retries
     session = requests.Session()
-    retries = Retry(total=5, backoff_factor=1, status_forcelist=[502, 503, 504]) # noqa
+    retries = Retry(total=3, backoff_factor=1, status_forcelist=[502, 503, 504]) # noqa
     session.mount('http://', HTTPAdapter(max_retries=retries))
 
     data = fetch_proxis(session)
@@ -179,12 +179,14 @@ def get_proxy_list(s_mode):
     """
     # Set up a session with retries
     session = requests.Session()
-    retries = Retry(total=5, backoff_factor=1, status_forcelist=[502, 503, 504]) # noqa
+    retries = Retry(total=3, backoff_factor=1, status_forcelist=[502, 503, 504]) # noqa
     session.mount('http://', HTTPAdapter(max_retries=retries))
 
     data = fetch_proxis(session)
-    d_proxies = data.get('proxies', {})
+    if data is None:
+        return (None, [])
 
+    d_proxies = data.get('proxies', {})
     d_selector = d_proxies['GLOBAL']
     # proxy_now = d_proxies['节点选择']['now']
     proxy_now = d_proxies[s_mode]['now']
@@ -230,7 +232,7 @@ def set_proxy(proxy_dest):
     """
     # Set up a session with retries
     session = requests.Session()
-    retries = Retry(total=5, backoff_factor=1, status_forcelist=[502, 503, 504]) # noqa
+    retries = Retry(total=3, backoff_factor=1, status_forcelist=[502, 503, 504]) # noqa
     session.mount('http://', HTTPAdapter(max_retries=retries))
 
     s_mode = get_mode(session)
@@ -258,7 +260,7 @@ def change_proxy(black_list=[]):
     """
     # Set up a session with retries
     session = requests.Session()
-    retries = Retry(total=5, backoff_factor=1, status_forcelist=[502, 503, 504]) # noqa
+    retries = Retry(total=3, backoff_factor=1, status_forcelist=[502, 503, 504]) # noqa
     session.mount('http://', HTTPAdapter(max_retries=retries))
 
     proxy_dest = ''

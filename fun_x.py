@@ -25,6 +25,8 @@ from fun_utils import get_index_from_header
 from fun_encode import decrypt
 from fun_gmail import get_verify_code_from_gmail
 
+from fun_glm import gene_repeal_msg
+
 from proxy_api import set_proxy
 
 from fun_okx import OkxUtils
@@ -86,7 +88,7 @@ DEF_STATUS_APPEALED = 'APPEALED'
 DEF_OKX = False
 
 DEF_FILE_X_ENCRIYPT = f'{DEF_PATH_DATA_ACCOUNT}/x_encrypt.csv'
-DEF_FILE_X_STATUS = f'{DEF_PATH_DATA_ACCOUNT}/x_status.csv'
+DEF_FILE_X_STATUS = f'{DEF_PATH_DATA_STATUS}/x_status.csv'
 
 
 class XUtils():
@@ -759,6 +761,15 @@ class XUtils():
         return False
 
     def do_appeal(self):
+
+        s_cont_default = random.choice(DEF_LIST_APPEAL_DESC)
+        s_cont_llm = gene_repeal_msg(s_cont_default)
+        if s_cont_llm is None:
+            s_cont_appeal = s_cont_default
+            self.logit(None, f'Fail to gene appeal cont by llm. cont_default: {s_cont_appeal}') # noqa
+        else:
+            s_cont_appeal = s_cont_llm
+
         for i in range(1, DEF_NUM_TRY+1):
             self.logit('xutils_login', f'try_i={i}/{DEF_NUM_TRY}')
 
@@ -784,9 +795,8 @@ class XUtils():
             ele_input = tab.ele('@@tag()=textarea@@name=DescriptionText', timeout=2) # noqa
             if not isinstance(ele_input, NoneElement):
                 # s_text = input('Tell us if you’re having a problem accessing your account:') # noqa
-                s_text = random.choice(DEF_LIST_APPEAL_DESC)
-                tab.actions.move_to(ele_input).click().type(s_text) # noqa
-                self.logit(None, f'{s_text}') # noqa
+                tab.actions.move_to(ele_input).click().type(s_cont_appeal) # noqa
+                self.logit(None, f'{s_cont_appeal}') # noqa
                 tab.wait(2)
 
                 ele_btn = tab.ele('@@tag()=button@@type=submit@@class:submit', timeout=2) # noqa
@@ -878,8 +888,8 @@ class XUtils():
         return False
 
     def twitter_run(self):
-        if self.set_vpn() is False:
-            return False
+        # if self.set_vpn() is False:
+        #     return False
 
         self.update_num_visit()
 
