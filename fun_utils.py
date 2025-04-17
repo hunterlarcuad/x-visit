@@ -128,6 +128,9 @@ def ding_msg(content, access_token, msgtype="markdown"):
                 ip=s_ip
             )
         )
+        content = {
+            "content": content
+        }
     data = {
         "msgtype": msgtype,
         msgtype: content,

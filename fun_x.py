@@ -440,6 +440,31 @@ class XUtils():
 
         self.update_status(idx_status, claim_date)
 
+
+    def verify_human(self):
+        s_path = '@@tag()=p@@class=h2 spacer-bottom'
+        s_text = self.get_text(s_path, 'Verify')
+        if s_text is None:
+            return False
+        return True
+
+    def auto_verify_cloudflare(self):
+        if self.verify_human():
+            # s_msg = f'[{self.args.s_profile}]Verify you are human by completing the action'
+            # ding_msg(s_msg, DEF_DING_TOKEN, msgtype='text')
+            # input('Verify you are human by completing the action')
+
+            # Wait CapMonster to verify
+            max_wait_sec = 60
+            i = 0
+            while i < max_wait_sec:
+                i += 1
+                if self.verify_human() is None:
+                    self.logit(None, f'CapMonster verify success !') # noqa
+                    break
+                self.logit(None, f'Wait CapMonster to verify ... {i}/{max_wait_sec}') # noqa
+                self.browser.wait(1)
+
     def wait_log_in_button(self, max_wait_sec=30):
         i = 0
         while i < max_wait_sec:
@@ -453,10 +478,14 @@ class XUtils():
             i += 1
             self.browser.wait(1)
 
+            self.x_locked()
+
             if self.x_unlocked():
                 break
 
             # ERR_CONNECTION_RESET
+
+            self.auto_verify_cloudflare()
 
             self.logit(None, f'Wait to load login in button ... {i}/{max_wait_sec}') # noqa
         return False
@@ -508,6 +537,18 @@ class XUtils():
             self.logit(None, f'[info][{s_tag}] {s_text}: {s_info}')
             return True
         return False
+
+    def get_text(self, s_path, s_msg):
+        """
+        """
+        tab = self.browser.latest_tab
+        ele_info = tab.ele(s_path, timeout=1)
+        if not isinstance(ele_info, NoneElement):
+            # self.logit(None, f'[html] {s_text}: {ele_info.html}')
+            s_info = ele_info.text.replace('\n', ' ')
+            self.logit(None, f'[info][{s_msg}]: {s_info}')
+            return s_info
+        return None
 
     def twitter_login(self):
         if self.is_login_success():

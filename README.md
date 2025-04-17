@@ -1,4 +1,8 @@
 # X-Assistant Change List
+
+## 2025.04.17
+- 通过 CapMonster 过 Cloudflare 验证
+
 ## 2025.04.11
 - 通过 Clash Verge API 设置代理
 - 通过 Gmail API 获取邮件验证码

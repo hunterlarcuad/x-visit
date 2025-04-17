@@ -272,6 +272,9 @@ class XVisit():
         if self.inst_dp.set_vpn(s_vpn) is False:
             return False
 
+        if self.inst_dp.init_capmonster() is False:
+            return False
+
         if self.inst_dp.init_yescaptcha() is False:
             return False
 

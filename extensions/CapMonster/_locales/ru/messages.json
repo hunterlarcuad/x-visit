@@ -1,0 +1,206 @@
+{
+    "extName": {
+        "message": "CapMonster Cloud — автоматическое разгадывание капч",
+        "description": "The title of the application, displayed in the web store."
+    },
+    "extDesc": {
+        "message": "Облачный сервис для автоматического распознавания капч",
+        "description": "The description of the application, displayed in the web store."
+    },
+    "extShortName": {
+        "message": "CapMonster Cloud",
+        "description": ""
+    },
+    "extNameFirefox": {
+        "message": "CapMonster Cloud — автоматическое решение капч",
+        "description": "The title of the application, displayed in the web store."
+    },
+    "extDescFirefox": {
+        "message": "Облачный сервис для автоматического решения капч",
+        "description": "The description of the application, displayed in the web store."
+    },
+    "on": {
+        "message": "Вкл",
+        "description": ""
+    },
+    "off": {
+        "message": "Выкл",
+        "description": ""
+    },
+    "support": {
+        "message": "Поддержка",
+        "description": ""
+    },
+    "apiKeyPlaceholder": {
+        "message": "Введите API-ключ",
+        "description": ""
+    },
+    "getKey": {
+        "message": "Получить ключ",
+        "description": ""
+    },
+    "balance": {
+        "message": "Баланс",
+        "description": ""
+    },
+    "topUp": {
+        "message": "Пополнить",
+        "description": ""
+    },
+    "wrongKey": {
+        "message": "Неверный ключ",
+        "description": ""
+    },
+    "emptyKey": {
+        "message": "Пустой ключ",
+        "description": ""
+    },
+    "automaticCaptchaSolving": {
+        "message": "Автоматическое решение капч",
+        "description": ""
+    },
+    "settings": {
+        "message": "Настройки",
+        "description": ""
+    },
+    "repeatSolveAttempts": {
+        "message": "Повторно решать капчи в случае ошибки, раз",
+        "description": ""
+    },
+    "proxy": {
+        "message": "Прокси",
+        "description": ""
+    },
+    "proxyType": {
+        "message": "Тип прокси",
+        "description": ""
+    },
+    "port": {
+        "message": "Порт",
+        "description": ""
+    },
+    "login": {
+        "message": "Логин",
+        "description": ""
+    },
+    "password": {
+        "message": "Пароль",
+        "description": ""
+    },
+    "blacklistControl": {
+        "message": "Управление черным списком",
+        "description": ""
+    },
+    "blacklistDescription": {
+        "message": "Распознавание капч на добавленных сайтах будет отключено",
+        "description": ""
+    },
+    "add": {
+        "message": "Добавить",
+        "description": ""
+    },
+    "manualRecognition": {
+        "message": "Ручное распознавание",
+        "description": ""
+    },
+    "textCaptcha": {
+        "message": "Текстовая капча",
+        "description": ""
+    },
+    "textCaptchaHelpLink": {
+        "message": "https://docs.capmonster.cloud/ru/docs/captchas/image-to-text",
+        "description": ""
+    },
+    "markImageAsCaptcha": {
+        "message": "Отметить изображение как капчу",
+        "description": ""
+    },
+    "selectForSubmit": {
+        "message": "Отметить элемент для сабмита",
+        "description": ""
+    },
+    "selectInputForCaptchaResult": {
+        "message": "Выбрать поле для результата капчи",
+        "description": ""
+    },
+    "help": {
+        "message": "Справка",
+        "description": ""
+    },
+    "rcInfoText": {
+        "message": "Только click",
+        "description": ""
+    },
+    "close_button": {
+        "message": "Закрыть",
+        "description": ""
+    },
+    "delayStartCount": {
+        "message": "Задержка перед началом решения кликами",
+        "description": ""
+    },
+    "textCaptchaSaveOnSite": {
+        "message": "Сохранять элементы решения капчи для сайтов",
+        "description": ""
+    },
+    "delayAfterLoadPage": {
+        "message": "Задержка перед решением сохраненной капчи",
+        "description": ""
+    },
+    "autoClick": {
+        "message": "Автоматический клик",
+        "description": ""
+    },
+    "autoSolve": {
+        "message": "Автоматическое решение",
+        "description": ""
+    },
+    "globalVariableSetting": {
+        "message": "Название глобального объекта",
+        "description": ""
+    },
+    "manualRecognitionDescription": {
+        "message": "Эта функция позволяет начинать решение капчи методом «Токен» не автоматически, а по нажатию на кнопку «Решить»",
+        "description": ""
+    },
+    "textCaptchaModule": {
+        "message": "Текстовый модуль",
+        "description": ""
+    },
+    "enterModuleName": {
+        "message": "Введите название модуля",
+        "description": ""
+    },
+    "addModuleText": {
+        "message": "Добавить модуль",
+        "description": ""
+    },
+    "autoModule": {
+        "message": "Автоматически",
+        "description": ""
+    },
+    "delayBetweenClickValue": {
+        "message": "Задержка между кликами (мс)",
+        "description": ""
+    },
+    "delayBetweenClickEnabled": {
+        "message": "Задержка между кликами",
+        "description": ""
+    },
+    "apiKeyTitle": {
+        "message": "API-ключ",
+        "description": ""
+    },
+    "globalObjectDescription": {
+        "message": "Название поля для взаимодействия с расширением через глобальный объект. Подробнее о настройках расширения можно узнать <a href=\"https://docs.capmonster.cloud/ru/docs/extension/ext-settings\" target=\"_blank\" rel=\"noreferrer\" style=\"color: #7D6EFF\">в статье</a>.",
+        "description": ""
+    },
+    "autoSubmitText": {
+        "message": "Элемент для автоматической отправки",
+        "description": ""
+    },
+    "removeAutoSubmit": {
+        "message": "Удалить",
+        "description": ""
+    }
+}

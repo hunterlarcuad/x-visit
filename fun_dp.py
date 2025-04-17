@@ -33,24 +33,21 @@ from conf import DEF_PATH_USER_DATA
 from conf import DEF_NUM_TRY
 from conf import DEF_DING_TOKEN
 from conf import DEF_PATH_BROWSER
-from conf import DEF_PATH_DATA_STATUS
-from conf import DEF_HEADER_STATUS
-from conf import DEF_ENCODE_HANDLE
 
-from conf import DEF_PATH_DATA_ACCOUNT
 from conf import DEF_HEADER_ACCOUNT
 
 from conf import TZ_OFFSET
-from conf import DEL_PROFILE_DIR
 
 from conf import DEF_CAPTCHA_EXTENSION_PATH
 from conf import DEF_CAPTCHA_KEY
 from conf import EXTENSION_ID_YESCAPTCHA
-from conf import DEF_LIST_APPEAL_DESC
+
+from conf import DEF_CAPMONSTER_EXTENSION_PATH
+from conf import EXTENSION_ID_CAPMONSTER
+from conf import DEF_CAPMONSTER_KEY
 
 from conf import DEF_OKX_EXTENSION_PATH
 
-from conf import FILENAME_LOG
 from conf import logger
 
 """
@@ -165,6 +162,7 @@ class DpUtils():
                 sys.exit(1)
 
         addon(s_name='YesCaptcha', s_path=DEF_CAPTCHA_EXTENSION_PATH)
+        addon(s_name='CapMonster', s_path=DEF_CAPMONSTER_EXTENSION_PATH)
         if DEF_OKX:
             addon(s_name='okx', s_path=DEF_OKX_EXTENSION_PATH)
 
@@ -303,6 +301,100 @@ class DpUtils():
             return True
         else:
             return False
+
+
+
+
+
+    def init_capmonster(self):
+        """
+        chrome-extension://jiofmdifioeejeilfkpegipdjiopiekl/popup/index.html
+        """
+        s_url = f'chrome-extension://{EXTENSION_ID_CAPMONSTER}/popup.html'
+        tab = self.browser.latest_tab
+        tab.get(s_url)
+        tab.wait(3)
+
+        def get_balance():
+            """
+            Balance: $0.9987
+            Balance: Wrong key
+            """
+            tab.wait(1)
+            ele_info = tab.ele('tag:div@@class=sc-bdvvtL dTzMWc', timeout=2) # noqa
+            if not isinstance(ele_info, NoneElement):
+                s_info = ele_info.text
+                logger.info(f'{s_info}')
+                self.logit('init_capmonster', f'CapMonster {s_info}')
+                if s_info.find('$') >= 0:
+                    return True
+                if s_info.find('Wrong key') >= 0:
+                    return False
+            return False
+
+        def click_checkbox(s_value):
+            ele_input = tab.ele(f'tag:input@@value={s_value}', timeout=2)
+            if not isinstance(ele_input, NoneElement):
+                if ele_input.states.is_checked is True:
+                    ele_input.click(by_js=True)
+                    self.logit(None, f'cancel checkbox {s_value}')
+                    return True
+            return False
+
+        def cancel_checkbox():
+            lst_text = [
+                'ReCaptcha2',
+                'ReCaptcha3',
+                'ReCaptchaEnterprise',
+                'GeeTest',
+                'ImageToText',
+                'BLS',
+            ]
+            for s_value in lst_text:
+                click_checkbox(s_value)
+
+        self.save_screenshot(name='capmonster_1.jpg')
+
+        if get_balance():
+            return True
+
+        ele_block = tab.ele('tag:div@@class=sc-bdvvtL ehUtQX', timeout=2)
+        if isinstance(ele_block, NoneElement):
+            self.logit('init_capmonster', 'API-key block is not found')
+            return False
+        self.logit('init_capmonster', None)
+
+        ele_input = ele_block.ele('tag:input')
+        if not isinstance(ele_input, NoneElement):
+            if ele_input.value == DEF_CAPMONSTER_KEY:
+                self.logit(None, 'init_capmonster has been initialized before')
+                return True
+            if len(ele_input.value) > 0 and ele_input.value != DEF_CAPMONSTER_KEY: # noqa
+                ele_input.click.multi(times=2)
+                ele_input.clear(by_js=True)
+                # tab.actions.type('BACKSPACE')
+            tab.actions.move_to(ele_input).click().type(DEF_CAPMONSTER_KEY) # noqa
+            tab.wait(1)
+            ele_btn = ele_block.ele('tag:button')
+            if not isinstance(ele_btn, NoneElement):
+                if ele_btn.states.is_enabled is False:
+                    self.logit(None, 'The Save Button is_enabled=False')
+                else:
+                    ele_btn.click(by_js=True)
+                    tab.wait(1)
+                    self.logit(None, 'Saved capmonster_key [OK]')
+                    cancel_checkbox()
+                    if get_balance():
+                        return True
+            else:
+                self.logit(None, 'the save button is not found')
+                return False
+        else:
+            self.logit(None, 'the input element is not found')
+            return False
+
+        logger.info('capmonster init success')
+        self.save_screenshot(name='capmonster_2.jpg')
 
     def logit(self, func_name=None, s_info=None):
         s_text = f'{self.args.s_profile}'
@@ -447,7 +539,7 @@ class DpUtils():
         #         f'- vpn: {s_vpn}\n'
         #     )
         # }
-        # ding_msg(d_cont, DEF_DING_TOKEN, msgtype="markdown")
+        # ding_msg(d_cont, DEF_DING_opTOKEN, msgtype="markdown")
         # s_msg = f'[{self.args.s_profile}] Set VPN to {s_vpn} and press Enter to continue! ⚠️' # noqa
         # input(s_msg)
         # print('Executing ...')

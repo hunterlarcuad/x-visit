@@ -1,0 +1,206 @@
+{
+    "extName": {
+        "message": "CapMonster Cloud — automated captcha solver",
+        "description": "The title of the application, displayed in the web store."
+    },
+    "extDesc": {
+        "message": "Online service for automated captcha solving",
+        "description": "The description of the application, displayed in the web store."
+    },
+    "extNameFirefox": {
+        "message": "CapMonster Cloud — automated captcha solver",
+        "description": "The title of the application, displayed in the web store."
+    },
+    "extDescFirefox": {
+        "message": "Online service for automated captcha solving",
+        "description": "The description of the application, displayed in the web store."
+    },
+    "extShortName": {
+        "message": "CapMonster Cloud",
+        "description": ""
+    },
+    "on": {
+        "message": "On",
+        "description": ""
+    },
+    "off": {
+        "message": "Off",
+        "description": ""
+    },
+    "support": {
+        "message": "Support",
+        "description": ""
+    },
+    "apiKeyPlaceholder": {
+        "message": "Enter API key",
+        "description": ""
+    },
+    "getKey": {
+        "message": "Get a key",
+        "description": ""
+    },
+    "balance": {
+        "message": "Balance",
+        "description": ""
+    },
+    "topUp": {
+        "message": "Add funds",
+        "description": ""
+    },
+    "wrongKey": {
+        "message": "Wrong key",
+        "description": ""
+    },
+    "emptyKey": {
+        "message": "Empty key",
+        "description": ""
+    },
+    "automaticCaptchaSolving": {
+        "message": "Automated captcha solving",
+        "description": ""
+    },
+    "settings": {
+        "message": "Settings",
+        "description": ""
+    },
+    "repeatSolveAttempts": {
+        "message": "Repeat captcha solving in case of an error, attempts",
+        "description": ""
+    },
+    "proxy": {
+        "message": "Proxy",
+        "description": ""
+    },
+    "proxyType": {
+        "message": "Proxy type",
+        "description": ""
+    },
+    "port": {
+        "message": "Port",
+        "description": ""
+    },
+    "login": {
+        "message": "Login",
+        "description": ""
+    },
+    "password": {
+        "message": "Password",
+        "description": ""
+    },
+    "blacklistControl": {
+        "message": "Blacklist control",
+        "description": ""
+    },
+    "blacklistDescription": {
+        "message": "Captcha solving on added websites will be disabled",
+        "description": ""
+    },
+    "add": {
+        "message": "Add",
+        "description": ""
+    },
+    "manualRecognition": {
+        "message": "Manual recognition",
+        "description": ""
+    },
+    "textCaptcha": {
+        "message": "Text captcha",
+        "description": ""
+    },
+    "textCaptchaHelpLink": {
+        "message": "https://docs.capmonster.cloud/docs/captchas/image-to-text",
+        "description": ""
+    },
+    "markImageAsCaptcha": {
+        "message": "Mark image as captcha",
+        "description": ""
+    },
+    "selectForSubmit": {
+        "message": "Select element for submit",
+        "description": ""
+    },
+    "selectInputForCaptchaResult": {
+        "message": "Select an input for the captcha result",
+        "description": ""
+    },
+    "help": {
+        "message": "Help",
+        "description": ""
+    },
+    "rcInfoText": {
+        "message": "Only click",
+        "description": ""
+    },
+    "close_button": {
+        "message": "Close",
+        "description": ""
+    },
+    "delayStartCount": {
+        "message": "Delay between start solve captcha clicks",
+        "description": ""
+    },
+    "textCaptchaSaveOnSite": {
+        "message": "Save selected captcha position for sites",
+        "description": ""
+    },
+    "delayAfterLoadPage": {
+        "message": "Delay before start solve saved captcha",
+        "description": ""
+    },
+    "autoClick": {
+        "message": "Auto click",
+        "description": ""
+    },
+    "autoSolve": {
+        "message": "Auto solve",
+        "description": ""
+    },
+    "globalVariableSetting": {
+        "message": "Global variable",
+        "description": ""
+    },
+    "manualRecognitionDescription": {
+        "message": "This feature allows starting captcha solving using the \"Token\" method not automatically but by clicking the \"Solve\" button.",
+        "description": ""
+    },
+    "textCaptchaModule": {
+        "message": "Text module",
+        "description": ""
+    },
+    "enterModuleName": {
+        "message": "Enter text module",
+        "description": ""
+    },
+    "addModuleText": {
+        "message": "Add module",
+        "description": ""
+    },
+    "autoModule": {
+        "message": "Auto",
+        "description": ""
+    },
+    "delayBetweenClickValue": {
+        "message": "Delay between click (ms)",
+        "description": ""
+    },
+    "delayBetweenClickEnabled": {
+        "message": "Delay between click",
+        "description": ""
+    },
+    "apiKeyTitle": {
+        "message": "API-key",
+        "description": ""
+    },
+    "globalObjectDescription": {
+        "message": "Name of the field for interaction with the extension via a global object. More information about the extension settings can be found <a href=\"https://docs.capmonster.cloud/docs/extension/ext-settings\" target=\"_blank\" rel=\"noreferrer\" style=\"color: #7D6EFF\">in the article</a>.",
+        "description": ""
+    },
+    "autoSubmitText": {
+        "message": "Element for auto submit",
+        "description": ""
+    },
+    "removeAutoSubmit": {
+        "message": "Remove",
+        "description": ""
+    }
+}
