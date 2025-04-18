@@ -18,7 +18,7 @@ https://github.com/hunterlarcuad/x-visit.git
 # venv
 ```
 # Create venv
-python3 -m venv venv
+python -m venv venv
 # Activate venv
 source venv/bin/activate
 # Exit venv
