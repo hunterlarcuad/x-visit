@@ -9,7 +9,6 @@ import shutil
 import math
 import re # noqa
 from datetime import datetime # noqa
-import pyotp
 
 from DrissionPage import ChromiumOptions
 from DrissionPage import Chromium
@@ -22,45 +21,27 @@ from fun_utils import format_ts
 from fun_utils import time_difference
 from fun_utils import get_index_from_header
 
-from fun_encode import decrypt
-from fun_gmail import get_verify_code_from_gmail
-
-from proxy_api import set_proxy
-
 from fun_okx import OkxUtils
 from fun_x import XUtils
 from fun_dp import DpUtils
 
-from conf import DEF_LOCAL_PORT
-from conf import DEF_INCOGNITO
 from conf import DEF_USE_HEADLESS
 from conf import DEF_DEBUG
 from conf import DEF_PATH_USER_DATA
 from conf import DEF_NUM_TRY
 from conf import DEF_DING_TOKEN
-from conf import DEF_PATH_BROWSER
 from conf import DEF_PATH_DATA_STATUS
-from conf import DEF_HEADER_STATUS
-from conf import DEF_ENCODE_HANDLE
 
-from conf import DEF_PATH_DATA_ACCOUNT
 from conf import DEF_HEADER_ACCOUNT
 
 from conf import TZ_OFFSET
 from conf import DEL_PROFILE_DIR
 
-from conf import DEF_CAPTCHA_EXTENSION_PATH
-from conf import DEF_CAPTCHA_KEY
-from conf import EXTENSION_ID_YESCAPTCHA
-from conf import DEF_LIST_APPEAL_DESC
-
-from conf import DEF_OKX_EXTENSION_PATH
-
 from conf import FILENAME_LOG
 from conf import logger
 
 """
-2025.03.18
+2025.04.18
 """
 
 # Wallet balance
@@ -74,6 +55,7 @@ DEF_EXCEED_LIMIT = 10
 DEF_PRICE_TOO_HIGH = 11
 
 # output
+DEF_HEADER_STATUS = 'account,status,visit_date,num_visit,update_time'
 IDX_STATUS = 1
 IDX_VISIT_DATE = 2
 IDX_NUM_VISIT = 3
@@ -87,34 +69,27 @@ DEF_STATUS_APPEALED = 'APPEALED'
 
 DEF_OKX = False
 
-# DEF_FILE_X_ENCRIYPT = f'{DEF_PATH_DATA_ACCOUNT}/x_encrypt.csv'
-# DEF_FILE_X_STATUS = f'{DEF_PATH_DATA_ACCOUNT}/x_status.csv'
 
-
-class XVisit():
+class Drops():
     def __init__(self) -> None:
         self.args = None
+
+        self.file_status = None
 
         # 是否有更新
         self.is_update = False
 
         # 账号执行情况
         self.dic_status = {}
-
         self.dic_account = {}
 
-        # self.account_load()
-
-        if DEF_OKX:
-            self.inst_okx = OkxUtils()
-        else:
-            self.inst_okx = None
-
+        self.inst_okx = OkxUtils()
         self.inst_dp = DpUtils()
         self.inst_x = XUtils()
 
         self.inst_dp.plugin_yescapcha = True
         self.inst_dp.plugin_capmonster = True
+        self.inst_dp.plugin_okx = True
 
     def set_args(self, args):
         self.args = args
@@ -124,30 +99,30 @@ class XVisit():
         pass
         # self.status_save()
 
-    # def account_load(self):
-    #     self.file_account = DEF_FILE_X_ENCRIYPT
-    #     self.dic_account = load_file(
-    #         file_in=self.file_account,
-    #         idx_key=0,
-    #         header=DEF_HEADER_ACCOUNT
-    #     )
+    def get_status_file(self):
+        if not self.args.url:
+            logger.info('Invalid self.args.url')
+            sys.exit(-1)
+        filename = self.args.url.split('/')[-1]
+        self.file_status = f'{DEF_PATH_DATA_STATUS}/{filename}'
 
-    # def status_load(self):
-    #     self.file_status = DEF_FILE_X_STATUS
-    #     self.dic_status = load_file(
-    #         file_in=self.file_status,
-    #         idx_key=0,
-    #         header=DEF_HEADER_STATUS
-    #     )
+    def status_load(self):
+        if self.file_status is None:
+            self.get_status_file()
 
-    # def status_save(self):
-    #     self.file_status = DEF_FILE_X_STATUS
-    #     save2file(
-    #         file_ot=self.file_status,
-    #         dic_status=self.dic_status,
-    #         idx_key=0,
-    #         header=DEF_HEADER_STATUS
-    #     )
+        self.dic_status = load_file(
+            file_in=self.file_status,
+            idx_key=0,
+            header=DEF_HEADER_STATUS
+        )
+
+    def status_save(self):
+        save2file(
+            file_ot=self.file_status,
+            dic_status=self.dic_status,
+            idx_key=0,
+            header=DEF_HEADER_STATUS
+        )
 
     def close(self):
         # 在有头浏览器模式 Debug 时，不退出浏览器，用于调试
@@ -264,8 +239,133 @@ class XVisit():
 
         self.update_status(idx_status, claim_date)
 
-    def xvisit_run(self):
+    def set_lang(self):
+        for i in range(1, DEF_NUM_TRY+1):
+            self.logit('set_lang', f'trying ... {i}/{DEF_NUM_TRY}')
+            tab = self.browser.latest_tab
+            ele_btn = tab.ele('.nav-item nav-language other-wrap', timeout=2)
+            if not isinstance(ele_btn, NoneElement):
+                self.logit(None, 'Click language setting button ...') # noqa
+                if ele_btn.states.is_clickable:
+                    ele_btn.click()
+                    tab.wait(2)
+                else:
+                    self.logit(None, 'language setting button is not clickable ...') # noqa
+
+            ele_blk = tab.ele('.oxnv-dialog-container', timeout=2)
+            if not isinstance(ele_blk, NoneElement):
+                ele_btn = ele_blk.ele('@@tag()=a@@id=language_zh_CN', timeout=2) # noqa
+                if not isinstance(ele_btn, NoneElement):
+                    if 'item selected' == ele_btn.attr('class'):
+                        ele_close = tab.ele('#okdDialogCloseBtn', timeout=1)
+                        if not isinstance(ele_close, NoneElement):
+                            ele_close.click(by_js=True)
+                    else:
+                        self.logit(None, 'Click language setting button ...') # noqa
+                        ele_btn.click(by_js=True)
+                        tab.wait(1)
+                    return True
+            self.logit(None, 'Language elements not found [ERROR]') # noqa
+            tab.wait(1)
+
+            if i > DEF_NUM_TRY/2:
+                tab.set.window.max()
+                self.logit(None, 'set.window.max') # noqa
+
+        self.logit(None, 'Fail to set language [ERROR]') # noqa
+        return False
+
+    def connect_wallet(self):
+        for i in range(1, DEF_NUM_TRY+1):
+            tab = self.browser.latest_tab
+            ele_btn = tab.ele('.nav-item nav-address', timeout=2) # noqa
+            if not isinstance(ele_btn, NoneElement):
+                s_info = ele_btn.text
+                self.logit(None, f'Connect Wallet Button Text: {s_info}') # noqa
+                if s_info == '连接钱包':
+                    ele_btn = tab.ele('@@tag()=div@@class:connect-wallet-button', timeout=2) # noqa
+                    if not isinstance(ele_btn, NoneElement):
+                        ele_btn.click(by_js=True)
+                        tab.wait(2)
+                else:
+                    return True
+
+                # Connect Wallet Button
+                lst_path = [
+                    '@@tag()=div@@class:Connect_title',  # pc
+                    '@@tag()=div@@class:wallet-dialog-title-block'  # mobile
+                ]
+                ele_btn = self.inst_dp.get_ele_btn(lst_path)
+                if not isinstance(ele_btn, NoneElement):
+                    ele_btn.click(by_js=True)
+                    tab.wait(2)
+
+                # wallet list
+                lst_path = [
+                    '@@tag()=button@@class:wallet-btn',  # pc
+                    '@@tag()=button@@class:wallet-plain-button'  # mobile
+                ]
+                ele_btn = self.inst_dp.get_ele_btn(lst_path)
+                if not isinstance(ele_btn, NoneElement):
+                    n_tab = self.browser.tabs_count
+                    ele_btn.click(by_js=True)
+                    self.inst_okx.wait_popup(n_tab+1, 10)
+                    tab.wait(2)
+                    self.inst_okx.okx_connect()
+                    self.inst_okx.wait_popup(n_tab, 10)
+
+            self.logit('connect_wallet', f'trying ... {i}/{DEF_NUM_TRY}')
+
+        return False
+
+    def get_task_result(self):
+        for i in range(1, DEF_NUM_TRY+1):
+            self.logit('get_task_result', f'trying ... {i}/{DEF_NUM_TRY}')
+            tab = self.browser.latest_tab
+            s_path = 'x://*[@id="root"]/div/div/div[3]/div/div/div[3]/div/button[1]'
+            ele_btn = tab.ele(s_path, timeout=2)
+            if not isinstance(ele_btn, NoneElement):
+                self.logit(None, 'Click language setting button ...') # noqa
+                if ele_btn.states.is_clickable:
+                    ele_btn.click()
+                    tab.wait(2)
+                else:
+                    self.logit(None, 'language setting button is not clickable ...') # noqa
+
+    def drops_process(self):
+        # open drops url
+        tab = self.browser.latest_tab
+        tab.get(self.args.url)
+        tab.wait(3)
+
+        # set language
+        if self.set_lang() is False:
+            return False
+
+        # Connect wallet
+        if self.connect_wallet() is False:
+            return False
+
+        # Query Task Result
+        if self.get_task_result() == '等待中签结果':
+            return True
+
+        return False
+
+    def drops_run(self):
         self.browser = self.inst_dp.get_browser(self.args.s_profile)
+
+        self.inst_okx.set_browser(self.browser)
+
+        if self.inst_okx.init_okx(is_bulk=True) is False:
+            return False
+
+        self.drops_process()
+
+
+
+
+
 
         self.inst_x.status_load()
         self.inst_x.set_browser(self.browser)
@@ -282,24 +382,30 @@ class XVisit():
             return False
 
         self.inst_x.twitter_run()
+        x_status = self.inst_x.dic_status[self.args.profile][self.inst_x.IDX_STATUS] # noqa
+        if x_status != self.inst_x.DEF_STATUS_OK:
+            self.logit('drops_run', f'x_status is {x_status}')
+            return False
+
+        # self.drops_process()
 
         if self.args.manual_exit:
             s_msg = 'Press any key to exit! ⚠️' # noqa
             input(s_msg)
 
-        self.logit('xvisit_run', 'Finished!')
+        self.logit('drops_run', 'Finished!')
         self.close()
 
         return True
 
 
-def send_msg(x_visit, lst_success):
+def send_msg(inst_drops, lst_success):
     if len(DEF_DING_TOKEN) > 0 and len(lst_success) > 0:
         s_info = ''
         for s_profile in lst_success:
             lst_status = None
-            if s_profile in x_visit.inst_x.dic_status:
-                lst_status = x_visit.inst_x.dic_status[s_profile]
+            if s_profile in inst_drops.inst_x.dic_status:
+                lst_status = inst_drops.inst_x.dic_status[s_profile]
 
             if lst_status is None:
                 lst_status = [s_profile, -1]
@@ -309,9 +415,9 @@ def send_msg(x_visit, lst_success):
                 lst_status[IDX_VISIT_DATE],
             )
         d_cont = {
-            'title': 'Daily Check-In Finished! [xvisit]',
+            'title': 'Daily Check-In Finished! [okx_drops]',
             'text': (
-                'Daily Check-In [xvisit]\n'
+                'Daily Check-In [okx_drops]\n'
                 '- account,time_next_claim\n'
                 '{}\n'
                 .format(s_info)
@@ -344,13 +450,14 @@ def main(args):
         shutil.rmtree(DEF_PATH_USER_DATA)
         logger.info(f'Directory {DEF_PATH_USER_DATA} is deleted') # noqa
 
-    x_visit = XVisit()
+    inst_drops = Drops()
+    inst_drops.set_args(args)
 
     if len(args.profile) > 0:
         items = args.profile.split(',')
     else:
         # 从配置文件里获取钱包名称列表
-        items = list(x_visit.inst_x.dic_account.keys())
+        items = list(inst_drops.inst_okx.dic_purse.keys())
 
     profiles = copy.deepcopy(items)
 
@@ -387,12 +494,12 @@ def main(args):
         return n_sec_wait
 
     # 将已完成的剔除掉
-    x_visit.inst_x.status_load()
+    inst_drops.status_load()
     # 从后向前遍历列表的索引
     for i in range(len(profiles) - 1, -1, -1):
         s_profile = profiles[i]
-        if s_profile in x_visit.inst_x.dic_status:
-            lst_status = x_visit.inst_x.dic_status[s_profile]
+        if s_profile in inst_drops.dic_status:
+            lst_status = inst_drops.dic_status[s_profile]
 
             if is_complete(lst_status):
                 n += 1
@@ -415,8 +522,8 @@ def main(args):
 
         args.s_profile = s_profile
 
-        if s_profile not in x_visit.inst_x.dic_account:
-            logger.info(f'{s_profile} is not in account conf [ERROR]')
+        if s_profile not in inst_drops.inst_okx.dic_purse:
+            logger.info(f'{s_profile} is not in okx account conf [ERROR]')
             sys.exit(0)
 
         # 如果出现异常(与页面的连接已断开)，增加重试
@@ -426,12 +533,13 @@ def main(args):
                 if j > 1:
                     logger.info(f'⚠️ 正在重试，当前是第{j}次执行，最多尝试{max_try_except}次 [{s_profile}]') # noqa
 
-                x_visit.set_args(args)
-                x_visit.inst_dp.set_args(args)
-                x_visit.inst_x.set_args(args)
+                inst_drops.set_args(args)
+                inst_drops.inst_dp.set_args(args)
+                inst_drops.inst_x.set_args(args)
+                inst_drops.inst_okx.set_args(args)
 
-                if s_profile in x_visit.inst_x.dic_status:
-                    lst_status = x_visit.inst_x.dic_status[s_profile]
+                if s_profile in inst_drops.dic_status:
+                    lst_status = inst_drops.dic_status[s_profile]
                 else:
                     lst_status = None
 
@@ -439,17 +547,17 @@ def main(args):
                     logger.info(f'[{s_profile}] Last update at {lst_status[IDX_UPDATE]}') # noqa
                     break
                 else:
-                    if x_visit.xvisit_run():
+                    if inst_drops.drops_run():
                         lst_success.append(s_profile)
                         break
 
             except Exception as e:
                 logger.info(f'[{s_profile}] An error occurred: {str(e)}')
-                x_visit.close()
+                inst_drops.close()
                 if j < max_try_except:
                     time.sleep(5)
 
-        if x_visit.inst_x.is_update is False:
+        if inst_drops.is_update is False:
             continue
 
         logger.info(f'Progress: {percent}% [{n}/{total}] [{s_profile} Finish]')
@@ -462,7 +570,7 @@ def main(args):
                 logger.info('sleep {} seconds ...'.format(int(sleep_time)))
             time.sleep(sleep_time)
 
-    send_msg(x_visit, lst_success)
+    send_msg(inst_drops, lst_success)
 
 
 if __name__ == '__main__':
@@ -506,6 +614,10 @@ if __name__ == '__main__':
         '--manual_exit', required=False, action='store_true',
         help='Close chrome manual'
     )
+    parser.add_argument(
+        '--url', required=False, default='',
+        help='okx drops url'
+    )
 
     show_msg()
 
@@ -520,13 +632,15 @@ if __name__ == '__main__':
 
 """
 # noqa
-python xvisit.py --auto_like --auto_appeal --sleep_sec_min=30 --sleep_sec_max=60 --loop_interval=60
-python xvisit.py --auto_like --auto_appeal --sleep_sec_min=600 --sleep_sec_max=1800 --loop_interval=180
-python xvisit.py --auto_like --auto_appeal --sleep_sec_min=60 --sleep_sec_max=180
-python xvisit.py --auto_like --auto_appeal --sleep_sec_min=120 --sleep_sec_max=360
+python okx_drops.py --auto_like --auto_appeal --sleep_sec_min=30 --sleep_sec_max=60 --loop_interval=60
+python okx_drops.py --auto_like --auto_appeal --sleep_sec_min=600 --sleep_sec_max=1800 --loop_interval=180
+python okx_drops.py --auto_like --auto_appeal --sleep_sec_min=60 --sleep_sec_max=180
+python okx_drops.py --auto_like --auto_appeal --sleep_sec_min=120 --sleep_sec_max=360
 
-python xvisit.py --auto_like --auto_appeal --profile=g05
-python xvisit.py --auto_like --auto_appeal --force --profile=g05
+python okx_drops.py --auto_like --auto_appeal --profile=g05
+python okx_drops.py --auto_like --auto_appeal --force --profile=g05
 
-python xvisit.py --auto_like --auto_appeal --force --profile=t33
+python okx_drops.py --auto_like --auto_appeal --force --profile=t33
+
+python okx_drops.py --auto_like --auto_appeal --force --url=https://web3.okx.com/zh-hans/drops/event/otherworlds --profile=g03
 """

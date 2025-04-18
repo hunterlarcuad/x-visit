@@ -21,6 +21,8 @@ from DrissionPage._elements.none_element import NoneElement
 from fun_utils import ding_msg
 from fun_utils import load_file
 
+from fun_encode import decrypt
+
 from conf import logger
 
 from conf import DEF_PATH_DATA_PURSE
@@ -29,6 +31,7 @@ from conf import DEF_HEADER_PURSE
 from conf import DEF_NUM_TRY
 from conf import EXTENSION_ID_OKX
 from conf import DEF_OKX_PWD
+from conf import DEF_ENCODE_HANDLE_OKX
 
 
 class OkxUtils():
@@ -45,7 +48,7 @@ class OkxUtils():
         self.browser = browser
 
     def purse_load(self):
-        self.file_purse = f'{DEF_PATH_DATA_PURSE}/purse.csv'
+        self.file_purse = f'{DEF_PATH_DATA_PURSE}/purse_words_encrypt.csv'
         self.dic_purse = load_file(
             file_in=self.file_purse,
             idx_key=0,
@@ -153,7 +156,7 @@ class OkxUtils():
             self.browser.wait(1)
 
             self.browser.close_tabs(tab, others=True)
-            self.browser.wait(2)
+            self.browser.wait(1)
 
             self.logit('init_okx', f'tabs_count={self.browser.tabs_count}')
 
@@ -183,7 +186,9 @@ class OkxUtils():
                 ele_btn.click(by_js=True)
                 self.browser.wait(1)
 
-                s_key = self.dic_purse[self.args.s_profile][1]
+                encode_key = self.dic_purse[self.args.s_profile][1]
+                s_key = decrypt(DEF_ENCODE_HANDLE_OKX, encode_key)
+
                 if len(s_key.split()) == 1:
                     # Private key
                     self.logit('init_okx', 'Import By Private key')
@@ -325,6 +330,35 @@ class OkxUtils():
 
         self.logit('init_okx', 'login failed [ERROR]')
         return False
+
+    def wait_popup(self, n_tab_dest, max_wait_sec=30):
+        """
+        n_tab_dest
+            目标数值
+            n_tab_dest = self.browser.tabs_count + 1
+            n_tab_dest = self.browser.tabs_count - 1
+        """
+        i = 0
+        while i < max_wait_sec:
+            i += 1
+            self.browser.wait(1)
+            if self.browser.tabs_count == n_tab_dest:
+                self.browser.wait(1)
+                self.logit('wait_popup', f'Success n_tab_dest={n_tab_dest}')  # noqa
+                return True
+            self.logit('wait_popup', f'{i}/{max_wait_sec}') # noqa
+        return False
+
+    def okx_connect(self):
+        tab = self.browser.latest_tab
+        ele_btn = tab.ele('@@tag()=button@@data-testid=okd-button@@text()=Connect', timeout=2) # noqa
+        if not isinstance(ele_btn, NoneElement):
+            ele_btn.click(by_js=True)
+            self.logit(None, 'Success to Click Connect Button') # noqa
+            return True
+        else:
+            self.logit(None, 'Fail to load Connect Button') # noqa
+            return False
 
 
 if __name__ == "__main__":

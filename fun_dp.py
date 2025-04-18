@@ -90,6 +90,11 @@ class DpUtils():
         self.args = None
         self.browser = None
 
+        # What plugins should be loaded
+        self.plugin_okx = False
+        self.plugin_yescapcha = False
+        self.plugin_capmonster = False
+
     def set_args(self, args):
         self.args = args
         self.is_update = False
@@ -161,9 +166,11 @@ class DpUtils():
                 print("{s_name} plugin directory is not exist. Exit!")
                 sys.exit(1)
 
-        addon(s_name='YesCaptcha', s_path=DEF_CAPTCHA_EXTENSION_PATH)
-        addon(s_name='CapMonster', s_path=DEF_CAPMONSTER_EXTENSION_PATH)
-        if DEF_OKX:
+        if self.plugin_yescapcha:
+            addon(s_name='YesCaptcha', s_path=DEF_CAPTCHA_EXTENSION_PATH)
+        if self.plugin_capmonster:
+            addon(s_name='CapMonster', s_path=DEF_CAPMONSTER_EXTENSION_PATH)
+        if self.plugin_okx:
             addon(s_name='okx', s_path=DEF_OKX_EXTENSION_PATH)
 
         # https://drissionpage.cn/ChromiumPage/browser_opt
@@ -172,12 +179,38 @@ class DpUtils():
 
         try:
             self.browser = Chromium(co)
+
+            if self.plugin_okx:
+                # Close okx popup window
+                self.close_okx_popup()
+
             return self.browser
         except Exception as e:
             logger.info(f'Error: {e}')
         finally:
             pass
         return None
+
+    def close_okx_popup(self):
+        n_tabs_pre = self.browser.tabs_count
+        max_wait_sec = 10
+        i = 0
+        while i < max_wait_sec:
+            i += 1
+            self.browser.wait(1)
+
+            n_tabs_cur = self.browser.tabs_count
+            if self.browser.tabs_count > n_tabs_pre:
+                self.logit(None, f'n_tabs_on_start={n_tabs_pre} n_tabs_now={n_tabs_cur}') # noqa
+                break
+            self.logit('wait_okx_popup', f'{i}/{max_wait_sec}') # noqa
+
+        tab = self.browser.new_tab()
+        self.browser.wait(1)
+
+        self.browser.close_tabs(tab, others=True)
+        self.browser.wait(1)
+        self.logit(None, f'Closed okx popup. n_tabs_now={self.browser.tabs_count}') # noqa
 
     def set_max_try_times(self):
         n_max_times = 3
@@ -301,10 +334,6 @@ class DpUtils():
             return True
         else:
             return False
-
-
-
-
 
     def init_capmonster(self):
         """
@@ -559,3 +588,11 @@ class DpUtils():
             }
             ding_msg(d_cont, DEF_DING_TOKEN, msgtype="markdown")
             return False
+
+    def get_ele_btn(self, lst_path):
+        tab = self.browser.latest_tab
+        for s_path in lst_path:
+            ele_btn = tab.ele(s_path, timeout=2) # noqa
+            if not isinstance(ele_btn, NoneElement):
+                return ele_btn
+        return NoneElement

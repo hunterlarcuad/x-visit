@@ -29,63 +29,26 @@ from fun_glm import gene_repeal_msg
 
 from proxy_api import set_proxy
 
-from fun_okx import OkxUtils
-
-from conf import DEF_LOCAL_PORT
-from conf import DEF_INCOGNITO
 from conf import DEF_USE_HEADLESS
 from conf import DEF_DEBUG
-from conf import DEF_PATH_USER_DATA
 from conf import DEF_NUM_TRY
 from conf import DEF_DING_TOKEN
-from conf import DEF_PATH_BROWSER
 from conf import DEF_PATH_DATA_STATUS
 from conf import DEF_HEADER_STATUS
-from conf import DEF_ENCODE_HANDLE
+from conf import DEF_ENCODE_HANDLE_X
 
 from conf import DEF_PATH_DATA_ACCOUNT
 from conf import DEF_HEADER_ACCOUNT
 
 from conf import TZ_OFFSET
-from conf import DEL_PROFILE_DIR
 
-from conf import DEF_CAPTCHA_EXTENSION_PATH
-from conf import DEF_CAPTCHA_KEY
-from conf import EXTENSION_ID_YESCAPTCHA
 from conf import DEF_LIST_APPEAL_DESC
 
-from conf import DEF_OKX_EXTENSION_PATH
-
-from conf import FILENAME_LOG
 from conf import logger
 
 """
 2025.03.18
 """
-
-# Wallet balance
-DEF_INSUFFICIENT = -1
-DEF_SUCCESS = 0
-DEF_FAIL = 1
-
-# Mint would exceed wallet limit
-DEF_EXCEED_LIMIT = 10
-# Price too high
-DEF_PRICE_TOO_HIGH = 11
-
-# output
-IDX_STATUS = 1
-IDX_VISIT_DATE = 2
-IDX_NUM_VISIT = 3
-IDX_UPDATE = 4
-FIELD_NUM = IDX_UPDATE + 1
-
-# X STATUS
-DEF_STATUS_OK = 'OK'
-DEF_STATUS_SUSPEND = 'SUSPEND'
-DEF_STATUS_APPEALED = 'APPEALED'
-
-DEF_OKX = False
 
 DEF_FILE_X_ENCRIYPT = f'{DEF_PATH_DATA_ACCOUNT}/x_encrypt.csv'
 DEF_FILE_X_STATUS = f'{DEF_PATH_DATA_STATUS}/x_status.csv'
@@ -105,6 +68,18 @@ class XUtils():
         self.dic_account = {}
 
         self.account_load()
+
+        # output
+        self.IDX_STATUS = 1
+        self.IDX_VISIT_DATE = 2
+        self.IDX_NUM_VISIT = 3
+        self.IDX_UPDATE = 4
+        self.FIELD_NUM = self.IDX_UPDATE + 1
+
+        # X STATUS
+        self.DEF_STATUS_OK = 'OK'
+        self.DEF_STATUS_SUSPEND = 'SUSPEND'
+        self.DEF_STATUS_APPEALED = 'APPEALED'
 
     def set_args(self, args):
         self.args = args
@@ -153,190 +128,6 @@ class XUtils():
                     # logger.info(f'[Close] Error: {e}')
                     pass
 
-    '''
-    def initChrome(self, s_profile):
-        """
-        s_profile: 浏览器数据用户目录名称
-        """
-        # Settings.singleton_tab_obj = True
-
-        profile_path = s_profile
-
-        # 是否设置无痕模式
-        if DEF_INCOGNITO:
-            co = ChromiumOptions().incognito(True)
-        else:
-            co = ChromiumOptions()
-
-        # 设置本地启动端口
-        co.set_local_port(port=DEF_LOCAL_PORT)
-        if len(DEF_PATH_BROWSER) > 0:
-            co.set_paths(browser_path=DEF_PATH_BROWSER)
-
-        co.set_argument('--accept-lang', 'en-US')  # 设置语言为英语（美国）
-        co.set_argument('--lang', 'en-US')
-
-        # 阻止“自动保存密码”的提示气泡
-        co.set_pref('credentials_enable_service', False)
-
-        # 阻止“要恢复页面吗？Chrome未正确关闭”的提示气泡
-        co.set_argument('--hide-crash-restore-bubble')
-
-        # 关闭沙盒模式
-        # co.set_argument('--no-sandbox')
-
-        # popups支持的取值
-        # 0：允许所有弹窗
-        # 1：只允许由用户操作触发的弹窗
-        # 2：禁止所有弹窗
-        # co.set_pref(arg='profile.default_content_settings.popups', value='0')
-
-        co.set_user_data_path(path=DEF_PATH_USER_DATA)
-        co.set_user(user=profile_path)
-
-        # 获取当前工作目录
-        current_directory = os.getcwd()
-
-        def addon(s_name, s_path):
-            # 检查目录是否存在
-            if os.path.exists(os.path.join(current_directory, s_path)): # noqa
-                logger.info(f'{s_name} plugin path: {s_path}')
-                co.add_extension(s_path)
-            else:
-                print("{s_name} plugin directory is not exist. Exit!")
-                sys.exit(1)
-
-        addon(s_name='YesCaptcha', s_path=DEF_CAPTCHA_EXTENSION_PATH)
-        if DEF_OKX:
-            addon(s_name='okx', s_path=DEF_OKX_EXTENSION_PATH)
-
-        # https://drissionpage.cn/ChromiumPage/browser_opt
-        co.headless(DEF_USE_HEADLESS)
-        co.set_user_agent(user_agent='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36') # noqa
-
-        try:
-            self.browser = Chromium(co)
-        except Exception as e:
-            logger.info(f'Error: {e}')
-        finally:
-            pass
-
-        # 初始化 YesCaptcha
-        self.init_yescaptcha()
-
-    def set_max_try_times(self):
-        n_max_times = 3
-        self.logit(None, f'To set max try times: {n_max_times}') # noqa
-
-        max_try = 20
-        i = 0
-        while i < max_try:
-            i += 1
-            tab = self.browser.latest_tab
-            x_path = 'x://*[@id="app"]/div/div[2]/div[2]/div/div[5]/div[2]/div/input' # noqa
-            ele_input = tab.ele(x_path, timeout=1) # noqa
-            if not isinstance(ele_input, NoneElement):
-                if ele_input.value == str(n_max_times):
-                    self.logit(None, f'Set n_max_times success! [n_max_times={n_max_times}]') # noqa
-                    return True
-                else:
-                    ele_input.click.multi(times=2)
-                    tab.wait(1)
-                    ele_input.clear(by_js=True)
-                    tab.wait(1)
-                    tab.actions.move_to(ele_input).click().type(n_max_times) # noqa
-                    tab.wait(1)
-                    if ele_input.value != str(n_max_times):
-                        continue
-
-                    for s_text in ['保存', 'save']:
-                        btn_save = tab.ele(f'tag:button@@text():{s_text}', timeout=2) # noqa
-                        if not isinstance(btn_save, NoneElement):
-                            tab.actions.move_to(btn_save)
-                            btn_save.wait.clickable(timeout=10).click()
-                            self.logit(None, 'Save button is clicked')
-                            break
-
-            self.logit(None, f'set_mint_num ... [{i}/{max_try}]')
-
-        self.logit(None, f'Fail to set n_max_times! [n_max_times={n_max_times}] [Error]') # noqa
-        return False
-
-    def set_auto_start(self, b_auto_start=True):
-        n_max_times = 3
-        self.logit(None, f'To set max try times: {n_max_times}') # noqa
-
-        max_try = 20
-        i = 0
-        while i < max_try:
-            i += 1
-            tab = self.browser.latest_tab
-            x_path = 'x://*[@id="app"]/div/div[2]/div[2]/div/div[6]/div[2]/span/input' # noqa
-            checkbox = tab.ele(x_path, timeout=2)
-            if not isinstance(checkbox, NoneElement):
-                if checkbox.states.is_checked == b_auto_start:
-                    self.logit(None, f'Set auto_start success! [auto_start={b_auto_start}]') # noqa
-                    return True
-                checkbox.click()
-                self.logit(None, 'Save button is clicked')
-                tab.wait(1)
-
-        self.logit(None, f'Fail to set auto_start! [Error]') # noqa
-        return False
-
-    def init_yescaptcha(self):
-        """
-        chrome-extension://jiofmdifioeejeilfkpegipdjiopiekl/popup/index.html
-        """
-        # EXTENSION_ID = 'jiofmdifioeejeilfkpegipdjiopiekl'
-        s_url = f'chrome-extension://{EXTENSION_ID_YESCAPTCHA}/popup/index.html' # noqa
-        tab = self.browser.latest_tab
-        tab.get(s_url)
-        # tab.wait.load_start()
-        tab.wait(3)
-
-        self.save_screenshot(name='yescaptcha_1.jpg')
-
-        x_path = 'x://*[@id="app"]/div/div[2]/div[2]/div/div[2]/div[2]/div/input' # noqa
-        ele_input = tab.ele(f'{x_path}', timeout=2)
-        if not isinstance(ele_input, NoneElement):
-            if ele_input.value == DEF_CAPTCHA_KEY:
-                logger.info('yescaptcha key is configured')
-            else:
-                logger.info('input yescaptcha key ...')
-                # ele_input.input(DEF_CAPTCHA_KEY, clear=True, by_js=True)
-                # ele_input.click()
-                tab = self.browser.latest_tab
-                ele_input.clear(by_js=True)
-                # ele_input.input(DEF_CAPTCHA_KEY, clear=True, by_js=False)
-                tab.actions.move_to(ele_input).click().type(DEF_CAPTCHA_KEY) # noqa
-                time.sleep(2)
-
-                is_success = False
-                for s_text in ['保存', 'save']:
-                    # btn_save = tab.ele(s_text, timeout=2)
-                    btn_save = tab.ele(f'tag:button@@text():{s_text}', timeout=2) # noqa
-                    if not isinstance(btn_save, NoneElement):
-                        # btn_save.click(by_js=True)
-                        tab.actions.move_to(btn_save).click()
-                        is_success = True
-                        break
-                if is_success:
-                    logger.info('Save Success!')
-                else:
-                    logger.info('Fail to save!')
-
-            # 次数限制
-            self.set_max_try_times()
-
-            # 自动开启
-            # self.set_auto_start(b_auto_start=True)
-            self.set_auto_start(b_auto_start=False)
-
-        logger.info('yescaptcha init success')
-        self.save_screenshot(name='yescaptcha_2.jpg')
-    '''
-
     def logit(self, func_name=None, s_info=None):
         s_text = f'{self.args.s_profile}'
         if func_name:
@@ -374,18 +165,18 @@ class XUtils():
             self.dic_status[self.args.s_profile] = [
                 self.args.s_profile,
             ]
-            for i in range(1, FIELD_NUM):
+            for i in range(1, self.FIELD_NUM):
                 self.dic_status[self.args.s_profile].append('')
 
         if self.args.s_profile not in self.dic_status:
             init_status()
-        if len(self.dic_status[self.args.s_profile]) != FIELD_NUM:
+        if len(self.dic_status[self.args.s_profile]) != self.FIELD_NUM:
             init_status()
         if self.dic_status[self.args.s_profile][idx_status] == s_value:
             return
 
         self.dic_status[self.args.s_profile][idx_status] = s_value
-        self.dic_status[self.args.s_profile][IDX_UPDATE] = update_time
+        self.dic_status[self.args.s_profile][self.IDX_UPDATE] = update_time
 
         self.status_save()
         self.is_update = True
@@ -396,7 +187,7 @@ class XUtils():
 
         s_val = ''
         lst_pre = self.dic_status.get(s_profile, [])
-        if len(lst_pre) == FIELD_NUM:
+        if len(lst_pre) == self.FIELD_NUM:
             try:
                 s_val = int(lst_pre[idx_status])
             except: # noqa
@@ -407,7 +198,7 @@ class XUtils():
     def get_pre_num_visit(self, s_profile=None):
         num_visit_pre = 0
 
-        s_val = self.get_status_by_idx(IDX_NUM_VISIT, s_profile)
+        s_val = self.get_status_by_idx(self.IDX_NUM_VISIT, s_profile)
 
         try:
             num_visit_pre = int(s_val)
@@ -429,7 +220,7 @@ class XUtils():
             num_visit_pre = self.get_pre_num_visit(s_profile)
             num_visit = num_visit_pre + 1
 
-        self.update_status(IDX_NUM_VISIT, str(num_visit))
+        self.update_status(self.IDX_NUM_VISIT, str(num_visit))
 
     def update_date(self, idx_status, update_ts=None):
         if not update_ts:
@@ -439,7 +230,6 @@ class XUtils():
         claim_date = update_time[:10]
 
         self.update_status(idx_status, claim_date)
-
 
     def verify_human(self):
         s_path = '@@tag()=p@@class=h2 spacer-bottom'
@@ -603,7 +393,7 @@ class XUtils():
                 logger.info('Twitter input password')
                 idx = get_index_from_header(DEF_HEADER_ACCOUNT, 'x_pwd')
                 encode_pwd = self.dic_account[self.args.s_profile][idx]
-                x_pwd = decrypt(DEF_ENCODE_HANDLE, encode_pwd)
+                x_pwd = decrypt(DEF_ENCODE_HANDLE_X, encode_pwd)
                 ele_input.input(x_pwd)
                 time.sleep(1)
                 logger.info('Twitter Click Log in')
@@ -796,7 +586,7 @@ class XUtils():
             if not isinstance(ele_input, NoneElement):
                 s_info = ele_input.text
                 self.logit(None, f'{s_info}') # noqa
-                self.update_status(IDX_STATUS, DEF_STATUS_SUSPEND)
+                self.update_status(self.IDX_STATUS, self.DEF_STATUS_SUSPEND)
                 return True
 
         return False
@@ -853,7 +643,7 @@ class XUtils():
                         ele_info = tab.ele('@@tag()=h2@@class:headline@@text()=Thank you!', timeout=2) # noqa
                         if not isinstance(ele_info, NoneElement):
                             self.logit(None, 'We’ve received your request. We’ll review, and take further action if appropriate.') # noqa
-                            self.update_status(IDX_STATUS, DEF_STATUS_APPEALED)
+                            self.update_status(self.IDX_STATUS, self.DEF_STATUS_APPEALED) # noqa
                             return True
 
                         self.browser.wait(1)
@@ -968,9 +758,9 @@ class XUtils():
                 else:
                     self.logit(None, 'Not appeal ...')
             else:
-                self.update_status(IDX_STATUS, DEF_STATUS_OK)
+                self.update_status(self.IDX_STATUS, self.DEF_STATUS_OK)
 
-        self.update_date(IDX_VISIT_DATE)
+        self.update_date(self.IDX_VISIT_DATE)
 
         # if self.args.manual_exit:
         #     s_msg = 'Press any key to exit! ⚠️' # noqa
