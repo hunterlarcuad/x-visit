@@ -174,7 +174,12 @@ class DpUtils():
             addon(s_name='okx', s_path=DEF_OKX_EXTENSION_PATH)
 
         # https://drissionpage.cn/ChromiumPage/browser_opt
-        co.headless(DEF_USE_HEADLESS)
+        b_headless = DEF_USE_HEADLESS
+        try:
+            b_headless = self.args.headless
+        except: # noqa
+            logger.info('self.args.headless is not exist.')
+        co.headless(b_headless)
         co.set_user_agent(user_agent='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36') # noqa
 
         try:

@@ -31,30 +31,17 @@ from fun_okx import OkxUtils
 from fun_x import XUtils
 from fun_dp import DpUtils
 
-from conf import DEF_LOCAL_PORT
-from conf import DEF_INCOGNITO
 from conf import DEF_USE_HEADLESS
 from conf import DEF_DEBUG
 from conf import DEF_PATH_USER_DATA
 from conf import DEF_NUM_TRY
 from conf import DEF_DING_TOKEN
-from conf import DEF_PATH_BROWSER
 from conf import DEF_PATH_DATA_STATUS
-from conf import DEF_HEADER_STATUS
-from conf import DEF_ENCODE_HANDLE
 
-from conf import DEF_PATH_DATA_ACCOUNT
 from conf import DEF_HEADER_ACCOUNT
 
 from conf import TZ_OFFSET
 from conf import DEL_PROFILE_DIR
-
-from conf import DEF_CAPTCHA_EXTENSION_PATH
-from conf import DEF_CAPTCHA_KEY
-from conf import EXTENSION_ID_YESCAPTCHA
-from conf import DEF_LIST_APPEAL_DESC
-
-from conf import DEF_OKX_EXTENSION_PATH
 
 from conf import FILENAME_LOG
 from conf import logger
@@ -281,7 +268,10 @@ class XVisit():
         if self.inst_dp.init_yescaptcha() is False:
             return False
 
-        self.inst_x.twitter_run()
+        if self.args.create:
+            self.inst_x.twitter_create()
+        else:
+            self.inst_x.twitter_run()
 
         if self.args.manual_exit:
             s_msg = 'Press any key to exit! ⚠️' # noqa
@@ -320,13 +310,14 @@ def send_msg(x_visit, lst_success):
         ding_msg(d_cont, DEF_DING_TOKEN, msgtype="markdown")
 
 
-def show_msg():
+def show_msg(args):
     current_directory = os.getcwd()
     FILE_LOG = f'{current_directory}/{FILENAME_LOG}'
     FILE_STATUS = f'{current_directory}/{DEF_PATH_DATA_STATUS}/status.csv'
 
     print('########################################')
     print('The program is running')
+    print(f'headless={args.headless}')
     print('Location of the running result file:')
     print(f'{FILE_STATUS}')
     print('The running process is in the log file:')
@@ -506,10 +497,27 @@ if __name__ == '__main__':
         '--manual_exit', required=False, action='store_true',
         help='Close chrome manual'
     )
-
-    show_msg()
+    parser.add_argument(
+        '--create', required=False, action='store_true',
+        help='Create'
+    )
+    # 添加 --headless 参数
+    parser.add_argument(
+        '--headless',
+        action='store_true',   # 默认为 False，传入时为 True
+        default=False,         # 设置默认值
+        help='Enable headless mode'
+    )
+    # 添加 --no-headless 参数
+    parser.add_argument(
+        '--no-headless',
+        action='store_false',
+        dest='headless',  # 指定与 --headless 参数共享同一个变量
+        help='Disable headless mode'
+    )
 
     args = parser.parse_args()
+    show_msg(args)
     if args.loop_interval <= 0:
         main(args)
     else:
@@ -528,5 +536,7 @@ python xvisit.py --auto_like --auto_appeal --sleep_sec_min=120 --sleep_sec_max=3
 python xvisit.py --auto_like --auto_appeal --profile=g05
 python xvisit.py --auto_like --auto_appeal --force --profile=g05
 
-python xvisit.py --auto_like --auto_appeal --force --profile=t33
+python xvisit.py --auto_like --auto_appeal --force --headless --profile=t33
+
+python xvisit.py --auto_like --auto_appeal --force --create --no-headless --profile=g95
 """

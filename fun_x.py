@@ -771,6 +771,23 @@ class XUtils():
 
         return True
 
+    def twitter_create(self):
+        self.update_num_visit()
+
+        for i in range(1, DEF_NUM_TRY+1):
+            self.logit('xutils_login', f'try_i={i}/{DEF_NUM_TRY}')
+
+            tab = self.browser.latest_tab
+
+            s_url = 'https://x.com'
+            tab.get(s_url, timeout=60, retry=1)
+
+            self.browser.wait(3)
+            s_msg = 'Press any key to continue ! ⚠️' # noqa
+            input(s_msg)
+
+        return False
+
 
 if __name__ == '__main__':
     """
