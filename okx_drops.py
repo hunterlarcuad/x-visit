@@ -44,33 +44,8 @@ from conf import logger
 2025.04.18
 """
 
-# Wallet balance
-DEF_INSUFFICIENT = -1
-DEF_SUCCESS = 0
-DEF_FAIL = 1
 
-# Mint would exceed wallet limit
-DEF_EXCEED_LIMIT = 10
-# Price too high
-DEF_PRICE_TOO_HIGH = 11
-
-# output
-DEF_HEADER_STATUS = 'account,status,visit_date,num_visit,update_time'
-IDX_STATUS = 1
-IDX_VISIT_DATE = 2
-IDX_NUM_VISIT = 3
-IDX_UPDATE = 4
-FIELD_NUM = IDX_UPDATE + 1
-
-# X STATUS
-DEF_STATUS_OK = 'OK'
-DEF_STATUS_SUSPEND = 'SUSPEND'
-DEF_STATUS_APPEALED = 'APPEALED'
-
-DEF_OKX = False
-
-
-class Drops():
+class ClsDrops():
     def __init__(self) -> None:
         self.args = None
 
@@ -91,6 +66,12 @@ class Drops():
         self.inst_dp.plugin_capmonster = True
         self.inst_dp.plugin_okx = True
 
+        # output
+        self.DEF_HEADER_STATUS = 'account,status,update_time' # noqa
+        self.IDX_STATUS = 1
+        self.IDX_UPDATE = 2
+        self.FIELD_NUM = self.IDX_UPDATE + 1
+
     def set_args(self, args):
         self.args = args
         self.is_update = False
@@ -104,7 +85,7 @@ class Drops():
             logger.info('Invalid self.args.url')
             sys.exit(-1)
         filename = self.args.url.split('/')[-1]
-        self.file_status = f'{DEF_PATH_DATA_STATUS}/{filename}'
+        self.file_status = f'{DEF_PATH_DATA_STATUS}/drops/{filename}.csv'
 
     def status_load(self):
         if self.file_status is None:
@@ -113,7 +94,7 @@ class Drops():
         self.dic_status = load_file(
             file_in=self.file_status,
             idx_key=0,
-            header=DEF_HEADER_STATUS
+            header=self.DEF_HEADER_STATUS
         )
 
     def status_save(self):
@@ -121,7 +102,7 @@ class Drops():
             file_ot=self.file_status,
             dic_status=self.dic_status,
             idx_key=0,
-            header=DEF_HEADER_STATUS
+            header=self.DEF_HEADER_STATUS
         )
 
     def close(self):
@@ -173,18 +154,18 @@ class Drops():
             self.dic_status[self.args.s_profile] = [
                 self.args.s_profile,
             ]
-            for i in range(1, FIELD_NUM):
+            for i in range(1, self.FIELD_NUM):
                 self.dic_status[self.args.s_profile].append('')
 
         if self.args.s_profile not in self.dic_status:
             init_status()
-        if len(self.dic_status[self.args.s_profile]) != FIELD_NUM:
+        if len(self.dic_status[self.args.s_profile]) != self.FIELD_NUM:
             init_status()
         if self.dic_status[self.args.s_profile][idx_status] == s_value:
             return
 
         self.dic_status[self.args.s_profile][idx_status] = s_value
-        self.dic_status[self.args.s_profile][IDX_UPDATE] = update_time
+        self.dic_status[self.args.s_profile][self.IDX_UPDATE] = update_time
 
         self.status_save()
         self.is_update = True
@@ -195,7 +176,7 @@ class Drops():
 
         s_val = ''
         lst_pre = self.dic_status.get(s_profile, [])
-        if len(lst_pre) == FIELD_NUM:
+        if len(lst_pre) == self.FIELD_NUM:
             try:
                 s_val = int(lst_pre[idx_status])
             except: # noqa
@@ -285,8 +266,10 @@ class Drops():
                 if s_info == '连接钱包':
                     ele_btn = tab.ele('@@tag()=div@@class:connect-wallet-button', timeout=2) # noqa
                     if not isinstance(ele_btn, NoneElement):
+                        ele_btn.wait.enabled(timeout=5)
+                        ele_btn.wait.clickable(timeout=5)
                         ele_btn.click(by_js=True)
-                        tab.wait(2)
+                        tab.wait(5)
                 else:
                     return True
 
@@ -296,8 +279,8 @@ class Drops():
                     '@@tag()=div@@class:wallet-dialog-title-block'  # mobile
                 ]
                 ele_btn = self.inst_dp.get_ele_btn(lst_path)
-                if not isinstance(ele_btn, NoneElement):
-                    ele_btn.click(by_js=True)
+                if ele_btn is not NoneElement:
+                    ele_btn.wait.clickable(timeout=5).click(by_js=True)
                     tab.wait(2)
 
                 # wallet list
@@ -306,16 +289,70 @@ class Drops():
                     '@@tag()=button@@class:wallet-plain-button'  # mobile
                 ]
                 ele_btn = self.inst_dp.get_ele_btn(lst_path)
-                if not isinstance(ele_btn, NoneElement):
+                if ele_btn is not NoneElement:
                     n_tab = self.browser.tabs_count
-                    ele_btn.click(by_js=True)
+                    ele_btn.wait.clickable(timeout=5).click(by_js=True)
                     self.inst_okx.wait_popup(n_tab+1, 10)
                     tab.wait(2)
                     self.inst_okx.okx_connect()
                     self.inst_okx.wait_popup(n_tab, 10)
 
             self.logit('connect_wallet', f'trying ... {i}/{DEF_NUM_TRY}')
+            tab.wait(2)
 
+        return False
+
+    def okx_verify_click(self):
+        # geetest_text_tips
+        tab = self.browser.latest_tab
+        ele_btn = tab.ele('@@tag()=div@@class:geetest_text_tips', timeout=1) # noqa
+        if not isinstance(ele_btn, NoneElement):
+            s_text = ele_btn.text
+            self.logit(None, f'Verify Manual: {s_text}')
+            return True
+        return False
+
+    def connect_x(self):
+        tab = self.browser.latest_tab
+        n_tab = self.browser.tabs_count
+        for i in range(1, DEF_NUM_TRY+1):
+            self.logit('connect_x', f'trying ... {i}/{DEF_NUM_TRY}')
+            if self.okx_verify_click():
+                s_msg = 'Manual verify. Press any key to continue! ⚠️' # noqa
+                input(s_msg)
+
+            tab = self.browser.latest_tab
+            ele_btn = tab.ele('@@tag()=button@@class:btn-outline-primary', timeout=1) # noqa
+            if not isinstance(ele_btn, NoneElement):
+                s_text = ele_btn.text.replace('\n', ' ')
+                self.logit(None, f'connect_x Button Status: {s_text}')
+                if s_text in ['连接中 加载中']:
+                    # 连接账号
+                    # 请注意钱包地址限定绑定一个 X 账号，完成任务后不可解除绑定
+                    ele_btn = tab.ele('@@tag()=button@@data-testid=okd-dialog-confirm-btn', timeout=1) # noqa
+                    if not isinstance(ele_btn, NoneElement):
+                        s_text = ele_btn.text
+                        self.logit(None, f'connect_x Button Status: {s_text}')
+                        ele_btn.wait.clickable(timeout=5).click(by_js=True)
+                        self.inst_okx.wait_popup(n_tab+1, 10)
+                    else:
+                        tab.wait(10)
+                elif s_text in ['连接']:
+                    tab.actions.move_to(ele_btn)
+                    ele_btn.wait.clickable(timeout=5).click(by_js=True)
+
+                    tab.wait(2)
+                    if self.inst_okx.okx_confirm():
+                        self.logit(None, 'Signature request Confirm')
+                        self.inst_okx.wait_popup(n_tab, 10)
+                        tab.wait(3)
+                        continue
+                elif s_text in ['断开连接', '已连接']:
+                    return True
+            if self.browser.tabs_count == (n_tab + 1):
+                self.inst_x.x_authorize_app()
+                self.inst_okx.wait_popup(n_tab, 10)
+                tab.wait(5)
         return False
 
     def get_task_result(self):
@@ -325,18 +362,144 @@ class Drops():
             s_path = 'x://*[@id="root"]/div/div/div[3]/div/div/div[3]/div/button[1]'
             ele_btn = tab.ele(s_path, timeout=2)
             if not isinstance(ele_btn, NoneElement):
-                self.logit(None, 'Click language setting button ...') # noqa
-                if ele_btn.states.is_clickable:
-                    ele_btn.click()
+                s_text = ele_btn.text
+                self.logit(None, f'Button text: {s_text}')
+
+                self.update_status(self.IDX_STATUS, s_text)
+
+                return s_text
+        return None
+
+    def process_btn(self, ele_btn):
+        s_text = ele_btn.text
+        self.logit(None, f'Button text: {s_text}')
+        tab = self.browser.latest_tab
+        n_tab = self.browser.tabs_count
+        ele_btn.wait.clickable(timeout=5).click(by_js=True)
+        if self.inst_okx.wait_popup(n_tab+1, 10) is False:
+            return False
+
+        if tab.url.find('x.com/intent/follow') >= 0:
+            name = tab.url.split('=')[-1]
+            self.logit(None, f'Try to Follow x: {name}')
+            if self.inst_x.x_follow(name):
+                tab.wait(1)
+                tab.close()
+        elif tab.url.find('x.com/intent/retweet') >= 0:
+            # https://x.com/intent/retweet?tweet_id=1912443347928773118
+            # tweet_id = tab.url.split('=')[-1]
+            self.logit(None, f'Try to retweet x: {tab.url}')
+            if self.inst_x.x_retweet():
+                tab.wait(1)
+                tab.close()
+        elif tab.url.find('x.com/intent/like') >= 0:
+            # https://x.com/intent/like?tweet_id=1912443347928773118
+            self.logit(None, f'Try to retweet x: {tab.url}')
+            if self.inst_x.x_like():
+                tab.wait(1)
+                tab.close()
+        else:
+            self.logit(None, 'Manual task.')
+            s_msg = 'Manual task, Press any key to exit! ⚠️' # noqa
+            input(s_msg)
+
+    def complete_tasks(self):
+        for i in range(1, DEF_NUM_TRY+1):
+            self.logit('complete_tasks', f'trying ... {i}/{DEF_NUM_TRY}')
+
+            tab = self.browser.latest_tab
+            # 完成欧易 Web3 任务
+            ele_blks = tab.eles('@@tag()=div@@class:index_item__5J7ea', timeout=2) # noqa
+            if not ele_blks:
+                tab.wait(1)
+                continue
+            for ele_blk in ele_blks:
+                # process each task
+                # Task title
+                # 活动期间持有 ≥ 0.05 BNB
+                ele_btn = ele_blk.ele('@@tag()=div@@class:index_item', timeout=2) # noqa
+                if not isinstance(ele_btn, NoneElement):
+                    s_text = ele_btn.text
+                    self.logit(None, f'Task title: {s_text}')
+                # BNB 余额：0.0165 BNB
+                ele_btn = ele_blk.ele('@@tag()=div@@class:index_desc', timeout=2) # noqa
+                if not isinstance(ele_btn, NoneElement):
+                    s_text = ele_btn.text
+                    self.logit(None, f'Task desc: {s_text}')
+
+            # Connect X
+            if self.connect_x() is False:
+                self.logit(None, 'Fail to connect X')
+                continue
+
+            pdb.set_trace()
+            tab = self.browser.latest_tab
+            # 完成 X 社媒任务
+            ele_blks = tab.eles('@@tag()=div@@class:index_wrap__OR3MB', timeout=2) # noqa
+            if not ele_blks:
+                tab.wait(1)
+                continue
+            for ele_blk in ele_blks:
+                # process each task
+                # Task title
+                ele_btn = ele_blk.ele('@@tag()=div@@class:index_title', timeout=2) # noqa
+                if not isinstance(ele_btn, NoneElement):
+                    s_text = ele_btn.text
+                    self.logit(None, f'Task title: {s_text}')
+
+                # Task status
+                ele_btn = ele_blk.ele('@@tag()=i@@class:icon iconfont okx-defi-nft-selected', timeout=1) # noqa
+                if not isinstance(ele_btn, NoneElement):
+                    self.logit(None, 'Task status: sucess')
+                    continue
+
+                # Task action & verify
+                ele_btns = ele_blk.eles('@@tag()=button@@class:nft-btn', timeout=1) # noqa
+                if len(ele_btns) == 2:
+                    # Task action
+                    if self.process_btn(ele_btns[0]) is False:
+                        continue
+
+                    # Task verify
+                    ele_btn_2 = ele_btns[1]
+                    ele_btn_2.wait.clickable(timeout=5).click(by_js=True)
                     tab.wait(2)
-                else:
-                    self.logit(None, 'language setting button is not clickable ...') # noqa
+                if not isinstance(ele_btn, NoneElement):
+                    self.logit(None, 'Task status: sucess')
+                    continue
+
+            return True
+
+        self.logit(None, 'Task elements not found [ERROR]')
+        return False
+
+    def task_verify(self):
+        for i in range(1, DEF_NUM_TRY+1):
+            self.logit('task_verify', f'trying ... {i}/{DEF_NUM_TRY}')
+            tab = self.browser.latest_tab
+            s_path = 'x://*[@id="root"]/div/div/div/div[2]/div[3]/div/div[2]/button' # noqa
+            ele_btn = tab.ele(s_path, timeout=2)
+            if not isinstance(ele_btn, NoneElement):
+                s_text = ele_btn.text
+                self.logit(None, f'Click Verify Button [{s_text}]')
+                n_tab = self.browser.tabs_count
+                ele_btn.wait.clickable(timeout=5).click(by_js=True)
+                self.inst_okx.wait_popup(n_tab+1, 10)
+                tab.wait(2)
+                self.inst_okx.okx_confirm()
+                self.inst_okx.wait_popup(n_tab, 10)
+                tab.wait(3)
+                return True
+        return False
 
     def drops_process(self):
         # open drops url
         tab = self.browser.latest_tab
         tab.get(self.args.url)
         tab.wait(3)
+        # tab.set.window.max()
+
+        pdb.set_trace()
 
         # set language
         if self.set_lang() is False:
@@ -346,9 +509,20 @@ class Drops():
         if self.connect_wallet() is False:
             return False
 
-        # Query Task Result
-        if self.get_task_result() == '等待中签结果':
-            return True
+        for i in range(1, DEF_NUM_TRY+1):
+            self.logit('drops_process', f'trying ... {i}/{DEF_NUM_TRY}')
+
+            # Query Task Result
+            if self.get_task_result() in ['等待中签结果', '活动已结束']:
+                return True
+
+            self.complete_tasks()
+
+            if self.get_task_result() == '验证':
+                self.task_verify()
+
+                s_msg = 'Human verify ! ⚠️' # noqa
+                input(s_msg)
 
         return False
 
@@ -360,12 +534,30 @@ class Drops():
         if self.inst_okx.init_okx(is_bulk=True) is False:
             return False
 
-        self.drops_process()
+        if self.args.get_task_status:
 
+            tab = self.browser.latest_tab
+            tab.get(self.args.url)
+            tab.wait.doc_loaded()
+            tab.wait(3)
 
+            # Connect wallet
+            if self.connect_wallet() is False:
+                return False
 
+            # Wait to update button status
+            tab.wait.doc_loaded()
 
+            max_wait_sec = 30
+            i = 0
+            while i < max_wait_sec:
+                i += 1
+                s_text = self.get_task_result()
+                if s_text in ['等待中签结果']:
+                    break
+                tab.wait(1)
 
+            return True
 
         self.inst_x.status_load()
         self.inst_x.set_browser(self.browser)
@@ -387,14 +579,13 @@ class Drops():
             self.logit('drops_run', f'x_status is {x_status}')
             return False
 
-        # self.drops_process()
+        self.drops_process()
 
         if self.args.manual_exit:
-            s_msg = 'Press any key to exit! ⚠️' # noqa
+            s_msg = 'Manual Exit. Press any key to exit! ⚠️' # noqa
             input(s_msg)
 
         self.logit('drops_run', 'Finished!')
-        self.close()
 
         return True
 
@@ -404,15 +595,15 @@ def send_msg(inst_drops, lst_success):
         s_info = ''
         for s_profile in lst_success:
             lst_status = None
-            if s_profile in inst_drops.inst_x.dic_status:
-                lst_status = inst_drops.inst_x.dic_status[s_profile]
+            if s_profile in inst_drops.dic_status:
+                lst_status = inst_drops.dic_status[s_profile]
 
             if lst_status is None:
                 lst_status = [s_profile, -1]
 
             s_info += '- {},{}\n'.format(
                 s_profile,
-                lst_status[IDX_VISIT_DATE],
+                lst_status[inst_drops.IDX_STATUS],
             )
         d_cont = {
             'title': 'Daily Check-In Finished! [okx_drops]',
@@ -426,13 +617,14 @@ def send_msg(inst_drops, lst_success):
         ding_msg(d_cont, DEF_DING_TOKEN, msgtype="markdown")
 
 
-def show_msg():
+def show_msg(args):
     current_directory = os.getcwd()
     FILE_LOG = f'{current_directory}/{FILENAME_LOG}'
     FILE_STATUS = f'{current_directory}/{DEF_PATH_DATA_STATUS}/status.csv'
 
     print('########################################')
     print('The program is running')
+    print(f'headless={args.headless}')
     print('Location of the running result file:')
     print(f'{FILE_STATUS}')
     print('The running process is in the log file:')
@@ -450,7 +642,7 @@ def main(args):
         shutil.rmtree(DEF_PATH_USER_DATA)
         logger.info(f'Directory {DEF_PATH_USER_DATA} is deleted') # noqa
 
-    inst_drops = Drops()
+    inst_drops = ClsDrops()
     inst_drops.set_args(args)
 
     if len(args.profile) > 0:
@@ -475,23 +667,20 @@ def main(args):
         date_now = format_ts(time.time(), style=1, tz_offset=TZ_OFFSET)
 
         if lst_status:
-            for idx_status in [IDX_VISIT_DATE]:
-                s_date = lst_status[idx_status]
-                if date_now != s_date:
-                    b_ret = b_ret and False
+            if date_now != lst_status[inst_drops.IDX_UPDATE][:10]:
+                b_ret = b_ret and False
+
+            for idx_status in [inst_drops.IDX_STATUS]:
+                if lst_status[idx_status] in ['等待中签结果']:
+                    b_complete = True
+                else:
+                    b_complete = False
+
+                b_ret = b_ret and b_complete
         else:
             b_ret = False
 
         return b_ret
-
-    def get_sec_wait(lst_status):
-        n_sec_wait = 0
-        if lst_status:
-            avail_time = lst_status[IDX_UPDATE]
-            if avail_time:
-                n_sec_wait = time_difference(avail_time) + 1
-
-        return n_sec_wait
 
     # 将已完成的剔除掉
     inst_drops.status_load()
@@ -544,10 +733,12 @@ def main(args):
                     lst_status = None
 
                 if is_complete(lst_status):
-                    logger.info(f'[{s_profile}] Last update at {lst_status[IDX_UPDATE]}') # noqa
+                    logger.info(f'[{s_profile}] Last update at {lst_status[inst_drops.IDX_UPDATE]}') # noqa
                     break
                 else:
-                    if inst_drops.drops_run():
+                    b_ret = inst_drops.drops_run()
+                    inst_drops.close()
+                    if b_ret:
                         lst_success.append(s_profile)
                         break
 
@@ -614,19 +805,40 @@ if __name__ == '__main__':
         '--manual_exit', required=False, action='store_true',
         help='Close chrome manual'
     )
+    # 添加 --headless 参数
+    parser.add_argument(
+        '--headless',
+        action='store_true',   # 默认为 False，传入时为 True
+        default=False,         # 设置默认值
+        help='Enable headless mode'
+    )
+    # 添加 --no-headless 参数
+    parser.add_argument(
+        '--no-headless',
+        action='store_false',
+        dest='headless',  # 指定与 --headless 参数共享同一个变量
+        help='Disable headless mode'
+    )
     parser.add_argument(
         '--url', required=False, default='',
         help='okx drops url'
     )
-
-    show_msg()
+    parser.add_argument(
+        '--get_task_status', required=False, action='store_true',
+        help='Check task result'
+    )
 
     args = parser.parse_args()
+    show_msg(args)
     if args.loop_interval <= 0:
         main(args)
     else:
         while True:
             main(args)
+
+            if args.get_task_status:
+                break
+
             logger.info('#####***** Loop sleep {} seconds ...'.format(args.loop_interval)) # noqa
             time.sleep(args.loop_interval)
 
@@ -643,4 +855,10 @@ python okx_drops.py --auto_like --auto_appeal --force --profile=g05
 python okx_drops.py --auto_like --auto_appeal --force --profile=t33
 
 python okx_drops.py --auto_like --auto_appeal --force --url=https://web3.okx.com/zh-hans/drops/event/otherworlds --profile=g03
+
+python okx_drops.py --get_task_status --headless --url=https://web3.okx.com/zh-hans/drops/event/otherworlds
+python okx_drops.py --get_task_status --url=https://web3.okx.com/zh-hans/drops/event/otherworlds
+python okx_drops.py --get_task_status --url=https://web3.okx.com/zh-hans/drops/event/otherworlds --profile=g03
+python okx_drops.py --get_task_status --force --url=https://web3.okx.com/zh-hans/drops/event/otherworlds --profile=g03
+
 """

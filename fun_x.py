@@ -792,7 +792,7 @@ class XUtils():
             if not isinstance(ele_btn, NoneElement):
                 s_info = ele_btn.text
                 self.logit(None, f'Click Cancel button [{s_info}]') # noqa
-                ele_btn.click(by_js=True)
+                ele_btn.wait.clickable(timeout=5).click(by_js=True)
 
             ele_btn = tab.ele(f'@@tag()=button@@data-testid:follow@@aria-label:{name}', timeout=2)
             if not isinstance(ele_btn, NoneElement):
@@ -806,8 +806,96 @@ class XUtils():
                     self.logit(None, 'Follow Success [OK]')
                     return True
                 self.logit(None, 'Try to Click Follow Button')
-                ele_btn.click(by_js=True)
+                ele_btn.wait.clickable(timeout=5).click(by_js=True)
                 tab.wait(1)
+        return False
+
+    def jump_to_new_tweet(self):
+        tab = self.browser.latest_tab
+        # See the latest post
+        lst_path = [
+            '@@tag()=a@@aria-describedby:id@@text():See the latest post',  # en
+            '@@tag()=a@@aria-describedby:id@@text():XXXXXX TODO'  # zh
+        ]
+        ele_btn = self.inst_dp.get_ele_btn(lst_path)
+        if ele_btn is not NoneElement:
+            ele_btn.wait.clickable(timeout=5).click(by_js=True)
+            tab.wait(2)
+            return True
+        return False
+
+    def x_retweet(self):
+        for i in range(1, DEF_NUM_TRY+1):
+            self.logit('x_retweet', f'try_i={i}/{DEF_NUM_TRY}')
+            tab = self.browser.latest_tab
+            tab.wait.doc_loaded()
+
+            # Cancel
+            ele_btn = tab.ele('@@tag()=button@@data-testid=confirmationSheetCancel', timeout=2)
+            if not isinstance(ele_btn, NoneElement):
+                s_info = ele_btn.text
+                self.logit('x_retweet', f'Click Cancel button [{s_info}]') # noqa
+                ele_btn.wait.clickable(timeout=5).click(by_js=True)
+
+            # See the latest post
+            if self.jump_to_new_tweet():
+                continue
+
+            ele_btn = tab.ele('@@tag()=button@@data-testid:retweet@@aria-label:Repost', timeout=2)
+            if not isinstance(ele_btn, NoneElement):
+                s_info = ele_btn.text
+                self.logit(None, f'reposts num: {s_info}')
+
+                # data-testid="retweet"
+                s_attr = ele_btn.attr('data-testid')
+                # Status: retweet / unretweet
+                if s_attr == 'unretweet':
+                    self.logit(None, 'Retweet Success [OK]')
+                    return True
+                self.logit(None, 'Try to Click Follow Button')
+                ele_btn.wait.clickable(timeout=1).click(by_js=True)
+                tab.wait(1)
+
+                ele_btn = tab.ele('@@tag()=div@@data-testid=retweetConfirm', timeout=2)
+                if not isinstance(ele_btn, NoneElement):
+                    s_info = ele_btn.text
+                    self.logit(None, f'Click Cancel button [{s_info}]') # noqa
+                    ele_btn.wait.clickable(timeout=5).click(by_js=True)
+
+        return False
+
+    def x_like(self):
+        for i in range(1, DEF_NUM_TRY+1):
+            self.logit('x_like', f'try_i={i}/{DEF_NUM_TRY}')
+            tab = self.browser.latest_tab
+            tab.wait.doc_loaded()
+
+            # Cancel
+            ele_btn = tab.ele('@@tag()=button@@data-testid=confirmationSheetCancel', timeout=2)
+            if not isinstance(ele_btn, NoneElement):
+                s_info = ele_btn.text
+                self.logit('x_like', f'Click Cancel button [{s_info}]') # noqa
+                ele_btn.wait.clickable(timeout=5).click(by_js=True)
+
+            # See the latest post
+            if self.jump_to_new_tweet():
+                continue
+
+            ele_btn = tab.ele('@@tag()=button@@data-testid=like', timeout=2)
+            if not isinstance(ele_btn, NoneElement):
+                s_info = ele_btn.text
+                self.logit(None, f'Likes num: {s_info}')
+
+                # data-testid="retweet"
+                s_attr = ele_btn.attr('data-testid')
+                # Status: like / unlike
+                if s_attr == 'unlike':
+                    self.logit(None, 'Like Success [OK]')
+                    return True
+                self.logit(None, 'Try to Click Follow Button')
+                ele_btn.wait.clickable(timeout=1).click(by_js=True)
+                tab.wait(1)
+
         return False
 
     def x_authorize_app(self):
