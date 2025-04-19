@@ -34,7 +34,6 @@ from conf import DEF_DEBUG
 from conf import DEF_NUM_TRY
 from conf import DEF_DING_TOKEN
 from conf import DEF_PATH_DATA_STATUS
-from conf import DEF_HEADER_STATUS
 from conf import DEF_ENCODE_HANDLE_X
 
 from conf import DEF_PATH_DATA_ACCOUNT
@@ -70,6 +69,7 @@ class XUtils():
         self.account_load()
 
         # output
+        self.DEF_HEADER_STATUS = 'account,status,visit_date,num_visit,update_time' # noqa
         self.IDX_STATUS = 1
         self.IDX_VISIT_DATE = 2
         self.IDX_NUM_VISIT = 3
@@ -104,7 +104,7 @@ class XUtils():
         self.dic_status = load_file(
             file_in=self.file_status,
             idx_key=0,
-            header=DEF_HEADER_STATUS
+            header=self.DEF_HEADER_STATUS
         )
 
     def status_save(self):
@@ -113,7 +113,7 @@ class XUtils():
             file_ot=self.file_status,
             dic_status=self.dic_status,
             idx_key=0,
-            header=DEF_HEADER_STATUS
+            header=self.DEF_HEADER_STATUS
         )
 
     def close(self):
@@ -249,11 +249,17 @@ class XUtils():
             i = 0
             while i < max_wait_sec:
                 i += 1
-                if self.verify_human() is None:
+                if self.verify_human() is False:
                     self.logit(None, f'CapMonster verify success !') # noqa
-                    break
+                    return True
                 self.logit(None, f'Wait CapMonster to verify ... {i}/{max_wait_sec}') # noqa
                 self.browser.wait(1)
+
+            self.logit(None, f'CapMonster failed to verify ! Refresh Page.') # noqa
+            tab = self.browser.latest_tab
+            tab.refresh()
+            return False
+        return True
 
     def wait_log_in_button(self, max_wait_sec=30):
         i = 0
@@ -276,6 +282,13 @@ class XUtils():
             # ERR_CONNECTION_RESET
 
             self.auto_verify_cloudflare()
+
+            if self.verify_email():
+                break
+
+            # Login success
+            if self.wait_loading():
+                break
 
             self.logit(None, f'Wait to load login in button ... {i}/{max_wait_sec}') # noqa
         return False
@@ -770,6 +783,45 @@ class XUtils():
         # self.close()
 
         return True
+
+    def x_follow(self, name):
+        for i in range(1, DEF_NUM_TRY+1):
+            self.logit('x_follow', f'try_i={i}/{DEF_NUM_TRY}')
+            tab = self.browser.latest_tab
+            ele_btn = tab.ele('@@tag()=button@@data-testid=confirmationSheetCancel', timeout=2)
+            if not isinstance(ele_btn, NoneElement):
+                s_info = ele_btn.text
+                self.logit(None, f'Click Cancel button [{s_info}]') # noqa
+                ele_btn.click(by_js=True)
+
+            ele_btn = tab.ele(f'@@tag()=button@@data-testid:follow@@aria-label:{name}', timeout=2)
+            if not isinstance(ele_btn, NoneElement):
+                s_info = ele_btn.text
+                self.logit(None, f'Follow Button Text: {s_info}')
+
+                # data-testid="1649307142871212032-unfollow"
+                s_attr = ele_btn.attr('data-testid').split('-')[-1]
+                # Status: following
+                if s_attr == 'unfollow':
+                    self.logit(None, 'Follow Success [OK]')
+                    return True
+                self.logit(None, 'Try to Click Follow Button')
+                ele_btn.click(by_js=True)
+                tab.wait(1)
+        return False
+
+    def x_authorize_app(self):
+        for i in range(1, DEF_NUM_TRY+1):
+            self.logit('x_authorize_app', f'try_i={i}/{DEF_NUM_TRY}')
+            tab = self.browser.latest_tab
+            ele_btn = tab.ele('@@tag()=button@@data-testid=OAuth_Consent_Button', timeout=2)
+            if not isinstance(ele_btn, NoneElement):
+                s_info = ele_btn.text
+                self.logit(None, f'Click Authorize app button [{s_info}]') # noqa
+                ele_btn.wait.clickable(timeout=5).click(by_js=True)
+                tab.wait(1)
+                return True
+        return False
 
     def twitter_create(self):
         self.update_num_visit()
