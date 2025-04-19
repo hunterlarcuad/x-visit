@@ -1,5 +1,10 @@
 # X-Assistant Change List
 
+## 2025.04.19
+- 增加 X Follow 功能
+- 通过大模型改写 X 申诉内容
+- 增加 okx giveaway 任务辅助完成功能
+
 ## 2025.04.17
 - 通过 CapMonster 过 Cloudflare 验证
 
