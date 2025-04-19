@@ -280,6 +280,7 @@ class Giveaway():
                 ]
                 ele_btn = self.inst_dp.get_ele_btn(lst_path)
                 if not isinstance(ele_btn, NoneElement):
+                    tab = self.browser.latest_tab
                     ele_btn.wait.clickable(timeout=5).click(by_js=True)
                     tab.wait(2)
 
