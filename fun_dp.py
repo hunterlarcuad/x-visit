@@ -414,6 +414,7 @@ class DpUtils():
                 if ele_btn.states.is_enabled is False:
                     self.logit(None, 'The Save Button is_enabled=False')
                 else:
+                    ele_btn.wait.clickable(timeout=5)
                     ele_btn.click(by_js=True)
                     tab.wait(1)
                     self.logit(None, 'Saved capmonster_key [OK]')

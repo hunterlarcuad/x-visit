@@ -360,6 +360,17 @@ class OkxUtils():
             self.logit(None, 'Fail to load Connect Button') # noqa
             return False
 
+    def okx_confirm(self):
+        tab = self.browser.latest_tab
+        ele_btn = tab.ele('@@tag()=button@@data-testid=okd-button@@text():Confirm', timeout=2) # noqa
+        if not isinstance(ele_btn, NoneElement):
+            ele_btn.wait.clickable(timeout=5).click(by_js=True)
+            self.logit(None, 'Success to Click Confirm Button') # noqa
+            return True
+        else:
+            self.logit(None, 'Fail to load Confirm Button') # noqa
+            return False
+
 
 if __name__ == "__main__":
     """
