@@ -279,7 +279,7 @@ class Giveaway():
                     '@@tag()=div@@class:wallet-dialog-title-block'  # mobile
                 ]
                 ele_btn = self.inst_dp.get_ele_btn(lst_path)
-                if not isinstance(ele_btn, NoneElement):
+                if ele_btn is not NoneElement:
                     tab = self.browser.latest_tab
                     ele_btn.wait.clickable(timeout=5).click(by_js=True)
                     tab.wait(2)
@@ -290,7 +290,7 @@ class Giveaway():
                     '@@tag()=button@@class:wallet-plain-button'  # mobile
                 ]
                 ele_btn = self.inst_dp.get_ele_btn(lst_path)
-                if not isinstance(ele_btn, NoneElement):
+                if ele_btn is not NoneElement:
                     n_tab = self.browser.tabs_count
                     ele_btn.wait.clickable(timeout=5).click(by_js=True)
                     self.inst_okx.wait_popup(n_tab+1, 10)
@@ -479,6 +479,7 @@ class Giveaway():
                 if s_text in ['等待结果']:
                     break
                 tab.wait(1)
+                self.logit(None, f'get_task_result ... {i}/{max_wait_sec}') # noqa
 
             return True
 
