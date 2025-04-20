@@ -532,6 +532,7 @@ python xvisit.py --auto_like --auto_appeal --sleep_sec_min=30 --sleep_sec_max=60
 python xvisit.py --auto_like --auto_appeal --sleep_sec_min=600 --sleep_sec_max=1800 --loop_interval=180
 python xvisit.py --auto_like --auto_appeal --sleep_sec_min=60 --sleep_sec_max=180
 python xvisit.py --auto_like --auto_appeal --sleep_sec_min=120 --sleep_sec_max=360
+python xvisit.py --auto_like --auto_appeal --sleep_sec_min=180 --sleep_sec_max=360 --headless
 
 python xvisit.py --auto_like --auto_appeal --profile=g05
 python xvisit.py --auto_like --auto_appeal --force --profile=g05
