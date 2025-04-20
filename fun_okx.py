@@ -313,6 +313,11 @@ class OkxUtils():
                         self.logit('init_okx', 'login success')
                         self.save_screenshot(name='okx_2.jpg')
 
+                        while True:
+                            if self.okx_cancel() is False:
+                                break
+                            self.browser.wait(1)
+
                         return True
             else:
                 ele_btn = tab.ele('@@tag()=button@@data-testid=okd-button@@text()=Approve', timeout=2) # noqa
@@ -358,6 +363,22 @@ class OkxUtils():
             return True
         else:
             self.logit(None, 'Fail to load Connect Button') # noqa
+            return False
+
+    def okx_cancel(self):
+        tab = self.browser.latest_tab
+        tab.wait.doc_loaded()
+        ele_info = tab.ele('@@tag()=div@@text():Signature request', timeout=1) # noqa
+        if isinstance(ele_info, NoneElement):
+            return False
+
+        ele_btn = tab.ele('@@tag()=button@@data-testid=okd-button@@text():Cancel', timeout=2) # noqa
+        if not isinstance(ele_btn, NoneElement):
+            ele_btn.wait.clickable(timeout=5).click(by_js=True)
+            self.logit(None, 'Success to Click Cancel Button') # noqa
+            return True
+        else:
+            self.logit(None, 'No Cancel Button') # noqa
             return False
 
     def okx_confirm(self):
