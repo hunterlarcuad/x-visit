@@ -29,6 +29,8 @@ from fun_glm import gene_repeal_msg
 
 from proxy_api import set_proxy
 
+from fun_dp import DpUtils
+
 from conf import DEF_USE_HEADLESS
 from conf import DEF_DEBUG
 from conf import DEF_NUM_TRY
@@ -63,8 +65,9 @@ class XUtils():
 
         # 账号执行情况
         self.dic_status = {}
-
         self.dic_account = {}
+
+        self.inst_dp = DpUtils()
 
         self.account_load()
 
@@ -80,6 +83,7 @@ class XUtils():
         self.DEF_STATUS_OK = 'OK'
         self.DEF_STATUS_SUSPEND = 'SUSPEND'
         self.DEF_STATUS_APPEALED = 'APPEALED'
+        self.DEF_STATUS_EXCEED_ATTEMPT = 'EXCEED_ATTEMPT'
 
     def set_args(self, args):
         self.args = args
@@ -240,7 +244,7 @@ class XUtils():
 
     def auto_verify_cloudflare(self):
         if self.verify_human():
-            # s_msg = f'[{self.args.s_profile}]Verify you are human by completing the action'
+            # s_msg = f'[{self.args.s_profile}]Verify you are human by completing the action' # noqa
             # ding_msg(s_msg, DEF_DING_TOKEN, msgtype='text')
             # input('Verify you are human by completing the action')
 
@@ -291,6 +295,14 @@ class XUtils():
                 break
 
             self.logit(None, f'Wait to load login in button ... {i}/{max_wait_sec}') # noqa
+        return False
+
+    def should_sign_in(self):
+        tab = self.browser.latest_tab
+        ele_info = tab.ele('@@tag()=span@@class=css-1jxf684 r-bcqeeo r-1ttztb7 r-qvutc0 r-poiln3@@text()=Sign in to X', timeout=2) # noqa
+        if not isinstance(ele_info, NoneElement):
+            self.logit(None, 'Sign in to X ...')
+            return True
         return False
 
     def wait_sign_in_to_x(self, max_wait_sec=30):
@@ -462,7 +474,8 @@ class XUtils():
             #     self.enter_verification_code()
 
             self.verify_email()
-            self.enter_verification_code()
+            if self.enter_verification_code() is False:
+                continue
 
             self.x_unlocked()
 
@@ -506,6 +519,15 @@ class XUtils():
             ding_msg(d_cont, DEF_DING_TOKEN, msgtype="markdown")
             return False
 
+    def extract_between_at_and_com(self, text):
+        # 使用正则表达式匹配 @ 和 ***.com 之间的内容
+        pattern = r"@([a-zA-Z]+)\*\*\*\.com"
+        match = re.search(pattern, text)
+        if match:
+            return match.group(1)  # 返回匹配到的内容
+        else:
+            return None  # 如果没有匹配到，返回 None
+
     def enter_verification_code(self):
         tab = self.browser.latest_tab
         ele_input = tab.ele('@@tag()=div@@class=PageHeader Edge', timeout=2)
@@ -513,7 +535,6 @@ class XUtils():
             s_info = ele_input.text
             self.logit(None, f'{s_info}')
             if s_info in ['我们发送了你的验证码。', 'We sent your verification code.']:
-
                 ele_input = tab.ele('@@tag()=input@@class:Edge-textbox', timeout=1) # noqa
                 if not isinstance(ele_input, NoneElement):
                     # s_code = input('Enter Verification Code:')
@@ -528,9 +549,22 @@ class XUtils():
                         if s_code is not None:
                             break
                         self.logit(None, f'Try to get verification code from gmail ... {i}/{max_wait_sec}') # noqa
+                        # 查看z***@p***.com获取验证码，然后输入以验证这是你的电子邮件地址。
+                        ele_info = tab.ele('@@tag()=div@@class=TextGroup-text', timeout=1) # noqa
+                        if not isinstance(ele_info, NoneElement):
+                            s_info = ele_info.text
+                            self.logit(None, f'TextGroup-text: {s_info}')
+                            s_mail_prefix = self.extract_between_at_and_com(s_info) # noqa
+                            if s_mail_prefix is None:
+                                continue
+                            if s_mail_prefix == 'g':
+                                pass
+                            else:
+                                self.logit(None, 'Not Gmail ? Please check!')
 
                     if s_code is None:
                         self.logit(None, 'Fail to get verification code from gmail') # noqa
+                        return False
                     else:
                         self.logit(None, f'verification code is {s_code}')
 
@@ -546,7 +580,8 @@ class XUtils():
                         return True
                     else:
                         self.logit(None, 'Verify Button not found.')
-        return False
+                        return False
+        return True
 
     def verify_email(self):
         tab = self.browser.latest_tab
@@ -578,15 +613,21 @@ class XUtils():
             tab = self.browser.latest_tab
             ele_btns = tab.eles('@@tag()=button@@data-testid=like', timeout=2) # noqa
             if len(ele_btns) > 0:
-                ele_btn = random.choice(ele_btns)
-                tab.actions.move_to(ele_btn)
-                ele_btn.wait.clickable(timeout=30).click(by_js=True)
-                tab.wait(2)
-                return True
+                try:
+                    ele_btn = random.choice(ele_btns)
+                    ele_btn.wait.clickable(timeout=30)
+                    tab.actions.move_to(ele_btn)
+                    ele_btn.click(by_js=True)
+                    tab.wait(2)
+                    return True
+                except Exception as e: # noqa
+                    self.logit('click_like', f'Error: {e}')
+                    pdb.set_trace()
             else:
                 self.logit(None, 'Fail to load posts ...')
                 if self.wrong_retry():
                     self.wait_loading()
+            tab.wait(2)
 
         return False
 
@@ -714,6 +755,15 @@ class XUtils():
                     ele_btn.wait.clickable(timeout=30).click(by_js=True)
                     tab.wait(3)
                     return True
+            elif s_info in ['Something went wrong.', '发生了错误。']:
+                ele_info = tab.ele('@@tag()=div@@class=TextGroup-text', timeout=1) # noqa
+                if not isinstance(ele_info, NoneElement):
+                    s_info = ele_info.text
+                    self.logit(None, f'TextGroup-text: {s_info}')
+                    if s_info in ['You have exceeded the number of allowed attempts. Please try again later.', '你已超过允许尝试次数，请稍后再试。']: # noqa
+                        self.update_status(self.IDX_STATUS, self.DEF_STATUS_EXCEED_ATTEMPT) # noqa
+                    return False
+
         return False
 
     def wait_loading(self, max_wait_sec=60):
@@ -788,13 +838,13 @@ class XUtils():
         for i in range(1, DEF_NUM_TRY+1):
             self.logit('x_follow', f'try_i={i}/{DEF_NUM_TRY}')
             tab = self.browser.latest_tab
-            ele_btn = tab.ele('@@tag()=button@@data-testid=confirmationSheetCancel', timeout=2)
+            ele_btn = tab.ele('@@tag()=button@@data-testid=confirmationSheetCancel', timeout=2) # noqa
             if not isinstance(ele_btn, NoneElement):
                 s_info = ele_btn.text
                 self.logit(None, f'Click Cancel button [{s_info}]') # noqa
                 ele_btn.wait.clickable(timeout=5).click(by_js=True)
 
-            ele_btn = tab.ele(f'@@tag()=button@@data-testid:follow@@aria-label:{name}', timeout=2)
+            ele_btn = tab.ele(f'@@tag()=button@@data-testid:follow@@aria-label:{name}', timeout=2) # noqa
             if not isinstance(ele_btn, NoneElement):
                 s_info = ele_btn.text
                 self.logit(None, f'Follow Button Text: {s_info}')
@@ -813,11 +863,12 @@ class XUtils():
     def jump_to_new_tweet(self):
         tab = self.browser.latest_tab
         # See the latest post
+        # 这个帖子有新的版本。查看最新帖子
         lst_path = [
             '@@tag()=a@@aria-describedby:id@@text():See the latest post',  # en
-            '@@tag()=a@@aria-describedby:id@@text():XXXXXX TODO'  # zh
+            '@@tag()=a@@aria-describedby:id@@text():查看最新帖子'  # zh
         ]
-        ele_btn = self.inst_dp.get_ele_btn(lst_path)
+        ele_btn = self.inst_dp.get_ele_btn(self.browser.latest_tab, lst_path)
         if ele_btn is not NoneElement:
             ele_btn.wait.clickable(timeout=5).click(by_js=True)
             tab.wait(2)
@@ -831,7 +882,7 @@ class XUtils():
             tab.wait.doc_loaded()
 
             # Cancel
-            ele_btn = tab.ele('@@tag()=button@@data-testid=confirmationSheetCancel', timeout=2)
+            ele_btn = tab.ele('@@tag()=button@@data-testid=confirmationSheetCancel', timeout=2) # noqa
             if not isinstance(ele_btn, NoneElement):
                 s_info = ele_btn.text
                 self.logit('x_retweet', f'Click Cancel button [{s_info}]') # noqa
@@ -841,7 +892,8 @@ class XUtils():
             if self.jump_to_new_tweet():
                 continue
 
-            ele_btn = tab.ele('@@tag()=button@@data-testid:retweet@@aria-label:Repost', timeout=2)
+            # ele_btn = tab.ele('@@tag()=button@@data-testid:retweet@@aria-label:Repost', timeout=2) # noqa
+            ele_btn = tab.ele('@@tag()=button@@data-testid:retweet', timeout=2)
             if not isinstance(ele_btn, NoneElement):
                 s_info = ele_btn.text
                 self.logit(None, f'reposts num: {s_info}')
@@ -852,15 +904,19 @@ class XUtils():
                 if s_attr == 'unretweet':
                     self.logit(None, 'Retweet Success [OK]')
                     return True
-                self.logit(None, 'Try to Click Follow Button')
-                ele_btn.wait.clickable(timeout=1).click(by_js=True)
-                tab.wait(1)
+                self.logit(None, 'Try to Click Retweet Button')
+                try:
+                    tab.actions.move_to(ele_btn)
+                    ele_btn.wait.clickable(timeout=1).click(by_js=True)
+                    tab.wait(1)
 
-                ele_btn = tab.ele('@@tag()=div@@data-testid=retweetConfirm', timeout=2)
-                if not isinstance(ele_btn, NoneElement):
-                    s_info = ele_btn.text
-                    self.logit(None, f'Click Cancel button [{s_info}]') # noqa
-                    ele_btn.wait.clickable(timeout=5).click(by_js=True)
+                    ele_btn = tab.ele('@@tag()=div@@data-testid=retweetConfirm', timeout=2) # noqa
+                    if not isinstance(ele_btn, NoneElement):
+                        s_info = ele_btn.text
+                        self.logit(None, f'Click Cancel button [{s_info}]') # noqa
+                        ele_btn.wait.clickable(timeout=5).click(by_js=True)
+                except Exception as e: # noqa
+                    self.logit('click_like', f'Error: {e}')
 
         return False
 
@@ -871,7 +927,7 @@ class XUtils():
             tab.wait.doc_loaded()
 
             # Cancel
-            ele_btn = tab.ele('@@tag()=button@@data-testid=confirmationSheetCancel', timeout=2)
+            ele_btn = tab.ele('@@tag()=button@@data-testid=confirmationSheetCancel', timeout=2) # noqa
             if not isinstance(ele_btn, NoneElement):
                 s_info = ele_btn.text
                 self.logit('x_like', f'Click Cancel button [{s_info}]') # noqa
@@ -892,9 +948,16 @@ class XUtils():
                 if s_attr == 'unlike':
                     self.logit(None, 'Like Success [OK]')
                     return True
-                self.logit(None, 'Try to Click Follow Button')
+                self.logit(None, 'Try to Click Like Button')
+                tab.actions.move_to(ele_btn)
                 ele_btn.wait.clickable(timeout=1).click(by_js=True)
                 tab.wait(1)
+
+            ele_btn = tab.ele('@@tag()=button@@data-testid=unlike', timeout=2)
+            if not isinstance(ele_btn, NoneElement):
+                s_info = ele_btn.text
+                self.logit(None, f'Already liked. Likes num: {s_info}')
+                return True
 
         return False
 
@@ -902,7 +965,7 @@ class XUtils():
         for i in range(1, DEF_NUM_TRY+1):
             self.logit('x_authorize_app', f'try_i={i}/{DEF_NUM_TRY}')
             tab = self.browser.latest_tab
-            ele_btn = tab.ele('@@tag()=button@@data-testid=OAuth_Consent_Button', timeout=2)
+            ele_btn = tab.ele('@@tag()=button@@data-testid=OAuth_Consent_Button', timeout=2) # noqa
             if not isinstance(ele_btn, NoneElement):
                 s_info = ele_btn.text
                 self.logit(None, f'Click Authorize app button [{s_info}]') # noqa
