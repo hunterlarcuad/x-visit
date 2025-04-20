@@ -18,7 +18,6 @@ from fun_utils import ding_msg
 from fun_utils import load_file
 from fun_utils import save2file
 from fun_utils import format_ts
-from fun_utils import time_difference
 from fun_utils import get_index_from_header
 
 from fun_okx import OkxUtils
@@ -184,33 +183,6 @@ class ClsDrops():
 
         return s_val
 
-    def get_pre_num_visit(self, s_profile=None):
-        num_visit_pre = 0
-
-        s_val = self.get_status_by_idx(IDX_NUM_VISIT, s_profile)
-
-        try:
-            num_visit_pre = int(s_val)
-        except: # noqa
-            pass
-
-        return num_visit_pre
-
-    def update_num_visit(self, s_profile=None):
-        date_now = format_ts(time.time(), style=1, tz_offset=TZ_OFFSET)
-        s_update = self.get_status_by_idx(-1, s_profile)
-        if len(s_update) > 10:
-            date_update = s_update[:10]
-        else:
-            date_update = ''
-        if date_now != date_update:
-            num_visit = 1
-        else:
-            num_visit_pre = self.get_pre_num_visit(s_profile)
-            num_visit = num_visit_pre + 1
-
-        self.update_status(IDX_NUM_VISIT, str(num_visit))
-
     def update_date(self, idx_status, update_ts=None):
         if not update_ts:
             update_ts = time.time()
@@ -278,7 +250,7 @@ class ClsDrops():
                     '@@tag()=div@@class:Connect_title',  # pc
                     '@@tag()=div@@class:wallet-dialog-title-block'  # mobile
                 ]
-                ele_btn = self.inst_dp.get_ele_btn(self.browser.latest_tab, lst_path)
+                ele_btn = self.inst_dp.get_ele_btn(self.browser.latest_tab, lst_path) # noqa
                 if ele_btn is not NoneElement:
                     ele_btn.wait.clickable(timeout=5).click(by_js=True)
                     tab.wait(2)
@@ -288,7 +260,7 @@ class ClsDrops():
                     '@@tag()=button@@class:wallet-btn',  # pc
                     '@@tag()=button@@class:wallet-plain-button'  # mobile
                 ]
-                ele_btn = self.inst_dp.get_ele_btn(self.browser.latest_tab, lst_path)
+                ele_btn = self.inst_dp.get_ele_btn(self.browser.latest_tab, lst_path) # noqa
                 if ele_btn is not NoneElement:
                     n_tab = self.browser.tabs_count
                     ele_btn.wait.clickable(timeout=5).click(by_js=True)
@@ -511,9 +483,9 @@ class ClsDrops():
         ele_blk = tab.ele('@@tag()=div@@class:index_inner-right', timeout=1) # noqa
         if not isinstance(ele_blk, NoneElement):
             lst_path = [
-                '@@tag()=button@@class:nft nft-btn btn-md btn-fill-highlight index_button',  # pc
-                '@@tag()=button@@class:nft nft-btn btn-md btn-fill-highlight mobile index_button-sub__X3Dbw',  # mobile
-                '@@tag()=button@@class:nft nft-btn btn-md btn-outline-primary btn-disabled' # task completed
+                '@@tag()=button@@class:nft nft-btn btn-md btn-fill-highlight index_button',  # pc # noqa
+                '@@tag()=button@@class:nft nft-btn btn-md btn-fill-highlight mobile index_button-sub__X3Dbw',  # mobile # noqa
+                '@@tag()=button@@class:nft nft-btn btn-md btn-outline-primary btn-disabled' # task completed # noqa
             ]
             ele_btn = self.inst_dp.get_ele_btn(ele_blk, lst_path)
         else:
