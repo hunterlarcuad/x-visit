@@ -278,7 +278,7 @@ class ClsDrops():
                     '@@tag()=div@@class:Connect_title',  # pc
                     '@@tag()=div@@class:wallet-dialog-title-block'  # mobile
                 ]
-                ele_btn = self.inst_dp.get_ele_btn(lst_path)
+                ele_btn = self.inst_dp.get_ele_btn(self.browser.latest_tab, lst_path)
                 if ele_btn is not NoneElement:
                     ele_btn.wait.clickable(timeout=5).click(by_js=True)
                     tab.wait(2)
@@ -288,7 +288,7 @@ class ClsDrops():
                     '@@tag()=button@@class:wallet-btn',  # pc
                     '@@tag()=button@@class:wallet-plain-button'  # mobile
                 ]
-                ele_btn = self.inst_dp.get_ele_btn(lst_path)
+                ele_btn = self.inst_dp.get_ele_btn(self.browser.latest_tab, lst_path)
                 if ele_btn is not NoneElement:
                     n_tab = self.browser.tabs_count
                     ele_btn.wait.clickable(timeout=5).click(by_js=True)
@@ -313,13 +313,30 @@ class ClsDrops():
         return False
 
     def connect_x(self):
-        tab = self.browser.latest_tab
         n_tab = self.browser.tabs_count
         for i in range(1, DEF_NUM_TRY+1):
             self.logit('connect_x', f'trying ... {i}/{DEF_NUM_TRY}')
             if self.okx_verify_click():
-                s_msg = 'Manual verify. Press any key to continue! ⚠️' # noqa
-                input(s_msg)
+
+                s_msg = f'[{self.args.s_profile}] OKX Graphic captcha challenge [TODO]' # noqa
+                ding_msg(s_msg, DEF_DING_TOKEN, msgtype='text')
+
+                b_manual = True
+                max_wait_sec = 300
+                i = 0
+                while i < max_wait_sec:
+                    i += 1
+                    if self.okx_verify_click() is False:
+                        self.logit(None, 'OKX Graphic captcha challenge is success') # noqa
+                        b_manual = False
+                        s_msg = f'[{self.args.s_profile}] OKX Graphic captcha challenge [Success]' # noqa
+                        ding_msg(s_msg, DEF_DING_TOKEN, msgtype='text')
+                        break
+                    self.browser.wait(1)
+
+                if b_manual:
+                    s_msg = 'Manual captcha challenge. Press any key to continue! ⚠️' # noqa
+                    input(s_msg)
 
             tab = self.browser.latest_tab
             ele_btn = tab.ele('@@tag()=button@@class:btn-outline-primary', timeout=1) # noqa
@@ -334,22 +351,39 @@ class ClsDrops():
                         s_text = ele_btn.text
                         self.logit(None, f'connect_x Button Status: {s_text}')
                         ele_btn.wait.clickable(timeout=5).click(by_js=True)
-                        self.inst_okx.wait_popup(n_tab+1, 10)
+                        # Popup X window
+                        self.inst_okx.wait_popup(n_tab+1, 30)
                     else:
                         tab.wait(10)
-                elif s_text in ['连接']:
+                elif s_text in ['连接', 'Cancel']:
                     tab.actions.move_to(ele_btn)
-                    ele_btn.wait.clickable(timeout=5).click(by_js=True)
+                    try:
+                        ele_btn.wait.clickable(timeout=5).click(by_js=True)
+                        self.logit(None, 'connect_x Button Clicked ...')
+                        self.inst_okx.wait_popup(n_tab+1, 20)
 
-                    tab.wait(2)
-                    if self.inst_okx.okx_confirm():
-                        self.logit(None, 'Signature request Confirm')
-                        self.inst_okx.wait_popup(n_tab, 10)
-                        tab.wait(3)
+                        tab.wait(2)
+                        if self.inst_okx.okx_confirm():
+                            self.logit(None, 'Signature request Confirm')
+                            self.inst_okx.wait_popup(n_tab, 15)
+                            tab.wait(3)
+                            continue
+                    except: # noqa
                         continue
                 elif s_text in ['断开连接', '已连接']:
+                    self.logit(None, 'connect_x success')
                     return True
             if self.browser.tabs_count == (n_tab + 1):
+                if self.inst_x.should_sign_in():
+                    # 关闭登录弹窗
+                    self.browser.latest_tab.close()
+                    # 新打开一个标签页
+                    self.browser.new_tab()
+                    self.inst_x.xutils_login()
+                    # 登录后再关闭 X 页面
+                    self.browser.latest_tab.close()
+                    continue
+
                 self.inst_x.x_authorize_app()
                 self.inst_okx.wait_popup(n_tab, 10)
                 tab.wait(5)
@@ -358,16 +392,14 @@ class ClsDrops():
     def get_task_result(self):
         for i in range(1, DEF_NUM_TRY+1):
             self.logit('get_task_result', f'trying ... {i}/{DEF_NUM_TRY}')
-            tab = self.browser.latest_tab
-            s_path = 'x://*[@id="root"]/div/div/div[3]/div/div/div[3]/div/button[1]'
-            ele_btn = tab.ele(s_path, timeout=2)
-            if not isinstance(ele_btn, NoneElement):
+            ele_btn = self.get_verify_btn()
+            if ele_btn is not NoneElement:
                 s_text = ele_btn.text
                 self.logit(None, f'Button text: {s_text}')
-
                 self.update_status(self.IDX_STATUS, s_text)
 
                 return s_text
+            self.browser.wait(2)
         return None
 
     def process_btn(self, ele_btn):
@@ -379,60 +411,61 @@ class ClsDrops():
         if self.inst_okx.wait_popup(n_tab+1, 10) is False:
             return False
 
+        # Change to popup window
+        tab = self.browser.latest_tab
         if tab.url.find('x.com/intent/follow') >= 0:
             name = tab.url.split('=')[-1]
             self.logit(None, f'Try to Follow x: {name}')
             if self.inst_x.x_follow(name):
                 tab.wait(1)
-                tab.close()
         elif tab.url.find('x.com/intent/retweet') >= 0:
             # https://x.com/intent/retweet?tweet_id=1912443347928773118
             # tweet_id = tab.url.split('=')[-1]
             self.logit(None, f'Try to retweet x: {tab.url}')
             if self.inst_x.x_retweet():
                 tab.wait(1)
-                tab.close()
         elif tab.url.find('x.com/intent/like') >= 0:
             # https://x.com/intent/like?tweet_id=1912443347928773118
             self.logit(None, f'Try to retweet x: {tab.url}')
             if self.inst_x.x_like():
                 tab.wait(1)
-                tab.close()
         else:
             self.logit(None, 'Manual task.')
             s_msg = 'Manual task, Press any key to exit! ⚠️' # noqa
             input(s_msg)
+        tab.close()
 
     def complete_tasks(self):
         for i in range(1, DEF_NUM_TRY+1):
             self.logit('complete_tasks', f'trying ... {i}/{DEF_NUM_TRY}')
 
             tab = self.browser.latest_tab
+
+            # 2025.04.20 该任务被移除
             # 完成欧易 Web3 任务
-            ele_blks = tab.eles('@@tag()=div@@class:index_item__5J7ea', timeout=2) # noqa
-            if not ele_blks:
-                tab.wait(1)
-                continue
-            for ele_blk in ele_blks:
-                # process each task
-                # Task title
-                # 活动期间持有 ≥ 0.05 BNB
-                ele_btn = ele_blk.ele('@@tag()=div@@class:index_item', timeout=2) # noqa
-                if not isinstance(ele_btn, NoneElement):
-                    s_text = ele_btn.text
-                    self.logit(None, f'Task title: {s_text}')
-                # BNB 余额：0.0165 BNB
-                ele_btn = ele_blk.ele('@@tag()=div@@class:index_desc', timeout=2) # noqa
-                if not isinstance(ele_btn, NoneElement):
-                    s_text = ele_btn.text
-                    self.logit(None, f'Task desc: {s_text}')
+            # ele_blks = tab.eles('@@tag()=div@@class:index_item__5J7ea', timeout=2) # noqa
+            # if not ele_blks:
+            #     tab.wait(1)
+            #     continue
+            # for ele_blk in ele_blks:
+            #     # process each task
+            #     # Task title
+            #     # 活动期间持有 ≥ 0.05 BNB
+            #     ele_btn = ele_blk.ele('@@tag()=div@@class:index_item', timeout=2) # noqa
+            #     if not isinstance(ele_btn, NoneElement):
+            #         s_text = ele_btn.text
+            #         self.logit(None, f'Task title: {s_text}')
+            #     # BNB 余额：0.0165 BNB
+            #     ele_btn = ele_blk.ele('@@tag()=div@@class:index_desc', timeout=2) # noqa
+            #     if not isinstance(ele_btn, NoneElement):
+            #         s_text = ele_btn.text
+            #         self.logit(None, f'Task desc: {s_text}')
 
             # Connect X
             if self.connect_x() is False:
                 self.logit(None, 'Fail to connect X')
                 continue
 
-            pdb.set_trace()
             tab = self.browser.latest_tab
             # 完成 X 社媒任务
             ele_blks = tab.eles('@@tag()=div@@class:index_wrap__OR3MB', timeout=2) # noqa
@@ -473,33 +506,41 @@ class ClsDrops():
         self.logit(None, 'Task elements not found [ERROR]')
         return False
 
+    def get_verify_btn(self):
+        tab = self.browser.latest_tab
+        ele_blk = tab.ele('@@tag()=div@@class:index_inner-right', timeout=1) # noqa
+        if not isinstance(ele_blk, NoneElement):
+            lst_path = [
+                '@@tag()=button@@class:nft nft-btn btn-md btn-fill-highlight index_button',  # pc
+                '@@tag()=button@@class:nft nft-btn btn-md btn-fill-highlight mobile index_button-sub__X3Dbw',  # mobile
+                '@@tag()=button@@class:nft nft-btn btn-md btn-outline-primary btn-disabled' # task completed
+            ]
+            ele_btn = self.inst_dp.get_ele_btn(ele_blk, lst_path)
+        else:
+            ele_btn = NoneElement
+        return ele_btn
+
     def task_verify(self):
         for i in range(1, DEF_NUM_TRY+1):
             self.logit('task_verify', f'trying ... {i}/{DEF_NUM_TRY}')
-            tab = self.browser.latest_tab
-            s_path = 'x://*[@id="root"]/div/div/div/div[2]/div[3]/div/div[2]/button' # noqa
-            ele_btn = tab.ele(s_path, timeout=2)
-            if not isinstance(ele_btn, NoneElement):
+            ele_btn = self.get_verify_btn()
+            if ele_btn is not NoneElement:
                 s_text = ele_btn.text
                 self.logit(None, f'Click Verify Button [{s_text}]')
-                n_tab = self.browser.tabs_count
                 ele_btn.wait.clickable(timeout=5).click(by_js=True)
-                self.inst_okx.wait_popup(n_tab+1, 10)
-                tab.wait(2)
-                self.inst_okx.okx_confirm()
-                self.inst_okx.wait_popup(n_tab, 10)
-                tab.wait(3)
+                self.browser.wait(3)
                 return True
+            self.browser.wait(2)
         return False
 
     def drops_process(self):
         # open drops url
-        tab = self.browser.latest_tab
-        tab.get(self.args.url)
-        tab.wait(3)
+        # tab = self.browser.latest_tab
+        # tab.get(self.args.url)
+        tab = self.browser.new_tab(self.args.url)
+        tab.wait.doc_loaded()
+        # tab.wait(3)
         # tab.set.window.max()
-
-        pdb.set_trace()
 
         # set language
         if self.set_lang() is False:
@@ -518,11 +559,9 @@ class ClsDrops():
 
             self.complete_tasks()
 
-            if self.get_task_result() == '验证':
+            if self.get_task_result() == '申购':
                 self.task_verify()
-
-                s_msg = 'Human verify ! ⚠️' # noqa
-                input(s_msg)
+                self.browser.wait(1)
 
         return False
 
@@ -574,7 +613,7 @@ class ClsDrops():
             return False
 
         self.inst_x.twitter_run()
-        x_status = self.inst_x.dic_status[self.args.profile][self.inst_x.IDX_STATUS] # noqa
+        x_status = self.inst_x.dic_status[self.args.s_profile][self.inst_x.IDX_STATUS] # noqa
         if x_status != self.inst_x.DEF_STATUS_OK:
             self.logit('drops_run', f'x_status is {x_status}')
             return False
