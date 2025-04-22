@@ -91,6 +91,11 @@ def get_emails_by_subject():
         # 获取所有邮件（不区分已读和未读），过滤条件为主题包含特定文字
         # query = 'subject:"confirm your email address to access all of X"'
         query = 'is:unread subject:"confirm your email address to access all of X"' # noqa
+        query = 'is:unread subject:"confirm your email address to access all of X"' # noqa
+
+        s_in_title = 'is your X verification code'
+        query = f'is:unread subject:"{s_in_title}"' # noqa
+
         results = service.users().messages().list(userId='me', q=query, maxResults=1).execute() # noqa
         # results = service.users().messages().list(userId='me', q=query).execute() # noqa
         messages = results.get('messages', [])
@@ -126,7 +131,7 @@ def get_emails_by_subject():
         print(f'发生错误: {error}')
 
 
-def get_verify_code_from_gmail():
+def get_verify_code_from_gmail(s_in_title):
     """
     获取邮件标题包含特定关键词的邮件列表
 
@@ -142,7 +147,8 @@ def get_verify_code_from_gmail():
     try:
         # 获取所有邮件（不区分已读和未读），过滤条件为主题包含特定文字
         # query = 'subject:"confirm your email address to access all of X"'
-        query = 'is:unread subject:"confirm your email address to access all of X"' # noqa
+        # query = 'is:unread subject:"confirm your email address to access all of X"' # noqa
+        query = f'is:unread subject:"{s_in_title}"' # noqa
         results = service.users().messages().list(userId='me', q=query, maxResults=1).execute() # noqa
         messages = results.get('messages', [])
 

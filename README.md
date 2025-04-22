@@ -1,5 +1,8 @@
 # X-Assistant Change List
 
+## 2025.04.22
+- 增加 X 账号注册
+
 ## 2025.04.19
 - 增加 X Follow 功能
 - 通过大模型改写 X 申诉内容

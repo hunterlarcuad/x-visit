@@ -335,25 +335,48 @@ def generate_password(length):
     生成指定长度的密码
     :param length: 密码长度
     :return: 生成的密码
-    """
-    if length < 4:
-        raise ValueError("密码长度至少为4")
 
-    # 包含大小写字母、数字和特殊字符的字符集
-    # characters = string.ascii_letters + string.digits + string.punctuation
-    characters = string.ascii_letters + string.digits + '_'
-    # 确保密码中包含至少一个大写字母、一个小写字母、一个数字和一个特殊字符
-    password = [
-        random.choice(string.ascii_uppercase),
-        random.choice(string.ascii_lowercase),
-        random.choice(string.digits),
-        '_'
-        # random.choice(string.punctuation)
-    ]
-    # 填充剩余的字符
-    password += random.choices(characters, k=length - 4)
+    至少包含2个下划线。
+    不能出现连续2个相同的字符。
+    首尾不能是下划线。
+    """
+    if length < 6:
+        raise ValueError("密码长度至少为6，以满足至少2个下划线和首尾非下划线的要求")
+
+    # 包含大小写字母和数字的字符集
+    non_underscore_characters = string.ascii_letters + string.digits
+
+    # 初始化密码，先放3个下划线
+    password = ['_'] * 3
+
+    # 填充剩余的字符，直到密码长度达到要求
+    while len(password) < length:
+        next_char = random.choice(non_underscore_characters)
+        # 确保不出现连续相同的字符
+        if len(password) > 0 and password[-1] == next_char:
+            continue
+        password.append(next_char)
+
     # 打乱密码字符顺序
     random.shuffle(password)
+
+    # 确保首尾不是下划线
+    if password[0] == '_':
+        password[0] = random.choice(non_underscore_characters)
+    if password[-1] == '_':
+        password[-1] = random.choice(non_underscore_characters)
+
+    # 确保至少2个下划线
+    if password.count('_') < 2:
+        # 找到一个不是首尾的位置，插入一个下划线
+        insert_pos = random.randint(1, len(password) - 2)  # 不插入到首尾
+        password.insert(insert_pos, '_')
+
+    # 再次检查并调整，确保不出现连续相同的字符
+    for i in range(len(password) - 1):
+        if password[i] == password[i + 1]:
+            password[i + 1] = random.choice(non_underscore_characters)
+
     return ''.join(password)
 
 

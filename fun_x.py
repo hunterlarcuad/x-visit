@@ -19,7 +19,7 @@ from fun_utils import ding_msg
 from fun_utils import load_file
 from fun_utils import save2file
 from fun_utils import format_ts
-from fun_utils import time_difference
+from fun_utils import generate_password
 from fun_utils import get_index_from_header
 
 from fun_encode import decrypt
@@ -528,6 +528,62 @@ class XUtils():
         else:
             return None  # 如果没有匹配到，返回 None
 
+    def register_verification_code(self):
+        tab = self.browser.latest_tab
+        ele_input = tab.ele('@@tag()=h1@@id=modal-header', timeout=2)
+        if not isinstance(ele_input, NoneElement):
+            s_info = ele_input.text
+            self.logit(None, f'{s_info}')
+            if s_info in ['xxx', 'We sent you a code']:
+                ele_input = tab.ele('@@tag()=input@@name=verfication_code', timeout=1) # noqa
+                if not isinstance(ele_input, NoneElement):
+                    # s_code = input('Enter Verification Code:')
+
+                    s_code = None
+                    max_wait_sec = 120
+                    i = 0
+                    while i < max_wait_sec:
+                        i += 1
+                        self.browser.wait(1)
+                        s_in_title = 'is your X verification code'
+                        s_code = get_verify_code_from_gmail(s_in_title)
+                        if s_code is not None:
+                            break
+                        self.logit(None, f'Try to get verification code from gmail ... {i}/{max_wait_sec}') # noqa
+                        # 查看z***@p***.com获取验证码，然后输入以验证这是你的电子邮件地址。
+                        ele_info = tab.ele('@@tag()=div@@class=css-175oi2r r-knv0ih', timeout=1) # noqa
+                        if not isinstance(ele_info, NoneElement):
+                            s_info = ele_info.text
+                            self.logit(None, f'Register code in email: {s_info}') # noqa
+                            # s_mail_prefix = self.extract_between_at_and_com(s_info) # noqa
+                            # if s_mail_prefix is None:
+                            #     continue
+                            # if s_mail_prefix == 'g':
+                            #     pass
+                            # else:
+                            #     self.logit(None, 'Not Gmail ? Please check!')
+
+                    if s_code is None:
+                        self.logit(None, 'Fail to get verification code from gmail') # noqa
+                        return False
+                    else:
+                        self.logit(None, f'verification code is {s_code}')
+
+                    tab.actions.move_to(ele_input).click().type(s_code)
+                    tab.wait(2)
+
+                    ele_btn = tab.ele('@@tag()=div@@class=css-175oi2r r-b9tw7p', timeout=2) # noqa
+                    if not isinstance(ele_btn, NoneElement):
+                        btn_text = ele_btn.value
+                        self.logit(None, f'Button text: {btn_text}')
+                        ele_btn.wait.clickable(timeout=30).click()
+                        tab.wait(2)
+                        return True
+                    else:
+                        self.logit(None, 'Verify Button not found.')
+                        return False
+        return True
+
     def enter_verification_code(self):
         tab = self.browser.latest_tab
         ele_input = tab.ele('@@tag()=div@@class=PageHeader Edge', timeout=2)
@@ -545,7 +601,8 @@ class XUtils():
                     while i < max_wait_sec:
                         i += 1
                         self.browser.wait(1)
-                        s_code = get_verify_code_from_gmail()
+                        s_in_title = 'confirm your email address to access all of X'
+                        s_code = get_verify_code_from_gmail(s_in_title)
                         if s_code is not None:
                             break
                         self.logit(None, f'Try to get verification code from gmail ... {i}/{max_wait_sec}') # noqa
@@ -974,6 +1031,137 @@ class XUtils():
                 return True
         return False
 
+    def wait_create_account_button(self, max_wait_sec=30):
+        i = 0
+        while i < max_wait_sec:
+            tab = self.browser.latest_tab
+            ele_info = tab.ele('@@tag()=a@@data-testid=signupButton', timeout=2) # noqa
+            if not isinstance(ele_info, NoneElement):
+                self.logit(None, 'load create account button success ...')
+                ele_info.wait.clickable(timeout=60).click(by_js=True)
+                # ele_info.click(by_js=True)
+                return True
+            i += 1
+            self.browser.wait(1)
+            self.logit(None, f'Wait to load create account button ... {i}/{max_wait_sec}') # noqa
+        return False
+
+    def wait_create_account_to_x(self, max_wait_sec=30):
+        i = 0
+        while i < max_wait_sec:
+            i += 1
+            tab = self.browser.latest_tab
+            ele_info = tab.ele('@@tag()=span@@class=css-1jxf684 r-bcqeeo r-1ttztb7 r-qvutc0 r-poiln3@@text()=Create your account', timeout=2) # noqa
+            if not isinstance(ele_info, NoneElement):
+                self.logit(None, 'Success to load popup x window ...')
+                return True
+
+            self.browser.wait(1)
+            self.logit(None, f'Wait to load popup x window ... {i}/{max_wait_sec}') # noqa
+
+            self.wrong_retry()
+
+        return False
+
+    def create_account_input(self):
+        def select_birth(s_id, s_val):
+            tab = self.browser.latest_tab
+            ele_input = tab.ele(f'@@tag()=select@@id={s_id}', timeout=1) # noqa
+            if not isinstance(ele_input, NoneElement):
+                ele_input.select.by_value(s_val)
+                tab.wait(1)
+                return True
+            return False
+
+        for i in range(1, DEF_NUM_TRY+1):
+            self.logit('create_account_input', f'try_i={i}/{DEF_NUM_TRY}')
+            tab = self.browser.latest_tab
+            # Name
+            ele_input = tab.ele('@@tag()=input@@name=name', timeout=1) # noqa
+            if not isinstance(ele_input, NoneElement):
+                if not self.args.name:
+                    s_name = self.args.email.split('@')[0]
+                else:
+                    s_name = self.args.name
+                tab.actions.move_to(ele_input).click().type(s_name)
+                tab.wait(1)
+
+            # Email
+            ele_btn = tab.ele('@@tag()=button@@dir=ltr@@type=button', timeout=1) # noqa
+            if not isinstance(ele_btn, NoneElement):
+                if ele_btn.text in ['Use email instead']:
+                    ele_btn.click(by_js=True)
+                    tab.wait(1)
+            ele_input = tab.ele('@@tag()=input@@name=email', timeout=1) # noqa
+            if not isinstance(ele_input, NoneElement):
+                if not self.args.email:
+                    self.logit(None, 'email can not be empty. [ERROR]') # noqa
+                    return False
+                else:
+                    s_email = self.args.email
+                tab.actions.move_to(ele_input).click().type(s_email)
+                tab.wait(1)
+
+            # Date of birth
+            n_year = random.randint(1985, 2005)
+            n_month = random.randint(1, 12)
+            n_day = random.randint(1, 26)
+            select_birth('SELECTOR_1', n_month)
+            select_birth('SELECTOR_2', n_day)
+            select_birth('SELECTOR_3', n_year)
+            s_birth = f'{n_year}-{n_month}-{n_day}'
+            self.logit(None, f's_birth: {s_birth}')
+            pdb.set_trace()
+
+            # Next
+            ele_btn = tab.ele('@@tag()=button@@data-testid=ocfSignupNextLink', timeout=1) # noqa
+            if not isinstance(ele_btn, NoneElement):
+                if ele_btn.wait.enabled(timeout=3):
+                    ele_btn.click(by_js=True)
+                    tab.wait(1)
+                    return True
+
+            self.browser.wait(1)
+        return False
+
+    def set_password(self):
+        tab = self.browser.latest_tab
+        # Password
+        ele_input = tab.ele('@@tag()=input@@name=password', timeout=1) # noqa
+        if not isinstance(ele_input, NoneElement):
+            s_pwd = generate_password(20)
+            self.logit(None, f's_pwd: {s_pwd}')
+            tab.actions.move_to(ele_input).click().type(s_pwd)
+            tab.wait(1)
+
+            ele_div = tab.ele('@@tag()=div@@class=css-175oi2r r-b9tw7p', timeout=2) # noqa
+            if not isinstance(ele_div, NoneElement):
+                ele_btn = ele_div.ele('@@tag()=button', timeout=2) # noqa
+                if not isinstance(ele_btn, NoneElement):
+                    btn_text = ele_btn.text
+                    self.logit(None, f'Button text: {btn_text}')
+                    ele_btn.wait.enabled(timeout=30)
+                    ele_btn.wait.clickable(timeout=30)
+                    ele_btn.click(by_js=True)
+                    tab.wait(3)
+                    return True
+            else:
+                self.logit(None, 'Password input element not found.')
+                return False
+        self.logit(None, 'Fail to input password.')
+        return False
+
+    def set_profile(self):
+        tab = self.browser.latest_tab
+        # Pick a profile picture
+        ele_btn = tab.ele('@@tag()=div@@class=css-175oi2r r-b9tw7p', timeout=2) # noqa
+        if not isinstance(ele_btn, NoneElement):
+            btn_text = ele_btn.text
+            self.logit(None, f'Button text: {btn_text}')
+            ele_btn.wait.clickable(timeout=30).click()
+            tab.wait(5)
+            return True
+
     def twitter_create(self):
         self.update_num_visit()
 
@@ -986,8 +1174,28 @@ class XUtils():
             tab.get(s_url, timeout=60, retry=1)
 
             self.browser.wait(3)
+
+            self.wait_create_account_button()
+            self.wait_create_account_to_x()
+            self.create_account_input()
+
+            # 图形验证码
+
+            self.register_verification_code()
+            self.set_password()
+            # Verify you are human by completing the action below
+
+            # Your account has been locked
+            if self.x_locked():
+                self.verify_email()
+                self.enter_verification_code()
+                # 图形验证码
+                self.x_unlocked()
+
+
             s_msg = 'Press any key to continue ! ⚠️' # noqa
             input(s_msg)
+            pdb.set_trace()
 
         return False
 
