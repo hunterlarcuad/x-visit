@@ -582,7 +582,7 @@ class XUtils():
                     else:
                         self.logit(None, 'Verify Button not found.')
                         return False
-        return True
+        return False
 
     def enter_verification_code(self):
         tab = self.browser.latest_tab
@@ -870,7 +870,8 @@ class XUtils():
                 if self.args.auto_appeal is True:
                     is_appeal = 'y'
                 else:
-                    is_appeal = input('Your account is suspended. Will you appeal now ? [y/n]') # noqa
+                    is_appeal = 'n'
+                    # is_appeal = input('Your account is suspended. Will you appeal now ? [y/n]') # noqa
 
                 if is_appeal == 'y':
                     self.logit(None, 'appealing ...')
@@ -1220,6 +1221,289 @@ class XUtils():
             tab.wait(5)
             return True
 
+    def set_username(self):
+        tab = self.browser.latest_tab
+        ele_input = tab.ele('@@tag()=input@@name=username', timeout=2) # noqa
+        if not isinstance(ele_input, NoneElement):
+            s_username = ele_input.value
+            self.logit(None, f'username: {s_username}')
+
+            ele_btn = tab.ele('@@tag()=button@@data-testid=ocfEnterUsernameSkipButton', timeout=2) # noqa
+            if not isinstance(ele_btn, NoneElement):
+                btn_text = ele_btn.text
+                self.logit(None, f'set_username Button text: {btn_text}')
+                ele_btn.wait.clickable(timeout=30).click()
+                tab.wait(8)
+                return True
+
+    def set_interest(self, max_wait_sec=120):
+        # What do you want to see on X?
+        # Select at least 1 interest to personalize your X experience. It will be visible on your profile.
+        i = 0
+        while i < max_wait_sec:
+            i += 1
+            tab = self.browser.latest_tab
+            ele_items = tab.eles('@@tag()=li@@role=listitem@@id:verticalGridItem', timeout=2) # noqa
+            if not ele_items:
+                continue
+            n_to_select = random.randint(2, 5)
+            self.logit(None, f'Select {n_to_select} interest from {len(ele_items)}')
+            for i in range(0, n_to_select):
+                ele_item = random.choice(ele_items)
+                tab.actions.move_to(ele_item)
+                ele_item.wait.clickable(timeout=30).click()
+                tab.wait(2)
+
+            ele_btn = tab.ele('x://*[@id="layers"]/div[2]/div/div/div/div/div/div[2]/div[2]/div/div/div[2]/div[2]/div[2]/div/div/button', timeout=2) # noqa
+            if not isinstance(ele_btn, NoneElement):
+                btn_text = ele_btn.text
+                self.logit(None, f'set_interest Button text: {btn_text}')
+                ele_btn.wait.clickable(timeout=30).click()
+                tab.wait(8)
+                return True
+        self.logit(None, 'Fail to set interest ...') # noqa
+        return False
+
+    def follow_some_accounts(self, max_wait_sec=120):
+        # Don’t miss out
+        # When you follow someone, you’ll see their posts in your Timeline. You’ll also get more relevant recommendations.
+        # Follow 1 or more accounts
+        i = 0
+        while i < max_wait_sec:
+            i += 1
+            tab = self.browser.latest_tab
+            ele_items = tab.eles('@@tag()=div@@data-testid=cellInnerDiv@@text():Click', timeout=2) # noqa
+            if not ele_items:
+                continue
+            n_to_follow = random.randint(1, 5)
+            self.logit(None, f'Follow {n_to_follow} accounts from {len(ele_items)}')
+            for i in range(0, n_to_follow):
+                ele_item = random.choice(ele_items)
+                tab.actions.move_to(ele_item)
+                ele_item.wait.clickable(timeout=30).click()
+                tab.wait(2)
+
+            ele_btn = tab.ele('x://*[@id="layers"]/div[2]/div/div/div/div/div/div[2]/div[2]/div/div/div[2]/div[2]/div[2]/div/div/div/button', timeout=2) # noqa
+            if not isinstance(ele_btn, NoneElement):
+                btn_text = ele_btn.text
+                self.logit(None, f'follow_some_accounts Button text: {btn_text}')
+                ele_btn.wait.clickable(timeout=30).click()
+                tab.wait(8)
+                return True
+        self.logit(None, 'Fail to set interest ...') # noqa
+        return False
+
+    def enter_password(self, max_wait_sec=60):
+        """
+        Enter your password
+        To get started, first enter your X password to confirm it’s really you.
+        """
+        i = 0
+        while i < max_wait_sec:
+            i += 1
+            tab = self.browser.latest_tab
+            # Password
+            ele_input = tab.ele('@@tag()=input@@name=password', timeout=1) # noqa
+            if not isinstance(ele_input, NoneElement):
+                self.logit(None, f's_pwd: {self.s_pwd}')
+                tab.actions.move_to(ele_input).click().type(self.s_pwd)
+                tab.wait(2)
+
+                ele_btn = tab.ele('@@tag()=button@@data-testid=LoginForm_Login_Button', timeout=2) # noqa
+                if not isinstance(ele_btn, NoneElement):
+                    btn_text = ele_btn.text
+                    self.logit(None, f'Button text: {btn_text}')
+                    ele_btn.wait.enabled(timeout=30)
+                    ele_btn.wait.clickable(timeout=30)
+                    ele_btn.click(by_js=True)
+                    tab.wait(5)
+                    return True
+                else:
+                    self.logit(None, 'Confirm button is not found.')
+            self.browser.wait(1)
+        self.logit(None, 'Fail to enter password.')
+        return False
+
+    def enter_confirmation_code(self, max_wait_sec=60):
+        """
+        Enter the confirmation code
+        Follow the instructions on the authentication app to link your X account. Once the authentication app generates a confirmation code, enter it here. 
+        """
+        i = 0
+        while i < max_wait_sec:
+            i += 1
+            tab = self.browser.latest_tab
+            # Password
+            ele_input = tab.ele('@@tag()=input@@data-testid=ocfEnterTextTextInput', timeout=1) # noqa
+            if not isinstance(ele_input, NoneElement):
+                self.logit(None, f's_pwd: {self.s_pwd}')
+                ele_input.input(pyotp.TOTP(self.qr_code).now())
+                tab.actions.move_to(ele_input).click().type(self.s_pwd)
+                tab.wait(2)
+
+                ele_btn = tab.ele('@@tag()=button@@data-testid=ocfEnterTextNextButton', timeout=2) # noqa
+                if not isinstance(ele_btn, NoneElement):
+                    btn_text = ele_btn.text
+                    self.logit(None, f'Button text: {btn_text}')
+                    ele_btn.wait.enabled(timeout=30)
+                    ele_btn.wait.clickable(timeout=30)
+                    ele_btn.click(by_js=True)
+                    tab.wait(5)
+                    return True
+                else:
+                    self.logit(None, 'Confirm button is not found.')
+            self.browser.wait(1)
+        self.logit(None, 'Fail to enter password.')
+        return False
+
+    def save_backup_code(self, max_wait_sec=60):
+        """
+        Save this single-use backup code in a safe place.
+        """
+        i = 0
+        while i < max_wait_sec:
+            i += 1
+            tab = self.browser.latest_tab
+
+            ele_info = tab.ele('@@tag()=span@@text():Save this single-use backup code in a safe place', timeout=2) # noqa
+            if not isinstance(ele_info, NoneElement):
+                s_info = ele_info.text.replace('\n', ' ')
+                self.logit(None, f'backup code: {s_info}')
+                self.backup_code = s_info.split(' ')[29]
+
+
+                ele_btn = tab.ele('@@tag()=button@@data-testid=OCF_CallToAction_Button', timeout=2) # noqa
+                if not isinstance(ele_btn, NoneElement):
+                    btn_text = ele_btn.text
+                    self.logit(None, f'Button text: {btn_text}')
+                    ele_btn.wait.enabled(timeout=30)
+                    ele_btn.wait.clickable(timeout=30)
+                    ele_btn.click(by_js=True)
+                    tab.wait(8)
+                    return True
+                else:
+                    self.logit(None, 'Done button is not found.')
+            self.browser.wait(1)
+        self.logit(None, 'Fail to save backup code.')
+        return False
+
+    def set_confirmation_code(self, max_wait_sec=120):
+        # More -> Settings and privacy
+        # Select at least 1 interest to personalize your X experience. It will be visible on your profile.
+        i = 0
+        while i < max_wait_sec:
+            i += 1
+            tab = self.browser.latest_tab
+
+            # More
+            ele_btn = tab.ele('@@tag()=button@@data-testid=AppTabBar_More_Menu', timeout=2) # noqa
+            if not isinstance(ele_btn, NoneElement):
+                btn_text = ele_btn.text
+                self.logit(None, f'Click Button: {btn_text}')
+                ele_btn.wait.clickable(timeout=30).click()
+                tab.wait(5)
+            else:
+                continue
+
+            # Settings and privacy
+            ele_btn = tab.ele('@@tag()=a@@data-testid=settings', timeout=2) # noqa
+            if not isinstance(ele_btn, NoneElement):
+                btn_text = ele_btn.text
+                self.logit(None, f'Click Button: {btn_text}')
+                ele_btn.wait.clickable(timeout=30).click()
+                tab.wait(5)
+            else:
+                continue
+
+            # Security and account access
+            ele_btn = tab.ele('@@tag()=a@@data-testid=accountAccessLink', timeout=2) # noqa
+            if not isinstance(ele_btn, NoneElement):
+                btn_text = ele_btn.text.replace('\n', ' ')
+                self.logit(None, f'Click Button: {btn_text}')
+                ele_btn.wait.clickable(timeout=30).click()
+                tab.wait(5)
+            else:
+                continue
+
+            # Security / Manage your account’s security
+            ele_btn = tab.ele('@@tag()=a@@href:security@@data-testid=pivot', timeout=2) # noqa
+            if not isinstance(ele_btn, NoneElement):
+                btn_text = ele_btn.text.replace('\n', ' ')
+                self.logit(None, f'Click Button: {btn_text}')
+                ele_btn.wait.clickable(timeout=30).click()
+                tab.wait(5)
+            else:
+                continue
+
+            # Two-factor authentication
+            ele_btn = tab.ele('@@tag()=a@@href:login_verification@@data-testid=pivot', timeout=2) # noqa
+            if not isinstance(ele_btn, NoneElement):
+                btn_text = ele_btn.text.replace('\n', ' ')
+                self.logit(None, f'Click Button: {btn_text}')
+                ele_btn.wait.clickable(timeout=30).click()
+                tab.wait(5)
+            else:
+                continue
+
+            # Authentication app
+            ele_btn = tab.ele('@@tag()=input@@aria-describedby=CHECKBOX_4_LABEL', timeout=2) # noqa
+            if not isinstance(ele_btn, NoneElement):
+                self.logit(None, 'Click Authentication app checkbox')
+                ele_btn.wait.clickable(timeout=30).click()
+                tab.wait(5)
+            else:
+                continue
+
+            # Enter your password
+            self.enter_password()
+
+            # Protect your account in just
+            ele_btn = tab.ele('@@tag()=button@@data-testid=ActionListNextButton', timeout=2) # noqa
+            if not isinstance(ele_btn, NoneElement):
+                btn_text = ele_btn.text.replace('\n', ' ')
+                self.logit(None, f'Click Button: {btn_text}')
+                ele_btn.wait.clickable(timeout=30).click()
+                tab.wait(5)
+            else:
+                continue
+
+            # Link the app to your X account
+            # Can’t scan the QR code?
+            ele_btn = tab.ele('x://*[@id="layers"]/div[2]/div/div/div/div/div/div[2]/div[2]/div/div/div[2]/div[2]/div[1]/div/div[2]/div/div/button', timeout=2) # noqa
+            if not isinstance(ele_btn, NoneElement):
+                btn_text = ele_btn.text.replace('\n', ' ')
+                self.logit(None, f'Click Button: {btn_text}')
+                ele_btn.wait.clickable(timeout=30).click()
+                tab.wait(5)
+            else:
+                continue
+
+            # Can’t scan the QR code?
+            ele_info = tab.ele('@@tag()=h1@@text():Can’t scan the QR code', timeout=2) # noqa
+            if not isinstance(ele_info, NoneElement):
+                ele_btn = tab.ele('x://*[@id="layers"]/div[2]/div/div/div/div/div/div[2]/div[2]/div/div/div[2]/div[2]/div[1]/div/div[2]', timeout=2) # noqa
+                if not isinstance(ele_btn, NoneElement):
+                    self.qr_code = ele_btn.text.replace('\n', ' ')
+                    self.logit(None, f'qr_code: {self.qr_code}')
+
+                    ele_btn = tab.ele('@@tag()=button@@data-testid=ocfShowCodeNextLink', timeout=2) # noqa
+                    if not isinstance(ele_btn, NoneElement):
+                        btn_text = ele_btn.text.replace('\n', ' ')
+                        self.logit(None, f'Click Button: {btn_text}')
+                        ele_btn.wait.clickable(timeout=30).click()
+                        tab.wait(3)
+                else:
+                    continue
+
+            # Enter the confirmation code
+            if self.enter_confirmation_code():
+                # Save this single-use backup code in a safe place.
+                self.save_backup_code()
+                return True
+
+        self.logit(None, 'Fail to set confirmation code ...') # noqa
+        return False
+
     def wait_email_verification_code(self, max_wait_sec=60):
         i = 0
         while i < max_wait_sec:
@@ -1255,6 +1539,17 @@ class XUtils():
                 continue
 
             # 图形验证码
+            max_wait_sec = 180
+            i = 0
+            while i < max_wait_sec:
+                i += 1
+                self.browser.wait(1)
+                ele_input = tab.ele('@@tag()=h1@@id=modal-header', timeout=2)
+                if not isinstance(ele_input, NoneElement):
+                    s_info = ele_input.text
+                    self.logit(None, f'{s_info}')
+                    if s_info in ['xxx', 'We sent you a code']:
+                        break
 
             pdb.set_trace()
             if self.wait_email_verification_code() is False:
@@ -1264,10 +1559,20 @@ class XUtils():
             # Verify you are human by completing the action below
 
             pdb.set_trace()
+            # Pick a profile picture
             # self.set_profile()
 
             # Get username
-            # ......
+            self.set_username()
+            self.set_interest()
+            self.follow_some_accounts()
+
+            n_like = random.randint(3, 6)
+            self.logit(None, f'Like {n_like} posts.')
+            for i in range(0, n_like):
+                self.x_like()
+
+            self.set_confirmation_code()
 
             # Your account has been locked
             if self.x_locked():
@@ -1275,7 +1580,6 @@ class XUtils():
                 self.enter_verification_code()
                 # 图形验证码
                 self.x_unlocked()
-
 
             s_msg = 'Press any key to continue ! ⚠️' # noqa
             input(s_msg)

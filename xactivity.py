@@ -196,19 +196,24 @@ class ClsActivity():
         self.update_status(idx_status, claim_date)
 
     def xactivity_process(self):
-        # open xactivity url
-        # tab = self.browser.latest_tab
-        # tab.get(self.args.url)
-        tab = self.browser.new_tab(self.args.url)
-        tab.wait.doc_loaded()
-        # tab.wait(3)
-        # tab.set.window.max()
-
         idx_addr = get_index_from_header(DEF_HEADER_ACCOUNT, 'evm_address')
         s_evm_addr = self.inst_okx.dic_purse[self.args.s_profile][idx_addr]
 
         for i in range(1, DEF_NUM_TRY+1):
             self.logit('xactivity_process', f'trying ... {i}/{DEF_NUM_TRY}')
+
+            tab = self.browser.latest_tab
+            tab.get(self.args.url)
+            tab.wait.doc_loaded()
+
+            ele_btn = tab.ele('@@tag()=a@@data-testid=login', timeout=2) # noqa
+            if not isinstance(ele_btn, NoneElement):
+                s_info = ele_btn.text
+                self.logit(None, f'Click Log in Button: [{s_info}]') # noqa
+                ele_btn.click(by_js=True)
+                tab.wait(5)
+                self.inst_x.twitter_run()
+                continue
 
             if self.inst_x.x_reply(s_evm_addr) is True:
                 self.update_status(self.IDX_STATUS, self.STATUS_SUCCESS)
@@ -249,11 +254,12 @@ class ClsActivity():
         if self.inst_dp.init_yescaptcha() is False:
             return False
 
-        x_status = self.inst_x.dic_status[self.args.s_profile][self.inst_x.IDX_STATUS] # noqa
-        if x_status != self.inst_x.DEF_STATUS_OK:
-            self.logit('xactivity_run', f'x_status is {x_status}')
-            self.update_status(self.IDX_STATUS, x_status)
-            return True
+        if self.args.force is False:
+            x_status = self.inst_x.dic_status[self.args.s_profile][self.inst_x.IDX_STATUS] # noqa
+            if x_status != self.inst_x.DEF_STATUS_OK:
+                self.logit('xactivity_run', f'x_status is {x_status}')
+                self.update_status(self.IDX_STATUS, x_status)
+                return True
         self.inst_x.twitter_run()
 
         self.xactivity_process()
