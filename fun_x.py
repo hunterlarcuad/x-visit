@@ -903,6 +903,7 @@ class XUtils():
 
             ele_btn = tab.ele(f'@@tag()=button@@data-testid:follow@@aria-label:{name}', timeout=2) # noqa
             if not isinstance(ele_btn, NoneElement):
+                tab.actions.move_to(ele_btn)
                 s_info = ele_btn.text
                 self.logit(None, f'Follow Button Text: {s_info}')
 
@@ -910,7 +911,7 @@ class XUtils():
                 s_attr = ele_btn.attr('data-testid').split('-')[-1]
                 # Status: following
                 if s_attr == 'unfollow':
-                    self.logit(None, 'Follow Success [OK]')
+                    self.logit(None, 'Follow Success ✅')
                     return True
                 self.logit(None, 'Try to Click Follow Button')
                 ele_btn.wait.clickable(timeout=5).click(by_js=True)
@@ -959,7 +960,7 @@ class XUtils():
                 s_attr = ele_btn.attr('data-testid')
                 # Status: retweet / unretweet
                 if s_attr == 'unretweet':
-                    self.logit(None, 'Retweet Success [OK]')
+                    self.logit(None, 'Retweet Success ✅')
                     return True
                 self.logit(None, 'Try to Click Retweet Button')
                 try:
@@ -1003,7 +1004,7 @@ class XUtils():
                 s_attr = ele_btn.attr('data-testid')
                 # Status: like / unlike
                 if s_attr == 'unlike':
-                    self.logit(None, 'Like Success [OK]')
+                    self.logit(None, 'Like Success ✅')
                     return True
                 self.logit(None, 'Try to Click Like Button')
                 tab.actions.move_to(ele_btn)
@@ -1016,6 +1017,56 @@ class XUtils():
                 self.logit(None, f'Already liked. Likes num: {s_info}')
                 return True
 
+        return False
+
+    def x_reply(self, s_text):
+        for i in range(1, DEF_NUM_TRY+1):
+            self.logit('x_reply', f'try_i={i}/{DEF_NUM_TRY}')
+            tab = self.browser.latest_tab
+            tab.wait.doc_loaded()
+
+            # Cancel
+            ele_btn = tab.ele('@@tag()=button@@data-testid=confirmationSheetCancel', timeout=2) # noqa
+            if not isinstance(ele_btn, NoneElement):
+                s_info = ele_btn.text
+                self.logit('x_reply', f'Click Cancel button [{s_info}]') # noqa
+                ele_btn.wait.clickable(timeout=5).click(by_js=True)
+
+            # See the latest post
+            if self.jump_to_new_tweet():
+                continue
+
+            ele_btn = tab.ele('@@tag()=div@@data-testid=tweetTextarea_0_label', timeout=2)
+            if not isinstance(ele_btn, NoneElement):
+                self.logit(None, 'Try to input reply text ...')
+                tab.actions.move_to(ele_btn)
+                if ele_btn.text != s_text:
+                    ele_btn.input(s_text)
+                tab.wait(2)
+                if ele_btn.text != s_text:
+                    self.logit(None, 'reply ele_btn.text != s_text')
+                    self.logit(None, '-- ele_btn.text: {ele_btn.text}')
+                    self.logit(None, '-- s_text: {s_text}')
+                    continue
+            else:
+                continue
+
+            ele_btn = tab.ele('@@tag()=button@@data-testid=tweetButtonInline', timeout=2)
+            if not isinstance(ele_btn, NoneElement):
+                self.logit(None, 'Try to click reply button ...')
+                tab.actions.move_to(ele_btn)
+                ele_btn.wait.clickable(timeout=5)
+                ele_btn.click(by_js=True)
+                tab.wait(1)
+
+                ele_info = tab.ele('@@tag()=div@@aria-live=assertive', timeout=2)
+                if not isinstance(ele_info, NoneElement):
+                    self.logit(None, f'reply assertive: {ele_info.text}')
+
+                self.logit(None, 'Reply Success ✅')
+                return True
+
+        self.logit(None, 'Fail to reply [ERROR]')
         return False
 
     def x_authorize_app(self):
@@ -1044,6 +1095,8 @@ class XUtils():
             i += 1
             self.browser.wait(1)
             self.logit(None, f'Wait to load create account button ... {i}/{max_wait_sec}') # noqa
+
+        self.logit(None, 'Fail to load create account button ...') # noqa
         return False
 
     def wait_create_account_to_x(self, max_wait_sec=30):
@@ -1061,6 +1114,7 @@ class XUtils():
 
             self.wrong_retry()
 
+        self.logit(None, 'Fail to load popup x window ...') # noqa
         return False
 
     def create_account_input(self):
@@ -1111,7 +1165,6 @@ class XUtils():
             select_birth('SELECTOR_3', n_year)
             s_birth = f'{n_year}-{n_month}-{n_day}'
             self.logit(None, f's_birth: {s_birth}')
-            pdb.set_trace()
 
             # Next
             ele_btn = tab.ele('@@tag()=button@@data-testid=ocfSignupNextLink', timeout=1) # noqa
@@ -1122,32 +1175,37 @@ class XUtils():
                     return True
 
             self.browser.wait(1)
+
+        self.logit(None, 'Fail to create_account_input ...') # noqa
         return False
 
-    def set_password(self):
-        tab = self.browser.latest_tab
-        # Password
-        ele_input = tab.ele('@@tag()=input@@name=password', timeout=1) # noqa
-        if not isinstance(ele_input, NoneElement):
-            s_pwd = generate_password(20)
-            self.logit(None, f's_pwd: {s_pwd}')
-            tab.actions.move_to(ele_input).click().type(s_pwd)
-            tab.wait(1)
+    def set_password(self, max_wait_sec=60):
+        i = 0
+        while i < max_wait_sec:
+            i += 1
+            tab = self.browser.latest_tab
+            # Password
+            ele_input = tab.ele('@@tag()=input@@name=password', timeout=1) # noqa
+            if not isinstance(ele_input, NoneElement):
+                s_pwd = generate_password(20)
+                self.logit(None, f's_pwd: {s_pwd}')
+                tab.actions.move_to(ele_input).click().type(s_pwd)
+                tab.wait(1)
 
-            ele_div = tab.ele('@@tag()=div@@class=css-175oi2r r-b9tw7p', timeout=2) # noqa
-            if not isinstance(ele_div, NoneElement):
-                ele_btn = ele_div.ele('@@tag()=button', timeout=2) # noqa
-                if not isinstance(ele_btn, NoneElement):
-                    btn_text = ele_btn.text
-                    self.logit(None, f'Button text: {btn_text}')
-                    ele_btn.wait.enabled(timeout=30)
-                    ele_btn.wait.clickable(timeout=30)
-                    ele_btn.click(by_js=True)
-                    tab.wait(3)
-                    return True
-            else:
-                self.logit(None, 'Password input element not found.')
-                return False
+                ele_div = tab.ele('@@tag()=div@@class=css-175oi2r r-b9tw7p', timeout=2) # noqa
+                if not isinstance(ele_div, NoneElement):
+                    ele_btn = ele_div.ele('@@tag()=button', timeout=2) # noqa
+                    if not isinstance(ele_btn, NoneElement):
+                        btn_text = ele_btn.text
+                        self.logit(None, f'Button text: {btn_text}')
+                        ele_btn.wait.enabled(timeout=30)
+                        ele_btn.wait.clickable(timeout=30)
+                        ele_btn.click(by_js=True)
+                        tab.wait(3)
+                        return True
+                else:
+                    self.logit(None, 'Password input element not found.')
+            self.browser.wait(1)
         self.logit(None, 'Fail to input password.')
         return False
 
@@ -1162,6 +1220,20 @@ class XUtils():
             tab.wait(5)
             return True
 
+    def wait_email_verification_code(self, max_wait_sec=60):
+        i = 0
+        while i < max_wait_sec:
+            i += 1
+            if self.register_verification_code() is True:
+                self.logit(None, 'Success to get email verification code ...')
+                return True
+
+            self.browser.wait(1)
+            self.logit(None, f'Wait to get email verification code ... {i}/{max_wait_sec}') # noqa
+
+        self.logit(None, 'Fail to email verification code ...') # noqa
+        return False
+
     def twitter_create(self):
         self.update_num_visit()
 
@@ -1175,15 +1247,27 @@ class XUtils():
 
             self.browser.wait(3)
 
-            self.wait_create_account_button()
-            self.wait_create_account_to_x()
-            self.create_account_input()
+            if self.wait_create_account_button() is False:
+                continue
+            if self.wait_create_account_to_x() is False:
+                continue
+            if self.create_account_input() is False:
+                continue
 
             # 图形验证码
 
-            self.register_verification_code()
-            self.set_password()
+            pdb.set_trace()
+            if self.wait_email_verification_code() is False:
+                continue
+            if self.set_password() is False:
+                continue
             # Verify you are human by completing the action below
+
+            pdb.set_trace()
+            # self.set_profile()
+
+            # Get username
+            # ......
 
             # Your account has been locked
             if self.x_locked():
