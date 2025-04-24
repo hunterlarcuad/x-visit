@@ -392,6 +392,60 @@ class OkxUtils():
             self.logit(None, 'Fail to load Confirm Button') # noqa
             return False
 
+    def get_addr_by_chain(self, s_chain, s_coin):
+        tab = self.browser.latest_tab
+        n_max_try = 3
+
+        for i in range(1, n_max_try+1):
+            self.logit(None, f'get_addr_by_chain try_i={i}/{n_max_try}')
+
+            s_url = f'chrome-extension://{EXTENSION_ID_OKX}/home.html'
+            tab.get(s_url)
+            # tab.wait.load_start()
+            tab.wait(3)
+
+            # Click Icon in the upper right corner
+            ele_btn = tab.ele('@@tag()=div@@class=_container_1eikt_1', timeout=2) # noqa
+            if not isinstance(ele_btn, NoneElement):
+                ele_btn.wait.enabled(timeout=3)
+                ele_btn.click(by_js=True)
+                tab.wait(1)
+
+            # Search network name
+            ele_input = tab.ele('@@tag()=input@@data-testid=okd-input', timeout=2) # noqa
+            if not isinstance(ele_input, NoneElement):
+                self.logit(None, f'Change network to {s_chain} ...') # noqa
+                tab.actions.move_to(ele_input).click().type(s_chain)
+                tab.wait(3)
+                ele_btn = tab.ele(f'@@tag()=div@@class:_title@@text()={s_chain}', timeout=2) # noqa
+                if not isinstance(ele_btn, NoneElement):
+                    self.logit(None, f'Select network: {ele_btn.text} ...') # noqa
+                    ele_btn.wait.enabled(timeout=3)
+                    ele_btn.click(by_js=True)
+                    tab.wait(3)
+
+                # Crypto list
+                ele_btn = tab.ele(f'@@tag()=div@@class:_wallet-list__item@@text():{s_coin}', timeout=2) # noqa
+                if not isinstance(ele_btn, NoneElement):
+                    s_info = ele_btn.text.replace('\n', ' ')
+                    self.logit(None, f'Select network: {s_info} ...') # noqa
+                    ele_btn.wait.enabled(timeout=3)
+                    ele_btn.click(by_js=True)
+                    tab.wait(3)
+
+                # address
+                ele_btn = tab.ele(f'@@tag()=div@@class=new-coin-detail-address-content', timeout=2) # noqa
+                if not isinstance(ele_btn, NoneElement):
+                    s_info = ele_btn.text
+                    self.logit(None, f'address: {s_info}') # noqa
+                    tab.wait(1)
+                    return s_info
+            else:
+                self.logit(None, 'Fail to search network name') # noqa
+
+        self.logit(None, 'Fail to get address') # noqa
+        return None
+
 
 if __name__ == "__main__":
     """

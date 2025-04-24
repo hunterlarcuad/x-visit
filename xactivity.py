@@ -196,8 +196,15 @@ class ClsActivity():
         self.update_status(idx_status, claim_date)
 
     def xactivity_process(self):
-        idx_addr = get_index_from_header(DEF_HEADER_ACCOUNT, 'evm_address')
-        s_evm_addr = self.inst_okx.dic_purse[self.args.s_profile][idx_addr]
+        # idx_addr = get_index_from_header(DEF_HEADER_ACCOUNT, 'evm_address')
+        # s_evm_addr = self.inst_okx.dic_purse[self.args.s_profile][idx_addr]
+
+        s_reply = f'''invoke://OG/
+{self.addr}
+/sig-38b7xt9mJp
+Verifying code integrity
+Direct access granted: Phase-X
+Connection secure, awaiting input'''
 
         for i in range(1, DEF_NUM_TRY+1):
             self.logit('xactivity_process', f'trying ... {i}/{DEF_NUM_TRY}')
@@ -215,7 +222,7 @@ class ClsActivity():
                 self.inst_x.twitter_run()
                 continue
 
-            if self.inst_x.x_reply(s_evm_addr) is True:
+            if self.inst_x.x_reply(s_reply) is True:
                 self.update_status(self.IDX_STATUS, self.STATUS_SUCCESS)
             else:
                 self.update_status(self.IDX_STATUS, self.STATUS_FAIL)
@@ -237,8 +244,11 @@ class ClsActivity():
 
         self.inst_okx.set_browser(self.browser)
 
-        # if self.inst_okx.init_okx(is_bulk=True) is False:
-        #     return False
+        if self.inst_okx.init_okx(is_bulk=True) is False:
+            return False
+
+        # self.inst_okx.get_addr_by_chain('Solana', 'SOL')
+        self.addr = self.inst_okx.get_addr_by_chain('Bitcoin', 'BTC')
 
         self.inst_x.status_load()
         self.inst_x.set_browser(self.browser)
@@ -537,4 +547,7 @@ python xactivity.py --auto_like --auto_appeal --force --url=https://x.com/mooaro
 python xactivity.py --auto_like --auto_appeal --url=https://x.com/mooarofficial/status/1914707322145824819 --profile=g28
 
 python xactivity.py --auto_like --headless --url=https://x.com/mooarofficial/status/1914707322145824819
+
+python xactivity.py --auto_like --url=https://x.com/BRCRWA/status/1915224423659114709 --profile=g05
+python xactivity.py --auto_like --headless --url=https://x.com/BRCRWA/status/1915224423659114709 --profile=g05
 """

@@ -1041,10 +1041,11 @@ class XUtils():
             if not isinstance(ele_btn, NoneElement):
                 self.logit(None, 'Try to input reply text ...')
                 tab.actions.move_to(ele_btn)
-                if ele_btn.text != s_text:
+                if ele_btn.text.replace('\n', ' ') != s_text.replace('\n', ' '):
                     ele_btn.input(s_text)
-                tab.wait(2)
-                if ele_btn.text != s_text:
+                    tab.wait(2)
+
+                if ele_btn.text.replace('\n', ' ') != s_text.replace('\n', ' '):
                     self.logit(None, 'reply ele_btn.text != s_text')
                     self.logit(None, '-- ele_btn.text: {ele_btn.text}')
                     self.logit(None, '-- s_text: {s_text}')
