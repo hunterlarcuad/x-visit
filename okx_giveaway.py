@@ -304,7 +304,7 @@ class Giveaway():
             s_path = 'x://*[@id="root"]/div/div/div/div[2]/div[3]/div/div[2]/button' # noqa
             ele_btn = tab.ele(s_path, timeout=2)
             if not isinstance(ele_btn, NoneElement):
-                s_text = ele_btn.text
+                s_text = ele_btn.text.replace('\n', ' ')
                 self.logit(None, f'Button text: {s_text}')
 
                 self.update_status(self.IDX_STATUS, s_text)
@@ -326,8 +326,10 @@ class Giveaway():
             tab.close()
         else:
             self.logit(None, 'Manual task.')
-            s_msg = 'Manual task, Press any key to exit! ⚠️' # noqa
-            input(s_msg)
+            # s_msg = 'Manual task, Press any key to exit! ⚠️' # noqa
+            # input(s_msg)
+            tab.wait(2)
+            tab.close()
 
     def complete_tasks(self):
         for i in range(1, DEF_NUM_TRY+1):
@@ -389,6 +391,16 @@ class Giveaway():
                 return True
         return False
 
+    def okx_verify_click(self):
+        # geetest_text_tips
+        tab = self.browser.latest_tab
+        ele_btn = tab.ele('@@tag()=div@@class:geetest_text_tips', timeout=1) # noqa
+        if not isinstance(ele_btn, NoneElement):
+            s_text = ele_btn.text
+            self.logit(None, f'Verify Manual: {s_text}')
+            return True
+        return False
+
     def giveaway_process(self):
         # open giveaway url
         tab = self.browser.latest_tab
@@ -416,8 +428,27 @@ class Giveaway():
             if self.get_task_result() == '验证':
                 self.task_verify()
 
-                s_msg = 'Human verify ! ⚠️' # noqa
-                input(s_msg)
+                if self.okx_verify_click():
+
+                    s_msg = f'[{self.args.s_profile}] OKX Graphic captcha challenge [TODO]' # noqa
+                    ding_msg(s_msg, DEF_DING_TOKEN, msgtype='text')
+
+                    b_manual = True
+                    max_wait_sec = 300
+                    i = 0
+                    while i < max_wait_sec:
+                        i += 1
+                        if self.okx_verify_click() is False:
+                            self.logit(None, 'OKX Graphic captcha challenge is success') # noqa
+                            b_manual = False
+                            s_msg = f'[{self.args.s_profile}] OKX Graphic captcha challenge [Success]' # noqa
+                            ding_msg(s_msg, DEF_DING_TOKEN, msgtype='text')
+                            break
+                        self.browser.wait(1)
+
+                    if b_manual:
+                        s_msg = 'Manual captcha challenge. Press any key to continue! ⚠️' # noqa
+                        input(s_msg)
 
         return False
 
@@ -756,5 +787,7 @@ python okx_giveaway.py --get_task_status --headless --url=https://web3.okx.com/z
 python okx_giveaway.py --get_task_status --url=https://web3.okx.com/zh-hans/giveaway/lnfi
 python okx_giveaway.py --get_task_status --url=https://web3.okx.com/zh-hans/giveaway/lnfi --profile=g03
 python okx_giveaway.py --get_task_status --force --url=https://web3.okx.com/zh-hans/giveaway/lnfi --profile=g03
+
+python okx_giveaway.py --auto_like --url=https://web3.okx.com/zh-hans/giveaway/xpin_960k_reward_campaign --profile=g26
 
 """
