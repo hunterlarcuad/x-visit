@@ -366,7 +366,7 @@ class ClsDrops():
             self.logit('get_task_result', f'trying ... {i}/{DEF_NUM_TRY}')
             ele_btn = self.get_verify_btn()
             if ele_btn is not NoneElement:
-                s_text = ele_btn.text
+                s_text = ele_btn.text.replace('\n', ' ')
                 self.logit(None, f'Button text: {s_text}')
                 self.update_status(self.IDX_STATUS, s_text)
 
@@ -485,7 +485,8 @@ class ClsDrops():
             lst_path = [
                 '@@tag()=button@@class:nft nft-btn btn-md btn-fill-highlight index_button',  # pc # noqa
                 '@@tag()=button@@class:nft nft-btn btn-md btn-fill-highlight mobile index_button-sub__X3Dbw',  # mobile # noqa
-                '@@tag()=button@@class:nft nft-btn btn-md btn-outline-primary btn-disabled' # task completed # noqa
+                '@@tag()=button@@class:nft nft-btn btn-md btn-outline-primary btn-disabled', # task completed # noqa
+                '@@tag()=div@@class=index_wrap__NS7Tv', # task completed # noqa
             ]
             ele_btn = self.inst_dp.get_ele_btn(ele_blk, lst_path)
         else:
@@ -564,7 +565,7 @@ class ClsDrops():
             while i < max_wait_sec:
                 i += 1
                 s_text = self.get_task_result()
-                if s_text in ['等待中签结果']:
+                if s_text in ['等待中签结果', '😭 未中签，请关注后续活动']:
                     break
                 tab.wait(1)
 
@@ -866,6 +867,7 @@ python okx_drops.py --auto_like --auto_appeal --force --profile=g05
 python okx_drops.py --auto_like --auto_appeal --force --profile=t33
 
 python okx_drops.py --auto_like --auto_appeal --force --url=https://web3.okx.com/zh-hans/drops/event/otherworlds --profile=g03
+python okx_drops.py --auto_like --auto_appeal --url=https://web3.okx.com/zh-hans/drops/event/otherworlds --profile=g28
 
 python okx_drops.py --get_task_status --headless --url=https://web3.okx.com/zh-hans/drops/event/otherworlds
 python okx_drops.py --get_task_status --url=https://web3.okx.com/zh-hans/drops/event/otherworlds
