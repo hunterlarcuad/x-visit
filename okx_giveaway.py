@@ -276,6 +276,7 @@ class Giveaway():
         return False
 
     def connect_x(self):
+        n_tab = self.browser.tabs_count
         for i in range(1, DEF_NUM_TRY+1):
             self.logit('connect_x', f'trying ... {i}/{DEF_NUM_TRY}')
 
@@ -295,6 +296,18 @@ class Giveaway():
                     tab.wait(5)
                 elif s_text in ['已连接']:
                     return True
+
+            if self.browser.tabs_count == (n_tab + 1):
+                if self.inst_x.should_sign_in():
+                    # 关闭登录弹窗
+                    self.browser.latest_tab.close()
+                    # 新打开一个标签页
+                    self.browser.new_tab()
+                    self.inst_x.xutils_login()
+                    # 登录后再关闭 X 页面
+                    self.browser.latest_tab.close()
+                    continue
+
         return False
 
     def get_task_result(self):
