@@ -53,6 +53,7 @@ from conf import logger
 
 DEF_FILE_X_ENCRIYPT = f'{DEF_PATH_DATA_ACCOUNT}/x_encrypt.csv'
 DEF_FILE_X_STATUS = f'{DEF_PATH_DATA_STATUS}/x_status.csv'
+DEF_FILE_X_CREATE = f'{DEF_PATH_DATA_ACCOUNT}/x_create.csv'
 
 
 class XUtils():
@@ -67,9 +68,16 @@ class XUtils():
         self.dic_status = {}
         self.dic_account = {}
 
+        # Create account
+        self.dic_create = {}
+
         self.inst_dp = DpUtils()
 
-        self.account_load()
+        self.dic_account = load_file(
+            file_in=DEF_FILE_X_ENCRIYPT,
+            idx_key=0,
+            header=DEF_HEADER_ACCOUNT
+        )
 
         # output
         self.DEF_HEADER_STATUS = 'account,status,visit_date,num_visit,update_time' # noqa
@@ -85,6 +93,19 @@ class XUtils():
         self.DEF_STATUS_APPEALED = 'APPEALED'
         self.DEF_STATUS_EXCEED_ATTEMPT = 'EXCEED_ATTEMPT'
 
+        # create account output
+        self.DEF_HEADER_CREATE = 'account,x_username,x_pwd,x_verifycode,proxy,x_backupcode,x_email,birthday' # noqa
+        self.IDX_C_ACCOUNT = 0
+        self.IDX_C_USERNAME = 1
+        self.IDX_C_PWD = 2
+        self.IDX_C_VERIFYCODE = 3
+        self.IDX_C_PROXY = 4
+        self.IDX_C_BACKUPCODE = 5
+        self.IDX_C_EMAIL = 6
+        self.IDX_C_BIRTHDAY = 7
+        self.IDX_C_UPDATE = 8
+        self.C_FIELD_NUM = self.IDX_C_UPDATE + 1
+
     def set_args(self, args):
         self.args = args
         self.is_update = False
@@ -95,13 +116,13 @@ class XUtils():
     def __del__(self):
         self.status_save()
 
-    def account_load(self):
-        self.file_account = DEF_FILE_X_ENCRIYPT
-        self.dic_account = load_file(
-            file_in=self.file_account,
-            idx_key=0,
-            header=DEF_HEADER_ACCOUNT
-        )
+    # def account_load(self):
+    #     self.file_account = DEF_FILE_X_ENCRIYPT
+    #     self.dic_account = load_file(
+    #         file_in=self.file_account,
+    #         idx_key=0,
+    #         header=DEF_HEADER_ACCOUNT
+    #     )
 
     def status_load(self):
         self.file_status = DEF_FILE_X_STATUS
@@ -118,6 +139,15 @@ class XUtils():
             dic_status=self.dic_status,
             idx_key=0,
             header=self.DEF_HEADER_STATUS
+        )
+
+    def create_save(self):
+        self.file_status = DEF_FILE_X_CREATE
+        save2file(
+            file_ot=self.file_status,
+            dic_status=self.dic_status,
+            idx_key=0,
+            header=self.DEF_HEADER_CREATE
         )
 
     def close(self):
@@ -161,21 +191,45 @@ class XUtils():
         else:
             return True
 
+    def init_dict(self, dic_para, n_field):
+        dic_para[self.args.s_profile] = [
+            self.args.s_profile,
+        ]
+        for i in range(1, n_field):
+            dic_para[self.args.s_profile].append('')
+        return dic_para
+
+    def update_create(self, idx_status, s_value):
+        update_ts = time.time()
+        update_time = format_ts(update_ts, 2, TZ_OFFSET)
+
+        if self.args.s_profile not in self.dic_create:
+            self.dic_create = self.init_dict(self.dic_create, self.C_FIELD_NUM)
+        if len(self.dic_create[self.args.s_profile]) != self.C_FIELD_NUM:
+            self.dic_create = self.init_dict(self.dic_create, self.C_FIELD_NUM)
+        if self.dic_create[self.args.s_profile][idx_status] == s_value:
+            return
+
+        self.dic_create[self.args.s_profile][idx_status] = s_value
+        self.dic_create[self.args.s_profile][self.IDX_C_UPDATE] = update_time
+
+        save2file(
+            file_ot=DEF_FILE_X_CREATE,
+            dic_status=self.dic_create,
+            idx_key=0,
+            header=self.DEF_HEADER_CREATE
+        )
+
+        self.is_update = True
+
     def update_status(self, idx_status, s_value):
         update_ts = time.time()
         update_time = format_ts(update_ts, 2, TZ_OFFSET)
 
-        def init_status():
-            self.dic_status[self.args.s_profile] = [
-                self.args.s_profile,
-            ]
-            for i in range(1, self.FIELD_NUM):
-                self.dic_status[self.args.s_profile].append('')
-
         if self.args.s_profile not in self.dic_status:
-            init_status()
+            self.dic_status = self.init_dict(self.dic_status, self.FIELD_NUM)
         if len(self.dic_status[self.args.s_profile]) != self.FIELD_NUM:
-            init_status()
+            self.dic_status = self.init_dict(self.dic_status, self.FIELD_NUM)
         if self.dic_status[self.args.s_profile][idx_status] == s_value:
             return
 
@@ -540,7 +594,7 @@ class XUtils():
                     # s_code = input('Enter Verification Code:')
 
                     s_code = None
-                    max_wait_sec = 120
+                    max_wait_sec = 10
                     i = 0
                     while i < max_wait_sec:
                         i += 1
@@ -1084,11 +1138,17 @@ class XUtils():
                 return True
         return False
 
+    def get_create_account_btn(self):
+        tab = self.browser.latest_tab
+        ele_info = tab.ele('@@tag()=a@@data-testid=signupButton', timeout=2) # noqa
+        return ele_info
+
     def wait_create_account_button(self, max_wait_sec=30):
         i = 0
         while i < max_wait_sec:
-            tab = self.browser.latest_tab
-            ele_info = tab.ele('@@tag()=a@@data-testid=signupButton', timeout=2) # noqa
+            # tab = self.browser.latest_tab
+            # ele_info = tab.ele('@@tag()=a@@data-testid=signupButton', timeout=2) # noqa
+            ele_info = self.get_create_account_btn()
             if not isinstance(ele_info, NoneElement):
                 self.logit(None, 'load create account button success ...')
                 ele_info.wait.clickable(timeout=60).click(by_js=True)
@@ -1156,6 +1216,7 @@ class XUtils():
                 else:
                     s_email = self.args.email
                 tab.actions.move_to(ele_input).click().type(s_email)
+                self.update_create(self.IDX_C_EMAIL, s_email)
                 tab.wait(1)
 
             # Date of birth
@@ -1167,6 +1228,7 @@ class XUtils():
             select_birth('SELECTOR_3', n_year)
             s_birth = f'{n_year}-{n_month}-{n_day}'
             self.logit(None, f's_birth: {s_birth}')
+            self.update_create(self.IDX_C_BIRTHDAY, s_birth)
 
             # Next
             ele_btn = tab.ele('@@tag()=button@@data-testid=ocfSignupNextLink', timeout=1) # noqa
@@ -1189,9 +1251,10 @@ class XUtils():
             # Password
             ele_input = tab.ele('@@tag()=input@@name=password', timeout=1) # noqa
             if not isinstance(ele_input, NoneElement):
-                s_pwd = generate_password(20)
-                self.logit(None, f's_pwd: {s_pwd}')
-                tab.actions.move_to(ele_input).click().type(s_pwd)
+                self.s_pwd = generate_password(20)
+                self.update_create(self.IDX_C_PWD, self.s_pwd)
+                self.logit(None, f's_pwd: {self.s_pwd}')
+                tab.actions.move_to(ele_input).click().type(self.s_pwd)
                 tab.wait(1)
 
                 ele_div = tab.ele('@@tag()=div@@class=css-175oi2r r-b9tw7p', timeout=2) # noqa
@@ -1228,6 +1291,7 @@ class XUtils():
         if not isinstance(ele_input, NoneElement):
             s_username = ele_input.value
             self.logit(None, f'username: {s_username}')
+            self.update_create(self.IDX_C_USERNAME, s_username)
 
             ele_btn = tab.ele('@@tag()=button@@data-testid=ocfEnterUsernameSkipButton', timeout=2) # noqa
             if not isinstance(ele_btn, NoneElement):
@@ -1276,7 +1340,7 @@ class XUtils():
             ele_items = tab.eles('@@tag()=div@@data-testid=cellInnerDiv@@text():Click', timeout=2) # noqa
             if not ele_items:
                 continue
-            n_to_follow = random.randint(1, 5)
+            n_to_follow = random.randint(3, 6)
             self.logit(None, f'Follow {n_to_follow} accounts from {len(ele_items)}')
             for i in range(0, n_to_follow):
                 ele_item = random.choice(ele_items)
@@ -1294,7 +1358,24 @@ class XUtils():
         self.logit(None, 'Fail to set interest ...') # noqa
         return False
 
-    def enter_password(self, max_wait_sec=60):
+    def popup_password_window(self, max_wait_sec=5):
+        i = 0
+        while i < max_wait_sec:
+            i += 1
+            tab = self.browser.latest_tab
+            # Password
+            ele_input = tab.ele('@@tag()=input@@name=password', timeout=1) # noqa
+            if not isinstance(ele_input, NoneElement):
+                self.logit(None, 'Password window is loaded')
+                return True
+
+            self.browser.wait(1)
+            self.logit(None, f'Wait to load password window ... {i}/{max_wait_sec}') # noqa
+
+        self.logit(None, 'No password window')
+        return False
+
+    def enter_password(self, max_wait_sec=5):
         """
         Enter your password
         To get started, first enter your X password to confirm it’s really you.
@@ -1334,13 +1415,12 @@ class XUtils():
         while i < max_wait_sec:
             i += 1
             tab = self.browser.latest_tab
-            # Password
             ele_input = tab.ele('@@tag()=input@@data-testid=ocfEnterTextTextInput', timeout=1) # noqa
             if not isinstance(ele_input, NoneElement):
-                self.logit(None, f's_pwd: {self.s_pwd}')
-                ele_input.input(pyotp.TOTP(self.qr_code).now())
-                tab.actions.move_to(ele_input).click().type(self.s_pwd)
-                tab.wait(2)
+                s_2fa_show = pyotp.TOTP(self.qr_code).now()
+                self.logit(None, f's_2fa_show: {s_2fa_show}')
+                ele_input.input(s_2fa_show)
+                tab.wait(1)
 
                 ele_btn = tab.ele('@@tag()=button@@data-testid=ocfEnterTextNextButton', timeout=2) # noqa
                 if not isinstance(ele_btn, NoneElement):
@@ -1371,6 +1451,7 @@ class XUtils():
                 s_info = ele_info.text.replace('\n', ' ')
                 self.logit(None, f'backup code: {s_info}')
                 self.backup_code = s_info.split(' ')[29]
+                self.update_create(self.IDX_C_BACKUPCODE, self.backup_code)
 
 
                 ele_btn = tab.ele('@@tag()=button@@data-testid=OCF_CallToAction_Button', timeout=2) # noqa
@@ -1411,7 +1492,7 @@ class XUtils():
             if not isinstance(ele_btn, NoneElement):
                 btn_text = ele_btn.text
                 self.logit(None, f'Click Button: {btn_text}')
-                ele_btn.wait.clickable(timeout=30).click()
+                ele_btn.wait.clickable(timeout=10).click()
                 tab.wait(5)
             else:
                 continue
@@ -1421,7 +1502,7 @@ class XUtils():
             if not isinstance(ele_btn, NoneElement):
                 btn_text = ele_btn.text.replace('\n', ' ')
                 self.logit(None, f'Click Button: {btn_text}')
-                ele_btn.wait.clickable(timeout=30).click()
+                ele_btn.wait.clickable(timeout=10).click()
                 tab.wait(5)
             else:
                 continue
@@ -1431,7 +1512,7 @@ class XUtils():
             if not isinstance(ele_btn, NoneElement):
                 btn_text = ele_btn.text.replace('\n', ' ')
                 self.logit(None, f'Click Button: {btn_text}')
-                ele_btn.wait.clickable(timeout=30).click()
+                ele_btn.wait.clickable(timeout=10).click()
                 tab.wait(5)
             else:
                 continue
@@ -1441,29 +1522,30 @@ class XUtils():
             if not isinstance(ele_btn, NoneElement):
                 btn_text = ele_btn.text.replace('\n', ' ')
                 self.logit(None, f'Click Button: {btn_text}')
-                ele_btn.wait.clickable(timeout=30).click()
+                ele_btn.wait.clickable(timeout=10).click()
                 tab.wait(5)
             else:
                 continue
 
             # Authentication app
-            ele_btn = tab.ele('@@tag()=input@@aria-describedby=CHECKBOX_4_LABEL', timeout=2) # noqa
+            ele_btn = tab.ele('@@tag()=div@@class:css-175oi2r r-1awozwy r-18u37iz@@text():Authentication app', timeout=2) # noqa
             if not isinstance(ele_btn, NoneElement):
                 self.logit(None, 'Click Authentication app checkbox')
-                ele_btn.wait.clickable(timeout=30).click()
+                ele_btn.wait.clickable(timeout=10).click()
                 tab.wait(5)
             else:
                 continue
 
             # Enter your password
-            self.enter_password()
+            if self.popup_password_window() is True:
+                self.enter_password()
 
             # Protect your account in just
             ele_btn = tab.ele('@@tag()=button@@data-testid=ActionListNextButton', timeout=2) # noqa
             if not isinstance(ele_btn, NoneElement):
                 btn_text = ele_btn.text.replace('\n', ' ')
                 self.logit(None, f'Click Button: {btn_text}')
-                ele_btn.wait.clickable(timeout=30).click()
+                ele_btn.wait.clickable(timeout=10).click()
                 tab.wait(5)
             else:
                 continue
@@ -1474,7 +1556,7 @@ class XUtils():
             if not isinstance(ele_btn, NoneElement):
                 btn_text = ele_btn.text.replace('\n', ' ')
                 self.logit(None, f'Click Button: {btn_text}')
-                ele_btn.wait.clickable(timeout=30).click()
+                ele_btn.wait.clickable(timeout=10).click()
                 tab.wait(5)
             else:
                 continue
@@ -1486,12 +1568,13 @@ class XUtils():
                 if not isinstance(ele_btn, NoneElement):
                     self.qr_code = ele_btn.text.replace('\n', ' ')
                     self.logit(None, f'qr_code: {self.qr_code}')
+                    self.update_create(self.IDX_C_VERIFYCODE, self.qr_code)
 
                     ele_btn = tab.ele('@@tag()=button@@data-testid=ocfShowCodeNextLink', timeout=2) # noqa
                     if not isinstance(ele_btn, NoneElement):
                         btn_text = ele_btn.text.replace('\n', ' ')
                         self.logit(None, f'Click Button: {btn_text}')
-                        ele_btn.wait.clickable(timeout=30).click()
+                        ele_btn.wait.clickable(timeout=10).click()
                         tab.wait(3)
                 else:
                     continue
@@ -1505,23 +1588,22 @@ class XUtils():
         self.logit(None, 'Fail to set confirmation code ...') # noqa
         return False
 
-    def wait_email_verification_code(self, max_wait_sec=60):
+    def wait_email_verification_code(self):
         i = 0
-        while i < max_wait_sec:
+        while i < DEF_NUM_TRY:
             i += 1
             if self.register_verification_code() is True:
                 self.logit(None, 'Success to get email verification code ...')
                 return True
 
             self.browser.wait(1)
-            self.logit(None, f'Wait to get email verification code ... {i}/{max_wait_sec}') # noqa
+            self.logit(None, f'Wait to get email verification code ... {i}/{DEF_NUM_TRY}') # noqa
 
         self.logit(None, 'Fail to email verification code ...') # noqa
         return False
 
     def twitter_create(self):
-        self.update_num_visit()
-
+        # self.update_num_visit()
         for i in range(1, DEF_NUM_TRY+1):
             self.logit('xutils_login', f'try_i={i}/{DEF_NUM_TRY}')
 
@@ -1539,8 +1621,10 @@ class XUtils():
             if self.create_account_input() is False:
                 continue
 
+            self.browser.wait(5)
+
             # 图形验证码
-            max_wait_sec = 180
+            max_wait_sec = 120
             i = 0
             while i < max_wait_sec:
                 i += 1
@@ -1551,17 +1635,16 @@ class XUtils():
                     self.logit(None, f'{s_info}')
                     if s_info in ['xxx', 'We sent you a code']:
                         break
+                self.logit(None, f'Wait YesCaptcha to verify ... {i}/{max_wait_sec}') # noqa
 
-            pdb.set_trace()
             if self.wait_email_verification_code() is False:
                 continue
             if self.set_password() is False:
                 continue
             # Verify you are human by completing the action below
 
-            pdb.set_trace()
             # Pick a profile picture
-            # self.set_profile()
+            self.set_profile()
 
             # Get username
             self.set_username()
@@ -1573,6 +1656,7 @@ class XUtils():
             for i in range(0, n_like):
                 self.x_like()
 
+            # set 2fa
             self.set_confirmation_code()
 
             # Your account has been locked
@@ -1584,7 +1668,8 @@ class XUtils():
 
             s_msg = 'Press any key to continue ! ⚠️' # noqa
             input(s_msg)
-            pdb.set_trace()
+            # pdb.set_trace()
+            return True
 
         return False
 
