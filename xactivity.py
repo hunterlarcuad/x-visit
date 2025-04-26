@@ -265,11 +265,14 @@ class ClsActivity():
             return False
 
         if self.args.force is False:
-            x_status = self.inst_x.dic_status[self.args.s_profile][self.inst_x.IDX_STATUS] # noqa
-            if x_status != self.inst_x.DEF_STATUS_OK:
-                self.logit('xactivity_run', f'x_status is {x_status}')
-                self.update_status(self.IDX_STATUS, x_status)
-                return True
+            if self.args.s_profile in self.inst_x.dic_status:
+                x_status = self.inst_x.dic_status[self.args.s_profile][self.inst_x.IDX_STATUS] # noqa
+                if not x_status:
+                    pass
+                elif x_status != self.inst_x.DEF_STATUS_OK:
+                    self.logit('xactivity_run', f'x_status is {x_status}')
+                    self.update_status(self.IDX_STATUS, x_status)
+                    return True
         self.inst_x.twitter_run()
 
         self.xactivity_process()
