@@ -333,6 +333,12 @@ def main(args):
     if args.create is False:
         logger.info('self.args.create is False. Exit')
         sys.exit(0)
+    if args.reset_profile is True:
+        s_directory = f'{DEF_PATH_USER_DATA}/{args.profile}'
+        if os.path.exists(s_directory) and os.path.isdir(s_directory):
+            # 删除目录
+            shutil.rmtree(s_directory)
+            logger.info(f'Directory {s_directory} is deleted') # noqa
 
     if args.sleep_sec_at_start > 0:
         logger.info(f'Sleep {args.sleep_sec_at_start} seconds at start !!!') # noqa
@@ -509,6 +515,10 @@ if __name__ == '__main__':
     parser.add_argument(
         '--create', required=False, action='store_true',
         help='Create'
+    )
+    parser.add_argument(
+        '--reset_profile', required=False, action='store_true',
+        help='Delete profile'
     )
     parser.add_argument(
         '--vpn', required=False, default=None,

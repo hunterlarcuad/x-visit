@@ -326,7 +326,8 @@ class XUtils():
             ele_info = tab.ele('@@tag()=span@@class=css-1jxf684 r-bcqeeo r-1ttztb7 r-qvutc0 r-poiln3@@text()=Sign in', timeout=2) # noqa
             if not isinstance(ele_info, NoneElement):
                 self.logit(None, 'load login in button success ...')
-                ele_info.wait.clickable(timeout=60).click(by_js=True)
+                if ele_info.wait.clickable(timeout=60) is not False:
+                    ele_info.click(by_js=True)
                 # ele_info.click(by_js=True)
                 return True
             i += 1
@@ -453,7 +454,8 @@ class XUtils():
             ele_input = tab.ele('@@tag()=input@@name=text', timeout=2)
             ele_input.input(s_email)
             ele_btn = tab.ele('@@role=button@@text():Next')
-            ele_btn.wait.clickable(timeout=15).click()
+            if ele_btn.wait.clickable(timeout=15) is not False:
+                ele_btn.click()
 
             # TODO
             input('Press Enter to continue:')
@@ -477,8 +479,8 @@ class XUtils():
                 time.sleep(1)
                 logger.info('Twitter Click Log in')
                 s_path = '@data-testid=LoginForm_Login_Button'
-                tab.ele(s_path).wait.clickable(timeout=30)
-                tab.ele(s_path).click()
+                if tab.ele(s_path).wait.clickable(timeout=30) is not False:
+                    tab.ele(s_path).click()
                 time.sleep(1)
             else:
                 return False
@@ -500,8 +502,8 @@ class XUtils():
                 time.sleep(1)
                 logger.info('Twitter Click Next Button ...')
                 s_path = '@data-testid=ocfEnterTextNextButton'
-                tab.ele(s_path).wait.clickable(timeout=30)
-                tab.ele(s_path).click()
+                if tab.ele(s_path).wait.clickable(timeout=30) is not False:
+                    tab.ele(s_path).click()
                 time.sleep(1)
 
         if self.is_login_success():
@@ -630,7 +632,8 @@ class XUtils():
                     if not isinstance(ele_btn, NoneElement):
                         btn_text = ele_btn.value
                         self.logit(None, f'Button text: {btn_text}')
-                        ele_btn.wait.clickable(timeout=30).click()
+                        if ele_btn.wait.clickable(timeout=30) is not False:
+                            ele_btn.click()
                         tab.wait(2)
                         return True
                     else:
@@ -686,7 +689,8 @@ class XUtils():
                     if not isinstance(ele_btn, NoneElement):
                         btn_text = ele_btn.value
                         self.logit(None, f'Button text: {btn_text}')
-                        ele_btn.wait.clickable(timeout=30).click(by_js=True)
+                        if ele_btn.wait.clickable(timeout=30) is not False:
+                            ele_btn.click(by_js=True)
                         tab.wait(2)
                         return True
                     else:
@@ -703,7 +707,8 @@ class XUtils():
             if s_info in ['请验证你的邮件地址。', 'Please verify your email address.']:
                 ele_btn = tab.ele('@@tag()=input@@type=submit@@class:EdgeButton', timeout=2) # noqa
                 if not isinstance(ele_btn, NoneElement):
-                    ele_btn.wait.clickable(timeout=30).click(by_js=True)
+                    if ele_btn.wait.clickable(timeout=30) is not False:
+                        ele_btn.click(by_js=True)
                     tab.wait(2)
 
                     # d_cont = {
@@ -726,9 +731,9 @@ class XUtils():
             if len(ele_btns) > 0:
                 try:
                     ele_btn = random.choice(ele_btns)
-                    ele_btn.wait.clickable(timeout=30)
-                    tab.actions.move_to(ele_btn)
-                    ele_btn.click(by_js=True)
+                    if ele_btn.wait.clickable(timeout=30) is not False:
+                        tab.actions.move_to(ele_btn)
+                        ele_btn.click(by_js=True)
                     tab.wait(2)
                     return True
                 except Exception as e: # noqa
@@ -797,7 +802,8 @@ class XUtils():
 
                 ele_btn = tab.ele('@@tag()=button@@type=submit@@class:submit', timeout=2) # noqa
                 if not isinstance(ele_btn, NoneElement):
-                    ele_btn.wait.clickable(timeout=30).click(by_js=True)
+                    if ele_btn.wait.clickable(timeout=30) is not False:
+                        ele_btn.click(by_js=True)
                     tab.wait(2)
 
                     max_wait_sec = 60
@@ -835,7 +841,8 @@ class XUtils():
             for s_text in ['重试', 'Retry']:
                 ele_btn = tab.ele(f'@@tag()=span@@text()={s_text}', timeout=2) # noqa
                 if not isinstance(ele_btn, NoneElement):
-                    ele_btn.wait.clickable(timeout=30).click(by_js=True)
+                    if ele_btn.wait.clickable(timeout=30) is not False:
+                        ele_btn.click(by_js=True)
                     tab.wait(1)
                     return True
         return False
@@ -849,7 +856,8 @@ class XUtils():
             if s_info in ['你的账号已被封锁。', 'Your account has been locked.']:
                 ele_btn = tab.ele('@@tag()=input@@type=submit@@class:EdgeButton', timeout=2) # noqa
                 if not isinstance(ele_btn, NoneElement):
-                    ele_btn.wait.clickable(timeout=30).click(by_js=True)
+                    if ele_btn.wait.clickable(timeout=30) is not False:
+                        ele_btn.click(by_js=True)
                     self.wait_countdown('captcha challenge', 15)
                     return True
         return False
@@ -863,7 +871,8 @@ class XUtils():
             if s_info in ['账号已解锁。', 'Account unlocked.']:
                 ele_btn = tab.ele('@@tag()=input@@type=submit@@class:EdgeButton', timeout=2) # noqa
                 if not isinstance(ele_btn, NoneElement):
-                    ele_btn.wait.clickable(timeout=30).click(by_js=True)
+                    if ele_btn.wait.clickable(timeout=30) is not False:
+                        ele_btn.click(by_js=True)
                     tab.wait(3)
                     return True
             elif s_info in ['Something went wrong.', '发生了错误。']:
@@ -954,7 +963,8 @@ class XUtils():
             if not isinstance(ele_btn, NoneElement):
                 s_info = ele_btn.text
                 self.logit(None, f'Click Cancel button [{s_info}]') # noqa
-                ele_btn.wait.clickable(timeout=5).click(by_js=True)
+                if ele_btn.wait.clickable(timeout=5) is not False:
+                    ele_btn.click(by_js=True)
 
             ele_btn = tab.ele(f'@@tag()=button@@data-testid:follow@@aria-label:{name}', timeout=2) # noqa
             if not isinstance(ele_btn, NoneElement):
@@ -969,7 +979,8 @@ class XUtils():
                     self.logit(None, 'Follow Success ✅')
                     return True
                 self.logit(None, 'Try to Click Follow Button')
-                ele_btn.wait.clickable(timeout=5).click(by_js=True)
+                if ele_btn.wait.clickable(timeout=5) is not False:
+                    ele_btn.click(by_js=True)
                 tab.wait(1)
         return False
 
@@ -983,7 +994,8 @@ class XUtils():
         ]
         ele_btn = self.inst_dp.get_ele_btn(self.browser.latest_tab, lst_path)
         if ele_btn is not NoneElement:
-            ele_btn.wait.clickable(timeout=5).click(by_js=True)
+            if ele_btn.wait.clickable(timeout=5) is not False:
+                ele_btn.click(by_js=True)
             tab.wait(2)
             return True
         return False
@@ -999,7 +1011,8 @@ class XUtils():
             if not isinstance(ele_btn, NoneElement):
                 s_info = ele_btn.text
                 self.logit('x_retweet', f'Click Cancel button [{s_info}]') # noqa
-                ele_btn.wait.clickable(timeout=5).click(by_js=True)
+                if ele_btn.wait.clickable(timeout=5) is not False:
+                    ele_btn.click(by_js=True)
 
             # See the latest post
             if self.jump_to_new_tweet():
@@ -1020,14 +1033,16 @@ class XUtils():
                 self.logit(None, 'Try to Click Retweet Button')
                 try:
                     tab.actions.move_to(ele_btn)
-                    ele_btn.wait.clickable(timeout=1).click(by_js=True)
+                    if ele_btn.wait.clickable(timeout=1) is not False:
+                        ele_btn.click(by_js=True)
                     tab.wait(1)
 
                     ele_btn = tab.ele('@@tag()=div@@data-testid=retweetConfirm', timeout=2) # noqa
                     if not isinstance(ele_btn, NoneElement):
                         s_info = ele_btn.text
                         self.logit(None, f'Click Cancel button [{s_info}]') # noqa
-                        ele_btn.wait.clickable(timeout=5).click(by_js=True)
+                        if ele_btn.wait.clickable(timeout=5) is not False:
+                            ele_btn.click(by_js=True)
                 except Exception as e: # noqa
                     self.logit('click_like', f'Error: {e}')
 
@@ -1044,7 +1059,8 @@ class XUtils():
             if not isinstance(ele_btn, NoneElement):
                 s_info = ele_btn.text
                 self.logit('x_like', f'Click Cancel button [{s_info}]') # noqa
-                ele_btn.wait.clickable(timeout=5).click(by_js=True)
+                if ele_btn.wait.clickable(timeout=5) is not False:
+                    ele_btn.click(by_js=True)
 
             # See the latest post
             if self.jump_to_new_tweet():
@@ -1063,7 +1079,8 @@ class XUtils():
                     return True
                 self.logit(None, 'Try to Click Like Button')
                 tab.actions.move_to(ele_btn)
-                ele_btn.wait.clickable(timeout=1).click(by_js=True)
+                if ele_btn.wait.clickable(timeout=1) is not False:
+                    ele_btn.click(by_js=True)
                 tab.wait(1)
 
             ele_btn = tab.ele('@@tag()=button@@data-testid=unlike', timeout=2)
@@ -1085,7 +1102,8 @@ class XUtils():
             if not isinstance(ele_btn, NoneElement):
                 s_info = ele_btn.text
                 self.logit('x_reply', f'Click Cancel button [{s_info}]') # noqa
-                ele_btn.wait.clickable(timeout=5).click(by_js=True)
+                if ele_btn.wait.clickable(timeout=5) is not False:
+                    ele_btn.click(by_js=True)
 
             # See the latest post
             if self.jump_to_new_tweet():
@@ -1111,8 +1129,9 @@ class XUtils():
             if not isinstance(ele_btn, NoneElement):
                 self.logit(None, 'Try to click reply button ...')
                 tab.actions.move_to(ele_btn)
-                ele_btn.wait.clickable(timeout=5)
-                ele_btn.click(by_js=True)
+                if ele_btn.wait.clickable(timeout=5) is not False:
+                    ele_btn.click(by_js=True)
+
                 tab.wait(1)
 
                 ele_info = tab.ele('@@tag()=div@@aria-live=assertive', timeout=2)
@@ -1133,7 +1152,8 @@ class XUtils():
             if not isinstance(ele_btn, NoneElement):
                 s_info = ele_btn.text
                 self.logit(None, f'Click Authorize app button [{s_info}]') # noqa
-                ele_btn.wait.clickable(timeout=5).click(by_js=True)
+                if ele_btn.wait.clickable(timeout=5) is not False:
+                    ele_btn.click(by_js=True)
                 tab.wait(1)
                 return True
         return False
@@ -1151,7 +1171,8 @@ class XUtils():
             ele_info = self.get_create_account_btn()
             if not isinstance(ele_info, NoneElement):
                 self.logit(None, 'load create account button success ...')
-                ele_info.wait.clickable(timeout=60).click(by_js=True)
+                if ele_info.wait.clickable(timeout=60) is not False:
+                    ele_info.click(by_js=True)
                 # ele_info.click(by_js=True)
                 return True
             i += 1
@@ -1263,9 +1284,11 @@ class XUtils():
                     if not isinstance(ele_btn, NoneElement):
                         btn_text = ele_btn.text
                         self.logit(None, f'Button text: {btn_text}')
-                        ele_btn.wait.enabled(timeout=30)
-                        ele_btn.wait.clickable(timeout=30)
-                        ele_btn.click(by_js=True)
+                        ele_btn.wait.enabled(timeout=10)
+
+                        if ele_btn.wait.clickable(timeout=10) is not False:
+                            ele_btn.click(by_js=True)
+
                         tab.wait(3)
                         return True
                 else:
@@ -1274,34 +1297,48 @@ class XUtils():
         self.logit(None, 'Fail to input password.')
         return False
 
-    def set_profile(self):
-        tab = self.browser.latest_tab
-        # Pick a profile picture
-        ele_btn = tab.ele('@@tag()=div@@class=css-175oi2r r-b9tw7p', timeout=2) # noqa
-        if not isinstance(ele_btn, NoneElement):
-            btn_text = ele_btn.text
-            self.logit(None, f'Button text: {btn_text}')
-            ele_btn.wait.clickable(timeout=30).click()
-            tab.wait(5)
-            return True
-
-    def set_username(self):
-        tab = self.browser.latest_tab
-        ele_input = tab.ele('@@tag()=input@@name=username', timeout=2) # noqa
-        if not isinstance(ele_input, NoneElement):
-            s_username = ele_input.value
-            self.logit(None, f'username: {s_username}')
-            self.update_create(self.IDX_C_USERNAME, s_username)
-
-            ele_btn = tab.ele('@@tag()=button@@data-testid=ocfEnterUsernameSkipButton', timeout=2) # noqa
+    def set_profile(self, max_wait_sec=10):
+        i = 0
+        while i < max_wait_sec:
+            i += 1
+            tab = self.browser.latest_tab
+            # Pick a profile picture
+            ele_btn = tab.ele('@@tag()=div@@class=css-175oi2r r-b9tw7p', timeout=2) # noqa
             if not isinstance(ele_btn, NoneElement):
                 btn_text = ele_btn.text
-                self.logit(None, f'set_username Button text: {btn_text}')
-                ele_btn.wait.clickable(timeout=30).click()
-                tab.wait(8)
+                self.logit(None, f'Button text: {btn_text}')
+                if ele_btn.wait.clickable(timeout=2) is not False:
+                    ele_btn.click()
+                tab.wait(3)
                 return True
+            self.browser.wait(1)
+        self.logit(None, 'Fail to set profile.')
+        return False
 
-    def set_interest(self, max_wait_sec=120):
+    def set_username(self, max_wait_sec=10):
+        i = 0
+        while i < max_wait_sec:
+            i += 1
+            tab = self.browser.latest_tab
+            ele_input = tab.ele('@@tag()=input@@name=username', timeout=2) # noqa
+            if not isinstance(ele_input, NoneElement):
+                s_username = ele_input.value
+                self.logit(None, f'username: {s_username}')
+                self.update_create(self.IDX_C_USERNAME, s_username)
+
+                ele_btn = tab.ele('@@tag()=button@@data-testid=ocfEnterUsernameSkipButton', timeout=2) # noqa
+                if not isinstance(ele_btn, NoneElement):
+                    btn_text = ele_btn.text
+                    self.logit(None, f'set_username Button text: {btn_text}')
+                    if ele_btn.wait.clickable(timeout=2) is not False:
+                        ele_btn.click(by_js=True)
+                    tab.wait(8)
+                    return True
+            self.browser.wait(1)
+        self.logit(None, 'Fail to set profile.')
+        return False
+
+    def set_interest(self, max_wait_sec=6):
         # What do you want to see on X?
         # Select at least 1 interest to personalize your X experience. It will be visible on your profile.
         i = 0
@@ -1316,14 +1353,24 @@ class XUtils():
             for i in range(0, n_to_select):
                 ele_item = random.choice(ele_items)
                 tab.actions.move_to(ele_item)
-                ele_item.wait.clickable(timeout=30).click()
+                # if ele_item.wait.clickable(timeout=3) is not False:
+                #     ele_item.click(by_js=True)
+
+                ele_item.wait.clickable(timeout=3)
+                # ele_item.click(by_js=True)
+                ele_item.click()
+
+                self.logit(None, 'select a interest')
                 tab.wait(2)
+                if ele_item in ele_items:
+                    ele_items.remove(ele_item)
 
             ele_btn = tab.ele('x://*[@id="layers"]/div[2]/div/div/div/div/div/div[2]/div[2]/div/div/div[2]/div[2]/div[2]/div/div/button', timeout=2) # noqa
             if not isinstance(ele_btn, NoneElement):
                 btn_text = ele_btn.text
                 self.logit(None, f'set_interest Button text: {btn_text}')
-                ele_btn.wait.clickable(timeout=30).click()
+                if ele_btn.wait.clickable(timeout=3) is not False:
+                    ele_btn.click()
                 tab.wait(8)
                 return True
         self.logit(None, 'Fail to set interest ...') # noqa
@@ -1345,14 +1392,19 @@ class XUtils():
             for i in range(0, n_to_follow):
                 ele_item = random.choice(ele_items)
                 tab.actions.move_to(ele_item)
-                ele_item.wait.clickable(timeout=30).click()
+                if ele_item.wait.clickable(timeout=30) is not False:
+                    # ele_item.click(by_js=True)
+                    ele_item.click()
                 tab.wait(2)
+                if ele_item in ele_items:
+                    ele_items.remove(ele_item)
 
             ele_btn = tab.ele('x://*[@id="layers"]/div[2]/div/div/div/div/div/div[2]/div[2]/div/div/div[2]/div[2]/div[2]/div/div/div/button', timeout=2) # noqa
             if not isinstance(ele_btn, NoneElement):
                 btn_text = ele_btn.text
                 self.logit(None, f'follow_some_accounts Button text: {btn_text}')
-                ele_btn.wait.clickable(timeout=30).click()
+                if ele_btn.wait.clickable(timeout=30) is not False:
+                    ele_btn.click(by_js=True)
                 tab.wait(8)
                 return True
         self.logit(None, 'Fail to set interest ...') # noqa
@@ -1395,9 +1447,9 @@ class XUtils():
                 if not isinstance(ele_btn, NoneElement):
                     btn_text = ele_btn.text
                     self.logit(None, f'Button text: {btn_text}')
-                    ele_btn.wait.enabled(timeout=30)
-                    ele_btn.wait.clickable(timeout=30)
-                    ele_btn.click(by_js=True)
+                    ele_btn.wait.enabled(timeout=10)
+                    if ele_btn.wait.clickable(timeout=10) is not False:
+                        ele_btn.click(by_js=True)
                     tab.wait(5)
                     return True
                 else:
@@ -1427,8 +1479,8 @@ class XUtils():
                     btn_text = ele_btn.text
                     self.logit(None, f'Button text: {btn_text}')
                     ele_btn.wait.enabled(timeout=30)
-                    ele_btn.wait.clickable(timeout=30)
-                    ele_btn.click(by_js=True)
+                    if ele_btn.wait.clickable(timeout=30) is not False:
+                        ele_btn.click(by_js=True)
                     tab.wait(5)
                     return True
                 else:
@@ -1459,8 +1511,8 @@ class XUtils():
                     btn_text = ele_btn.text
                     self.logit(None, f'Button text: {btn_text}')
                     ele_btn.wait.enabled(timeout=30)
-                    ele_btn.wait.clickable(timeout=30)
-                    ele_btn.click(by_js=True)
+                    if ele_btn.wait.clickable(timeout=30) is not False:
+                        ele_btn.click(by_js=True)
                     tab.wait(8)
                     return True
                 else:
@@ -1482,7 +1534,8 @@ class XUtils():
             if not isinstance(ele_btn, NoneElement):
                 btn_text = ele_btn.text
                 self.logit(None, f'Click Button: {btn_text}')
-                ele_btn.wait.clickable(timeout=30).click()
+                if ele_btn.wait.clickable(timeout=30) is not False:
+                    ele_btn.click(by_js=True)
                 tab.wait(5)
             else:
                 continue
@@ -1492,7 +1545,8 @@ class XUtils():
             if not isinstance(ele_btn, NoneElement):
                 btn_text = ele_btn.text
                 self.logit(None, f'Click Button: {btn_text}')
-                ele_btn.wait.clickable(timeout=10).click()
+                if ele_btn.wait.clickable(timeout=10) is not False:
+                    ele_btn.click(by_js=True)
                 tab.wait(5)
             else:
                 continue
@@ -1502,7 +1556,8 @@ class XUtils():
             if not isinstance(ele_btn, NoneElement):
                 btn_text = ele_btn.text.replace('\n', ' ')
                 self.logit(None, f'Click Button: {btn_text}')
-                ele_btn.wait.clickable(timeout=10).click()
+                if ele_btn.wait.clickable(timeout=10) is not False:
+                    ele_btn.click(by_js=True)
                 tab.wait(5)
             else:
                 continue
@@ -1512,7 +1567,8 @@ class XUtils():
             if not isinstance(ele_btn, NoneElement):
                 btn_text = ele_btn.text.replace('\n', ' ')
                 self.logit(None, f'Click Button: {btn_text}')
-                ele_btn.wait.clickable(timeout=10).click()
+                if ele_btn.wait.clickable(timeout=10) is not False:
+                    ele_btn.click(by_js=True)
                 tab.wait(5)
             else:
                 continue
@@ -1522,7 +1578,8 @@ class XUtils():
             if not isinstance(ele_btn, NoneElement):
                 btn_text = ele_btn.text.replace('\n', ' ')
                 self.logit(None, f'Click Button: {btn_text}')
-                ele_btn.wait.clickable(timeout=10).click()
+                if ele_btn.wait.clickable(timeout=10) is not False:
+                    ele_btn.click(by_js=True)
                 tab.wait(5)
             else:
                 continue
@@ -1531,7 +1588,8 @@ class XUtils():
             ele_btn = tab.ele('@@tag()=div@@class:css-175oi2r r-1awozwy r-18u37iz@@text():Authentication app', timeout=2) # noqa
             if not isinstance(ele_btn, NoneElement):
                 self.logit(None, 'Click Authentication app checkbox')
-                ele_btn.wait.clickable(timeout=10).click()
+                if ele_btn.wait.clickable(timeout=10) is not False:
+                    ele_btn.click(by_js=True)
                 tab.wait(5)
             else:
                 continue
@@ -1545,7 +1603,8 @@ class XUtils():
             if not isinstance(ele_btn, NoneElement):
                 btn_text = ele_btn.text.replace('\n', ' ')
                 self.logit(None, f'Click Button: {btn_text}')
-                ele_btn.wait.clickable(timeout=10).click()
+                if ele_btn.wait.clickable(timeout=10) is not False:
+                    ele_btn.click(by_js=True)
                 tab.wait(5)
             else:
                 continue
@@ -1556,7 +1615,8 @@ class XUtils():
             if not isinstance(ele_btn, NoneElement):
                 btn_text = ele_btn.text.replace('\n', ' ')
                 self.logit(None, f'Click Button: {btn_text}')
-                ele_btn.wait.clickable(timeout=10).click()
+                if ele_btn.wait.clickable(timeout=10) is not False:
+                    ele_btn.click(by_js=True)
                 tab.wait(5)
             else:
                 continue
@@ -1574,7 +1634,8 @@ class XUtils():
                     if not isinstance(ele_btn, NoneElement):
                         btn_text = ele_btn.text.replace('\n', ' ')
                         self.logit(None, f'Click Button: {btn_text}')
-                        ele_btn.wait.clickable(timeout=10).click()
+                        if ele_btn.wait.clickable(timeout=10) is not False:
+                            ele_btn.click(by_js=True)
                         tab.wait(3)
                 else:
                     continue
