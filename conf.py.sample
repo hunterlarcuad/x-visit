@@ -28,13 +28,15 @@ DEF_NUM_TRY = 5
 # 每个账号每天最大重试次数
 NUM_MAX_TRY_PER_DAY = 5
 
-DEF_ENCODE_HANDLE = 'ak6UVCToc32H9#mSAMPLE'
+DEF_OKX_PWD = 'set_your_okx_password'
+
+DEF_ENCODE_HANDLE_X = 'ak6UVCxxx32H9#mSAMPLE'
 
 # encrypt & decrypt
-DEF_ENCODE_HANDLE = 'ak6UVCxxx32H9#mSAMPLE'
+DEF_ENCODE_HANDLE_OKX = 'ak6UVCxxx32H9#mSAMPLE'
 
 # 设置时间的时区 (0 for UTC, 8 for Asia/Shanghai)
-TZ_OFFSET = 0
+TZ_OFFSET = 8
 # 清空浏览器目录
 DEL_PROFILE_DIR = False
 
@@ -50,8 +52,27 @@ DEF_CAPTCHA_KEY = 'your_key'
 DEF_CAPTCHA_EXTENSION_PATH = 'extensions/YesCaptcha'
 EXTENSION_ID_YESCAPTCHA = 'jiofmdifioeejeilfkpegipdjiopiekl'
 
+DEF_CAPMONSTER_EXTENSION_PATH = 'extensions/CapMonster'
+EXTENSION_ID_CAPMONSTER = 'pabjfbciaedomjjfelfafejkppknjleh'
+DEF_CAPMONSTER_KEY = 'your_key'
+############################################################
+
+# Clash Verge API
+DEF_CLASH_API_PORT = 9097
+DEF_CLASH_API_SECRETKEY = 'set_your_secretkey'
+############################################################
+
+# GLM API Key
+DEF_LLM_ZHIPUAI = 'set_your_secretkey'
+############################################################
+
 # 遇到异常发钉钉消息，如果没有，置空，则不发钉钉消息
 DEF_DING_TOKEN = ''  # noqa
+############################################################
+
+# 账号列表
+DEF_PATH_DATA_PURSE = 'datas/purse'
+DEF_HEADER_PURSE = 'account,purse,evm_address'
 
 # 账号列表
 DEF_PATH_DATA_ACCOUNT = 'datas/account'
@@ -61,10 +82,6 @@ DEF_HEADER_ACCOUNT = 'account,x_username,x_pwd,x_verifycode,proxy'
 DEF_PATH_DATA_STATUS = 'datas/status'
 DEF_HEADER_STATUS = 'account,status,visit_date,num_visit,update_time'
 
-############################################################
-# Clash Verge
-DEF_CLASH_API_PORT = 9097
-DEF_CLASH_API_SECRETKEY = 'your_key'
 ############################################################
 # 配置日志
 s_format = '%(asctime)s %(levelname)s %(message)s'
