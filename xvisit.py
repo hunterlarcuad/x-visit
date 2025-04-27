@@ -454,7 +454,7 @@ def main(args):
 
         logger.info(f'Progress: {percent}% [{n}/{total}] [{s_profile} Finish]')
 
-        if len(items) > 0:
+        if len(profiles) > 0:
             sleep_time = random.randint(args.sleep_sec_min, args.sleep_sec_max)
             if sleep_time > 60:
                 logger.info('sleep {} minutes ...'.format(int(sleep_time/60)))

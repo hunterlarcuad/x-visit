@@ -1360,7 +1360,7 @@ class XUtils():
                 # ele_item.click(by_js=True)
                 ele_item.click()
 
-                self.logit(None, 'select a interest')
+                self.logit(None, f'select a interest [{i+1}/{n_to_select}]')
                 tab.wait(2)
                 if ele_item in ele_items:
                     ele_items.remove(ele_item)
@@ -1533,7 +1533,7 @@ class XUtils():
             ele_btn = tab.ele('@@tag()=button@@data-testid=AppTabBar_More_Menu', timeout=2) # noqa
             if not isinstance(ele_btn, NoneElement):
                 btn_text = ele_btn.text
-                self.logit(None, f'Click Button: {btn_text}')
+                self.logit(None, f'[SC1] {btn_text}')
                 if ele_btn.wait.clickable(timeout=30) is not False:
                     ele_btn.click(by_js=True)
                 tab.wait(5)
@@ -1544,7 +1544,7 @@ class XUtils():
             ele_btn = tab.ele('@@tag()=a@@data-testid=settings', timeout=2) # noqa
             if not isinstance(ele_btn, NoneElement):
                 btn_text = ele_btn.text
-                self.logit(None, f'Click Button: {btn_text}')
+                self.logit(None, f'[SC2] {btn_text}')
                 if ele_btn.wait.clickable(timeout=10) is not False:
                     ele_btn.click(by_js=True)
                 tab.wait(5)
@@ -1555,7 +1555,7 @@ class XUtils():
             ele_btn = tab.ele('@@tag()=a@@data-testid=accountAccessLink', timeout=2) # noqa
             if not isinstance(ele_btn, NoneElement):
                 btn_text = ele_btn.text.replace('\n', ' ')
-                self.logit(None, f'Click Button: {btn_text}')
+                self.logit(None, f'[SC3] {btn_text}')
                 if ele_btn.wait.clickable(timeout=10) is not False:
                     ele_btn.click(by_js=True)
                 tab.wait(5)
@@ -1566,7 +1566,7 @@ class XUtils():
             ele_btn = tab.ele('@@tag()=a@@href:security@@data-testid=pivot', timeout=2) # noqa
             if not isinstance(ele_btn, NoneElement):
                 btn_text = ele_btn.text.replace('\n', ' ')
-                self.logit(None, f'Click Button: {btn_text}')
+                self.logit(None, f'[SC4] {btn_text}')
                 if ele_btn.wait.clickable(timeout=10) is not False:
                     ele_btn.click(by_js=True)
                 tab.wait(5)
@@ -1577,7 +1577,7 @@ class XUtils():
             ele_btn = tab.ele('@@tag()=a@@href:login_verification@@data-testid=pivot', timeout=2) # noqa
             if not isinstance(ele_btn, NoneElement):
                 btn_text = ele_btn.text.replace('\n', ' ')
-                self.logit(None, f'Click Button: {btn_text}')
+                self.logit(None, f'[SC5] {btn_text}')
                 if ele_btn.wait.clickable(timeout=10) is not False:
                     ele_btn.click(by_js=True)
                 tab.wait(5)
@@ -1602,7 +1602,7 @@ class XUtils():
             ele_btn = tab.ele('@@tag()=button@@data-testid=ActionListNextButton', timeout=2) # noqa
             if not isinstance(ele_btn, NoneElement):
                 btn_text = ele_btn.text.replace('\n', ' ')
-                self.logit(None, f'Click Button: {btn_text}')
+                self.logit(None, f'[SC6] {btn_text}')
                 if ele_btn.wait.clickable(timeout=10) is not False:
                     ele_btn.click(by_js=True)
                 tab.wait(5)
@@ -1614,7 +1614,7 @@ class XUtils():
             ele_btn = tab.ele('x://*[@id="layers"]/div[2]/div/div/div/div/div/div[2]/div[2]/div/div/div[2]/div[2]/div[1]/div/div[2]/div/div/button', timeout=2) # noqa
             if not isinstance(ele_btn, NoneElement):
                 btn_text = ele_btn.text.replace('\n', ' ')
-                self.logit(None, f'Click Button: {btn_text}')
+                self.logit(None, f'[SC7] {btn_text}')
                 if ele_btn.wait.clickable(timeout=10) is not False:
                     ele_btn.click(by_js=True)
                 tab.wait(5)
@@ -1633,7 +1633,7 @@ class XUtils():
                     ele_btn = tab.ele('@@tag()=button@@data-testid=ocfShowCodeNextLink', timeout=2) # noqa
                     if not isinstance(ele_btn, NoneElement):
                         btn_text = ele_btn.text.replace('\n', ' ')
-                        self.logit(None, f'Click Button: {btn_text}')
+                        self.logit(None, f'[SC8] {btn_text}')
                         if ele_btn.wait.clickable(timeout=10) is not False:
                             ele_btn.click(by_js=True)
                         tab.wait(3)
@@ -1695,6 +1695,8 @@ class XUtils():
                     s_info = ele_input.text
                     self.logit(None, f'{s_info}')
                     if s_info in ['xxx', 'We sent you a code']:
+                        self.logit(None, 'We sent you a code to your email')
+                        self.browser.wait(5)
                         break
                 self.logit(None, f'Wait YesCaptcha to verify ... {i}/{max_wait_sec}') # noqa
 
@@ -1727,9 +1729,8 @@ class XUtils():
                 # 图形验证码
                 self.x_unlocked()
 
-            s_msg = 'Press any key to continue ! ⚠️' # noqa
-            input(s_msg)
-            # pdb.set_trace()
+            # s_msg = 'Press any key to continue ! ⚠️' # noqa
+            # input(s_msg)
             return True
 
         return False

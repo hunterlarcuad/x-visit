@@ -153,7 +153,8 @@ def get_verify_code_from_gmail(s_in_title):
         messages = results.get('messages', [])
 
         if not messages:
-            print('没有找到符合条件的邮件.')
+            # print('没有找到符合条件的邮件.')
+            pass
         else:
             # print(f'找到 {len(messages)} 封符合条件的邮件')
             for message in messages:
