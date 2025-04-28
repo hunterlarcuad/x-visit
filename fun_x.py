@@ -94,16 +94,17 @@ class XUtils():
         self.DEF_STATUS_EXCEED_ATTEMPT = 'EXCEED_ATTEMPT'
 
         # create account output
-        self.DEF_HEADER_CREATE = 'account,x_username,x_pwd,x_verifycode,proxy,x_backupcode,x_email,birthday' # noqa
+        self.DEF_HEADER_CREATE = 'account,x_username,x_pwd,x_verifycode,proxy,auth_token,x_backupcode,x_email,birthday' # noqa
         self.IDX_C_ACCOUNT = 0
         self.IDX_C_USERNAME = 1
         self.IDX_C_PWD = 2
         self.IDX_C_VERIFYCODE = 3
         self.IDX_C_PROXY = 4
-        self.IDX_C_BACKUPCODE = 5
-        self.IDX_C_EMAIL = 6
-        self.IDX_C_BIRTHDAY = 7
-        self.IDX_C_UPDATE = 8
+        self.IDX_C_AUTHTOKEN = 5
+        self.IDX_C_BACKUPCODE = 6
+        self.IDX_C_EMAIL = 7
+        self.IDX_C_BIRTHDAY = 8
+        self.IDX_C_UPDATE = 9
         self.C_FIELD_NUM = self.IDX_C_UPDATE + 1
 
     def set_args(self, args):
@@ -901,6 +902,23 @@ class XUtils():
 
         return False
 
+    def get_cookies(self, s_key='auth_token'):
+        tab = self.browser.latest_tab
+        cookies = tab.cookies()
+
+        # 提取 auth_token
+        auth_token = None
+        for cookie in cookies:
+            if cookie.get('name') == s_key:
+                auth_token = cookie.get('value')
+                # self.logit(None, f'auth_token: {s_key}')
+                break
+
+        if not auth_token:
+            self.logit(None, f'Not found {s_key}')
+
+        return auth_token
+
     def twitter_run(self):
         # if self.set_vpn() is False:
         #     return False
@@ -910,6 +928,7 @@ class XUtils():
         if not self.xutils_login():
             self.logit('twitter_run', 'Fail to login in x')
             return False
+        pdb.set_trace()
 
         self.x_locked()
         self.x_unlocked()
@@ -1406,7 +1425,7 @@ class XUtils():
                         ele_item.click()
                 except: # noqa
                     self.logit('follow_some_accounts', f'Error: {e}')
-                    # pdb.set_trace()
+                    pdb.set_trace()
                 tab.wait(2)
                 if ele_item in ele_items:
                     ele_items.remove(ele_item)
@@ -1734,6 +1753,10 @@ class XUtils():
             self.logit(None, f'Like {n_like} posts.')
             for i in range(0, n_like):
                 self.x_like()
+
+            auth_token = self.get_cookies()
+            self.logit(None, f'auth_token: {auth_token}')
+            self.update_create(self.IDX_C_AUTHTOKEN, auth_token)
 
             # set 2fa
             self.set_confirmation_code()
