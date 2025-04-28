@@ -738,7 +738,7 @@ class XUtils():
                     return True
                 except Exception as e: # noqa
                     self.logit('click_like', f'Error: {e}')
-                    pdb.set_trace()
+                    # pdb.set_trace()
             else:
                 self.logit(None, 'Fail to load posts ...')
                 if self.wrong_retry():
@@ -966,7 +966,8 @@ class XUtils():
                 if ele_btn.wait.clickable(timeout=5) is not False:
                     ele_btn.click(by_js=True)
 
-            ele_btn = tab.ele(f'@@tag()=button@@data-testid:follow@@aria-label:{name}', timeout=2) # noqa
+            s_lower_name = name.lower()
+            ele_btn = tab.ele(f'@@tag()=button@@data-testid:follow@@aria-label:{s_lower_name}', timeout=2) # noqa
             if not isinstance(ele_btn, NoneElement):
                 tab.actions.move_to(ele_btn)
                 s_info = ele_btn.text
@@ -1268,6 +1269,7 @@ class XUtils():
         i = 0
         while i < max_wait_sec:
             i += 1
+            self.logit('set_password', f'trying ... {i}/{max_wait_sec}')
             tab = self.browser.latest_tab
             # Password
             ele_input = tab.ele('@@tag()=input@@name=password', timeout=1) # noqa
@@ -1301,6 +1303,7 @@ class XUtils():
         i = 0
         while i < max_wait_sec:
             i += 1
+            self.logit('set_profile', f'trying ... {i}/{max_wait_sec}')
             tab = self.browser.latest_tab
             # Pick a profile picture
             ele_btn = tab.ele('@@tag()=div@@class=css-175oi2r r-b9tw7p', timeout=2) # noqa
@@ -1319,6 +1322,7 @@ class XUtils():
         i = 0
         while i < max_wait_sec:
             i += 1
+            self.logit('set_username', f'trying ... {i}/{max_wait_sec}')
             tab = self.browser.latest_tab
             ele_input = tab.ele('@@tag()=input@@name=username', timeout=2) # noqa
             if not isinstance(ele_input, NoneElement):
@@ -1344,9 +1348,11 @@ class XUtils():
         i = 0
         while i < max_wait_sec:
             i += 1
+            self.logit('set_interest', f'trying ... {i}/{max_wait_sec}')
             tab = self.browser.latest_tab
             ele_items = tab.eles('@@tag()=li@@role=listitem@@id:verticalGridItem', timeout=2) # noqa
             if not ele_items:
+                tab.wait(1)
                 continue
             n_to_select = random.randint(2, 5)
             self.logit(None, f'Select {n_to_select} interest from {len(ele_items)}')
@@ -1376,25 +1382,31 @@ class XUtils():
         self.logit(None, 'Fail to set interest ...') # noqa
         return False
 
-    def follow_some_accounts(self, max_wait_sec=120):
+    def follow_some_accounts(self, max_wait_sec=60):
         # Don’t miss out
         # When you follow someone, you’ll see their posts in your Timeline. You’ll also get more relevant recommendations.
         # Follow 1 or more accounts
         i = 0
         while i < max_wait_sec:
             i += 1
+            self.logit('follow_some_accounts', f'trying ... {i}/{max_wait_sec}')
             tab = self.browser.latest_tab
             ele_items = tab.eles('@@tag()=div@@data-testid=cellInnerDiv@@text():Click', timeout=2) # noqa
             if not ele_items:
+                tab.wait(1)
                 continue
             n_to_follow = random.randint(3, 6)
             self.logit(None, f'Follow {n_to_follow} accounts from {len(ele_items)}')
             for i in range(0, n_to_follow):
                 ele_item = random.choice(ele_items)
-                tab.actions.move_to(ele_item)
-                if ele_item.wait.clickable(timeout=30) is not False:
-                    # ele_item.click(by_js=True)
-                    ele_item.click()
+                try:
+                    tab.actions.move_to(ele_item)
+                    if ele_item.wait.clickable(timeout=30) is not False:
+                        # ele_item.click(by_js=True)
+                        ele_item.click()
+                except: # noqa
+                    self.logit('follow_some_accounts', f'Error: {e}')
+                    # pdb.set_trace()
                 tab.wait(2)
                 if ele_item in ele_items:
                     ele_items.remove(ele_item)
@@ -1435,6 +1447,7 @@ class XUtils():
         i = 0
         while i < max_wait_sec:
             i += 1
+            self.logit('enter_password', f'trying ... {i}/{max_wait_sec}')
             tab = self.browser.latest_tab
             # Password
             ele_input = tab.ele('@@tag()=input@@name=password', timeout=1) # noqa
@@ -1466,6 +1479,7 @@ class XUtils():
         i = 0
         while i < max_wait_sec:
             i += 1
+            self.logit('enter_confirmation_code', f'trying ... {i}/{max_wait_sec}')
             tab = self.browser.latest_tab
             ele_input = tab.ele('@@tag()=input@@data-testid=ocfEnterTextTextInput', timeout=1) # noqa
             if not isinstance(ele_input, NoneElement):
@@ -1496,6 +1510,7 @@ class XUtils():
         i = 0
         while i < max_wait_sec:
             i += 1
+            self.logit('save_backup_code', f'trying ... {i}/{max_wait_sec}')
             tab = self.browser.latest_tab
 
             ele_info = tab.ele('@@tag()=span@@text():Save this single-use backup code in a safe place', timeout=2) # noqa
@@ -1527,6 +1542,7 @@ class XUtils():
         i = 0
         while i < max_wait_sec:
             i += 1
+            self.logit('set_confirmation_code', f'trying ... {i}/{max_wait_sec}')
             tab = self.browser.latest_tab
 
             # More

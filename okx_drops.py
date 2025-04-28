@@ -876,4 +876,5 @@ python okx_drops.py --get_task_status --force --url=https://web3.okx.com/zh-hans
 
 python okx_drops.py --auto_like --url=https://web3.okx.com/drops/event/pixelmoo --profile=g03
 
+python okx_drops.py --auto_like --url=https://web3.okx.com/drops/event/pixelmoo --profile=g06 --manual_exit
 """

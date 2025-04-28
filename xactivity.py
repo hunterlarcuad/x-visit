@@ -555,4 +555,6 @@ python xactivity.py --auto_like --url=https://x.com/BRCRWA/status/19152244236591
 python xactivity.py --auto_like --headless --url=https://x.com/BRCRWA/status/1915224423659114709 --profile=g05
 
 python xactivity.py --auto_like --url=https://x.com/MagicEden/status/1915751335858733209 --profile=g05
+
+python xactivity.py --auto_like --url=https://x.com/miossol/status/1916418607698805031 --profile=g05
 """
