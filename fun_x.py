@@ -80,11 +80,12 @@ class XUtils():
         )
 
         # output
-        self.DEF_HEADER_STATUS = 'account,status,visit_date,num_visit,update_time' # noqa
+        self.DEF_HEADER_STATUS = 'account,status,visit_date,num_visit,auth_token,update_time' # noqa
         self.IDX_STATUS = 1
         self.IDX_VISIT_DATE = 2
         self.IDX_NUM_VISIT = 3
-        self.IDX_UPDATE = 4
+        self.IDX_AUTHTOKEN = 4
+        self.IDX_UPDATE = 5
         self.FIELD_NUM = self.IDX_UPDATE + 1
 
         # X STATUS
@@ -115,7 +116,8 @@ class XUtils():
         self.browser = browser
 
     def __del__(self):
-        self.status_save()
+        # self.status_save()
+        pass
 
     # def account_load(self):
     #     self.file_account = DEF_FILE_X_ENCRIYPT
@@ -390,6 +392,11 @@ class XUtils():
         ele_input = tab.ele('@@tag()=a@@href=/home', timeout=2)
         if not isinstance(ele_input, NoneElement):
             self.logit(None, f'Already login !') # noqa
+
+            auth_token = self.get_cookies()
+            self.logit(None, f'auth_token: {auth_token}')
+            self.update_status(self.IDX_AUTHTOKEN, auth_token)
+
             return True
         return False
 
@@ -421,7 +428,7 @@ class XUtils():
             return s_info
         return None
 
-    def twitter_login(self):
+    def twitter_login_pwd(self):
         if self.is_login_success():
             return True
 
@@ -512,11 +519,58 @@ class XUtils():
 
         return False
 
-    def xutils_login(self):
+    def xutils_login_token(self):
+        """
+        使用 auth_token 登录 Twitter
+        """
+        for i in range(1, DEF_NUM_TRY+1):
+            self.logit('xutils_login_token', f'try_i={i}/{DEF_NUM_TRY}')
+
+            tab = self.browser.latest_tab
+
+            # 获取 auth_token
+            # 从 status 文件中获取 auth_token
+            idx = get_index_from_header(self.DEF_HEADER_STATUS, 'auth_token')
+            if idx == -1:
+                return False
+            lst_status = self.dic_status.get(self.args.s_profile, [])
+            if len(lst_status) != self.FIELD_NUM:
+                return False
+            auth_token = lst_status[idx]
+            if auth_token is None:
+                return False
+
+            # 访问 Twitter
+            s_url = 'https://x.com'
+            tab.get(s_url, timeout=60, retry=1)
+            tab.wait.doc_loaded()
+            self.browser.wait(3)
+
+            # 设置 cookie
+            tab.set.cookies({
+                'name': 'auth_token',
+                'value': auth_token,
+                'domain': 'x.com',
+                'path': '/',
+                'secure': True,
+                'max-age': 3600 * 24 * 365
+            })
+
+            tab.refresh()
+            tab.wait.doc_loaded()
+            self.browser.wait(3)
+
+            # 检查是否登录成功
+            if self.is_login_success():
+                return True
+
+        return False
+
+    def xutils_login_pwd(self):
         """
         """
         for i in range(1, DEF_NUM_TRY+1):
-            self.logit('xutils_login', f'try_i={i}/{DEF_NUM_TRY}')
+            self.logit('xutils_login_pwd', f'try_i={i}/{DEF_NUM_TRY}')
 
             tab = self.browser.latest_tab
 
@@ -536,7 +590,7 @@ class XUtils():
 
             self.x_unlocked()
 
-            if self.twitter_login():
+            if self.twitter_login_pwd():
                 return True
         return False
 
@@ -773,7 +827,7 @@ class XUtils():
             s_cont_appeal = s_cont_llm
 
         for i in range(1, DEF_NUM_TRY+1):
-            self.logit('xutils_login', f'try_i={i}/{DEF_NUM_TRY}')
+            self.logit('do_appeal', f'try_i={i}/{DEF_NUM_TRY}')
 
             tab = self.browser.latest_tab
 
@@ -925,10 +979,15 @@ class XUtils():
 
         self.update_num_visit()
 
-        if not self.xutils_login():
-            self.logit('twitter_run', 'Fail to login in x')
-            return False
-        pdb.set_trace()
+        if self.xutils_login_token():
+            self.logit('twitter_run', 'Success to login in x by token [OK]')
+        else:
+            self.logit('twitter_run', 'Fail to login in x by token')
+            if not self.xutils_login_pwd():
+                self.logit('twitter_run', 'Fail to login in x by pwd')
+                return False
+            self.logit('twitter_run', 'Success to login in x by pwd [OK]')
+        # pdb.set_trace()
 
         self.x_locked()
         self.x_unlocked()
@@ -1139,8 +1198,8 @@ class XUtils():
 
                 if ele_btn.text.replace('\n', ' ') != s_text.replace('\n', ' '):
                     self.logit(None, 'reply ele_btn.text != s_text')
-                    self.logit(None, '-- ele_btn.text: {ele_btn.text}')
-                    self.logit(None, '-- s_text: {s_text}')
+                    self.logit(None, f'-- ele_btn.text: {ele_btn.text}')
+                    self.logit(None, f'-- s_text: {s_text}')
                     continue
             else:
                 continue
@@ -1701,7 +1760,7 @@ class XUtils():
     def twitter_create(self):
         # self.update_num_visit()
         for i in range(1, DEF_NUM_TRY+1):
-            self.logit('xutils_login', f'try_i={i}/{DEF_NUM_TRY}')
+            self.logit('twitter_create', f'try_i={i}/{DEF_NUM_TRY}')
 
             tab = self.browser.latest_tab
 
@@ -1748,6 +1807,11 @@ class XUtils():
             self.set_username()
             self.set_interest()
             self.follow_some_accounts()
+
+            self.is_login_success()  # IDX_AUTHTOKEN
+            self.update_status(self.IDX_STATUS, self.DEF_STATUS_OK)
+            self.update_date(self.IDX_VISIT_DATE)
+            self.update_num_visit()
 
             n_like = random.randint(3, 6)
             self.logit(None, f'Like {n_like} posts.')

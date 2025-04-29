@@ -562,6 +562,8 @@ python xvisit.py --auto_like --auto_appeal --sleep_sec_min=180 --sleep_sec_max=3
 python xvisit.py --auto_like --auto_appeal --profile=g05
 python xvisit.py --auto_like --auto_appeal --force --profile=g05
 
+python xvisit.py --auto_like --manual_exit --profile=g05
+
 python xvisit.py --auto_like --auto_appeal --force --headless --profile=t33
 
 python xvisit.py --auto_like --auto_appeal --force --create --no-headless --profile=g95

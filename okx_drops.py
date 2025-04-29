@@ -565,7 +565,7 @@ class ClsDrops():
             while i < max_wait_sec:
                 i += 1
                 s_text = self.get_task_result()
-                if s_text in ['等待中签结果', '😭 未中签，请关注后续活动']:
+                if s_text in ['等待中签结果', '😭 未中签，请关注后续活动', '本次活动已结束申购。很遗憾你未能参与，欢迎参与其他活动！']:
                     break
                 tab.wait(1)
 
@@ -875,6 +875,6 @@ python okx_drops.py --get_task_status --url=https://web3.okx.com/zh-hans/drops/e
 python okx_drops.py --get_task_status --force --url=https://web3.okx.com/zh-hans/drops/event/otherworlds --profile=g03
 
 python okx_drops.py --auto_like --url=https://web3.okx.com/drops/event/pixelmoo --profile=g03
-
 python okx_drops.py --auto_like --url=https://web3.okx.com/drops/event/pixelmoo --profile=g06 --manual_exit
+python okx_drops.py --get_task_status --url=https://web3.okx.com/drops/event/pixelmoo
 """

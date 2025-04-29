@@ -196,8 +196,10 @@ class ClsActivity():
         self.update_status(idx_status, claim_date)
 
     def xactivity_process(self):
-        idx_addr = get_index_from_header(DEF_HEADER_ACCOUNT, 'evm_address')
-        s_reply = self.inst_okx.dic_purse[self.args.s_profile][idx_addr]
+        # idx_addr = get_index_from_header(DEF_HEADER_ACCOUNT, 'evm_address')
+        # s_reply = self.inst_okx.dic_purse[self.args.s_profile][idx_addr]
+
+        s_reply = self.addr
 
         # s_reply = f'''invoke://OG/
         # {self.addr}
@@ -247,7 +249,7 @@ class ClsActivity():
         if self.inst_okx.init_okx(is_bulk=True) is False:
             return False
 
-        # self.inst_okx.get_addr_by_chain('Solana', 'SOL')
+        self.addr = self.inst_okx.get_addr_by_chain('Solana', 'SOL')
         # self.addr = self.inst_okx.get_addr_by_chain('Bitcoin', 'BTC')
 
         self.inst_x.status_load()
