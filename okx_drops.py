@@ -487,6 +487,7 @@ class ClsDrops():
                 '@@tag()=button@@class:nft nft-btn btn-md btn-fill-highlight mobile index_button-sub__X3Dbw',  # mobile # noqa
                 '@@tag()=button@@class:nft nft-btn btn-md btn-outline-primary btn-disabled', # task completed # noqa
                 '@@tag()=div@@class=index_wrap__NS7Tv', # task completed # noqa
+                '@@tag()=div@@class:index_text__', # 恭喜中签！ # noqa
             ]
             ele_btn = self.inst_dp.get_ele_btn(ele_blk, lst_path)
         else:
@@ -565,8 +566,16 @@ class ClsDrops():
             while i < max_wait_sec:
                 i += 1
                 s_text = self.get_task_result()
-                if s_text in ['等待中签结果', '😭 未中签，请关注后续活动', '本次活动已结束申购。很遗憾你未能参与，欢迎参与其他活动！']:
-                    break
+
+                lst_result = [
+                    '等待中签结果',
+                    '未中签，请关注后续活动',
+                    '本次活动已结束申购。很遗憾你未能参与，欢迎参与其他活动！',
+                    '恭喜中签！'
+                ]
+                for s_rst in lst_result:
+                    if s_text.find(s_rst) >= 0:
+                        return True
                 tab.wait(1)
 
             return True
