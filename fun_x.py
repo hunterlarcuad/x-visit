@@ -537,7 +537,7 @@ class XUtils():
             if len(lst_status) != self.FIELD_NUM:
                 return False
             auth_token = lst_status[idx]
-            if auth_token is None:
+            if not auth_token:
                 return False
 
             # 访问 Twitter
@@ -563,6 +563,8 @@ class XUtils():
             # 检查是否登录成功
             if self.is_login_success():
                 return True
+            else:
+                return False
 
         return False
 
