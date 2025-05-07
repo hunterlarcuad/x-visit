@@ -795,7 +795,6 @@ class XUtils():
                     return True
                 except Exception as e: # noqa
                     self.logit('click_like', f'Error: {e}')
-                    # pdb.set_trace()
             else:
                 self.logit(None, 'Fail to load posts ...')
                 if self.wrong_retry():
@@ -989,7 +988,6 @@ class XUtils():
                 self.logit('twitter_run', 'Fail to login in x by pwd')
                 return False
             self.logit('twitter_run', 'Success to login in x by pwd [OK]')
-        # pdb.set_trace()
 
         self.x_locked()
         self.x_unlocked()
@@ -1484,9 +1482,9 @@ class XUtils():
                     if ele_item.wait.clickable(timeout=30) is not False:
                         # ele_item.click(by_js=True)
                         ele_item.click()
-                except: # noqa
-                    self.logit('follow_some_accounts', f'Error: {e}')
-                    pdb.set_trace()
+                except Exception as e: # noqa
+                    # self.logit('follow_some_accounts', f'Error: {e}')
+                    pass
                 tab.wait(2)
                 if ele_item in ele_items:
                     ele_items.remove(ele_item)
