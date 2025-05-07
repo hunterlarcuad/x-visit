@@ -564,6 +564,7 @@ class XUtils():
             if self.is_login_success():
                 return True
             else:
+                tab.set.cookies.clear()
                 return False
 
         return False
