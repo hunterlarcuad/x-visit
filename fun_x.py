@@ -1046,8 +1046,12 @@ class XUtils():
                     ele_btn.click(by_js=True)
 
             s_lower_name = name.lower()
-            ele_btn = tab.ele(f'@@tag()=button@@data-testid:follow@@aria-label:{s_lower_name}', timeout=2) # noqa
-            if not isinstance(ele_btn, NoneElement):
+            lst_path = [
+                f'@@tag()=button@@data-testid:follow@@aria-label:{name}',
+                f'@@tag()=button@@data-testid:follow@@aria-label:{s_lower_name}',  # noqa
+            ]
+            ele_btn = self.inst_dp.get_ele_btn(tab, lst_path)
+            if ele_btn is not NoneElement:
                 tab.actions.move_to(ele_btn)
                 s_info = ele_btn.text
                 self.logit(None, f'Follow Button Text: {s_info}')
