@@ -355,10 +355,32 @@ class XUtils():
             self.logit(None, f'Wait to load login in button ... {i}/{max_wait_sec}') # noqa
         return False
 
+    def confirm_error(self):
+        """
+        Process Error popup window
+
+        Error
+        Oops, something went wrong. Please try again later. 
+        """
+        tab = self.browser.latest_tab
+        ele_btn = tab.ele('@@tag()=button@@data-testid=confirmationSheetConfirm', timeout=2) # noqa
+        if not isinstance(ele_btn, NoneElement):
+            self.logit(None, 'Oops, something went wrong, click OK to continue ...')
+            if ele_btn.wait.clickable(timeout=3) is not False:
+                ele_btn.click()
+            tab.wait(2)
+            return True
+        return False
+
     def should_sign_in(self):
         tab = self.browser.latest_tab
-        ele_info = tab.ele('@@tag()=span@@class=css-1jxf684 r-bcqeeo r-1ttztb7 r-qvutc0 r-poiln3@@text()=Sign in to X', timeout=2) # noqa
-        if not isinstance(ele_info, NoneElement):
+
+        lst_path = [
+            '@@tag()=span@@class=css-1jxf684 r-bcqeeo r-1ttztb7 r-qvutc0 r-poiln3@@text()=Sign in to X',
+            '@@tag()=span@@class:css-1jxf684 r-dnmrzs r-1udh08x@@text()=Sign in',  # noqa
+        ]
+        ele_info = self.inst_dp.get_ele_btn(tab, lst_path)
+        if ele_info is not NoneElement:
             self.logit(None, 'Sign in to X ...')
             return True
         return False
