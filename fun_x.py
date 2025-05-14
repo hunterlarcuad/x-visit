@@ -721,6 +721,17 @@ class XUtils():
                         return False
         return False
 
+    def get_mail_verification_code(self):
+        lst_title = [
+            'confirm your email address to access all of X',
+            '确认你的邮件地址以使用 X 的所有功能',
+        ]
+        for s_in_title in lst_title:
+            s_code = get_verify_code_from_gmail(s_in_title)
+            if s_code is not None:
+                return s_code
+        return None
+
     def enter_verification_code(self):
         tab = self.browser.latest_tab
         ele_input = tab.ele('@@tag()=div@@class=PageHeader Edge', timeout=2)
@@ -738,8 +749,7 @@ class XUtils():
                     while i < max_wait_sec:
                         i += 1
                         self.browser.wait(1)
-                        s_in_title = 'confirm your email address to access all of X'
-                        s_code = get_verify_code_from_gmail(s_in_title)
+                        s_code = self.get_mail_verification_code()
                         if s_code is not None:
                             break
                         self.logit(None, f'Try to get verification code from gmail ... {i}/{max_wait_sec}') # noqa
