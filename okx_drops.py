@@ -346,6 +346,7 @@ class ClsDrops():
                     self.logit(None, 'connect_x success')
                     return True
             if self.browser.tabs_count == (n_tab + 1):
+                self.inst_x.confirm_error()
                 if self.inst_x.should_sign_in():
                     # 关闭登录弹窗
                     self.browser.latest_tab.close()
@@ -358,7 +359,7 @@ class ClsDrops():
 
                 self.inst_x.x_authorize_app()
                 self.inst_okx.wait_popup(n_tab, 10)
-                tab.wait(5)
+                tab.wait(3)
         return False
 
     def get_task_result(self):

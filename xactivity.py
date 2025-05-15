@@ -559,4 +559,7 @@ python xactivity.py --auto_like --headless --url=https://x.com/BRCRWA/status/191
 python xactivity.py --auto_like --url=https://x.com/MagicEden/status/1915751335858733209 --profile=g05
 
 python xactivity.py --auto_like --url=https://x.com/miossol/status/1916418607698805031 --profile=g05
+
+# 2025.05.14
+python xactivity.py --auto_like --url=https://x.com/pigmo_co/status/1922557162217148477 --sleep_sec_min=60 --sleep_sec_max=360 --headless
 """
