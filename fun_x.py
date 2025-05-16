@@ -1791,7 +1791,7 @@ class XUtils():
             self.browser.wait(1)
             self.logit(None, f'Wait to get email verification code ... {i}/{DEF_NUM_TRY}') # noqa
 
-        self.logit(None, 'Fail to email verification code ...') # noqa
+        self.logit(None, 'Fail to get email verification code ...') # noqa
         return False
 
     def twitter_create(self):

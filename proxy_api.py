@@ -109,6 +109,12 @@ def get_mode(session):
 
     if s_mode == 'rule':
         s_mode = '节点选择'
+        try:
+            (proxy_now, lst_available) = get_proxy_list(s_mode)
+        except:
+            s_mode = 'Proxy'
+            (proxy_now, lst_available) = get_proxy_list(s_mode)
+
     elif s_mode == 'global':
         s_mode = 'GLOBAL'
     else:
@@ -167,7 +173,7 @@ def get_proxy_current():
     return proxy_now
 
 
-def get_proxy_list(s_mode):
+def get_proxy_list(s_mode=None):
     """
     Return:
         (proxy_now, lst_available)
@@ -182,13 +188,15 @@ def get_proxy_list(s_mode):
     retries = Retry(total=3, backoff_factor=1, status_forcelist=[502, 503, 504]) # noqa
     session.mount('http://', HTTPAdapter(max_retries=retries))
 
+    if s_mode is None:
+        s_mode = get_mode(session)
+
     data = fetch_proxis(session)
     if data is None:
         return (None, [])
 
     d_proxies = data.get('proxies', {})
     d_selector = d_proxies['GLOBAL']
-    # proxy_now = d_proxies['节点选择']['now']
     proxy_now = d_proxies[s_mode]['now']
     lst_proxy = d_selector['all']
 
