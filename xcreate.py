@@ -334,6 +334,17 @@ def show_msg(args):
     print('########################################')
 
 
+def set_email(args):
+    email_fields = args.email.split('@')
+    if not email_fields[0]:
+        mnemo = Mnemonic("english")
+        words = mnemo.generate(strength=12 * 32 // 3).split()
+        # 选择两个最短的单词
+        shortest_words = sorted(words, key=len)[:2]
+        email_fields[0] = ''.join(shortest_words)
+        args.email = '@'.join(email_fields)
+
+
 def main(args):
     if args.create is False:
         logger.info('self.args.create is False. Exit')
@@ -360,6 +371,8 @@ def main(args):
             args.s_profile = s_profile
             print(f'args.s_profile: {args.s_profile}')
 
+            set_email(args)
+
             x_create.set_args(args)
             x_create.inst_dp.set_args(args)
             x_create.inst_x.set_args(args)
@@ -377,6 +390,7 @@ def main(args):
 
         sys.exit(0)
 
+    set_email(args)
     if len(args.profile) > 0:
         items = args.profile.split(',')
     else:
@@ -576,15 +590,6 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     show_msg(args)
-
-    email_fields = args.email.split('@')
-    if not email_fields[0]:
-        mnemo = Mnemonic("english")
-        words = mnemo.generate(strength=12 * 32 // 3).split()
-        # 选择两个最短的单词
-        shortest_words = sorted(words, key=len)[:2]
-        email_fields[0] = ''.join(shortest_words)
-        args.email = '@'.join(email_fields)
 
     if (args.loop_interval <= 0) or args.create:
         main(args)
