@@ -66,12 +66,14 @@ class ClsLayer3():
         self.inst_dp.plugin_okx = True
 
         # output
-        self.DEF_HEADER_STATUS = 'account,task_status,complete_date,gm_value,gm_date,update_time' # noqa
-        self.IDX_MINT_STATUS = 1
-        self.IDX_MINT_DATE = 2
-        self.IDX_GM_VALUE = 3
-        self.IDX_GM_DATE = 4
-        self.IDX_UPDATE = 5
+        self.DEF_HEADER_STATUS = 'account,arb_eth,arb_usd,task_status,complete_date,gm_value,gm_date,update_time' # noqa
+        self.IDX_BALANCE_ETH = 1
+        self.IDX_BALANCE_USD = 2
+        self.IDX_MINT_STATUS = 3
+        self.IDX_MINT_DATE = 4
+        self.IDX_GM_VALUE = 5
+        self.IDX_GM_DATE = 6
+        self.IDX_UPDATE = 7
         self.FIELD_NUM = self.IDX_UPDATE + 1
 
     def set_args(self, args):
@@ -260,10 +262,14 @@ class ClsLayer3():
                         tab.wait(2)
                         self.inst_okx.okx_connect()
                         tab.wait(3)
-                        if self.inst_okx.okx_confirm():
-                            self.logit(None, 'Signature request Confirm')
-                            self.inst_okx.wait_popup(n_tab, 15)
-                            tab.wait(3)
+                        try:
+                            if self.inst_okx.okx_confirm():
+                                self.logit(None, 'Signature request Confirm')
+                                self.inst_okx.wait_popup(n_tab, 15)
+                                tab.wait(3)
+                                continue
+                        except Exception as e: # noqa
+                            self.logit(None, f'Error: {e}') # noqa
                             continue
 
                 # Create a new account
@@ -574,7 +580,7 @@ class ClsLayer3():
                 self.logit(None, f'Doing task j={j} (Start from 1)')
                 n_step = self.get_step_num()
                 if n_step == -1:
-                    self.logit(None, 'Step number not found [ERROR]')
+                    self.logit(None, 'Step number not found')
                     if j >= 3:
                         return False
                     continue
@@ -669,7 +675,7 @@ class ClsLayer3():
         if self.connect_wallet() is False:
             return False
 
-        n_try = 5
+        n_try = 6
         for i in range(1, n_try+1):
             self.logit('layer3_process', f'trying ... {i}/{n_try}')
 
@@ -698,6 +704,13 @@ class ClsLayer3():
 
         if self.inst_okx.init_okx(is_bulk=True) is False:
             return False
+
+        s_chain = 'Arbitrum One'
+        s_coin = 'ARB_ETH'
+        (s_balance_coin, s_balance_usd) = self.inst_okx.get_balance_by_chain_coin(s_chain, s_coin)
+        self.logit(None, f'Balance: {s_balance_coin} {s_balance_usd} [{s_chain}][{s_coin}]')
+        self.update_status(self.IDX_BALANCE_ETH, s_balance_coin)
+        self.update_status(self.IDX_BALANCE_USD, s_balance_usd)
 
         self.inst_x.status_load()
         self.inst_x.set_browser(self.browser)
@@ -814,7 +827,7 @@ def main(args):
                 b_ret = b_ret and False
 
             idx_status = inst_layer3.IDX_MINT_STATUS
-            lst_status_ok = ['Activation Completed', 'Mint CUBE to claim']
+            lst_status_ok = ['Activation Completed', 'Not enough ETH']
             if lst_status[idx_status] in lst_status_ok:
                 b_complete = True
             else:
