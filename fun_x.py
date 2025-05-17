@@ -837,6 +837,14 @@ class XUtils():
         return False
 
     def is_suspend(self):
+        """
+        Home 主页 被封时，会提示：
+        你的账号已被冻结
+        经过仔细审查，我们认定你的账号违反了 X 规则。你的账号将永远处于只读模式，这意味着你无法发帖、转帖或点赞内容。你将无法创建新的账号。如果你认为是我们搞错了，则可以提交申述。
+
+        like 时，如果账号被封，会提示：
+        Your account is suspended and is not permitted to perform this action.
+        """
         tab = self.browser.latest_tab
 
         # <span class="css-1jxf684 r-bcqeeo r-1ttztb7 r-qvutc0 r-poiln3">Your account is suspended and is not permitted to perform this action.</span> # noqa
@@ -1028,6 +1036,9 @@ class XUtils():
         self.wait_loading()
         if self.wrong_retry():
             self.wait_loading()
+
+        if self.is_suspend():
+            return True
 
         if self.args.auto_like:
             is_like = 'y'

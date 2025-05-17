@@ -469,19 +469,22 @@ class ClsLayer3():
             if not isinstance(ele_btn, NoneElement):
                 if ele_btn.wait.clickable(timeout=3):
                     ele_btn.click(by_js=True)
-                    tab.wait(2)
+                    tab.wait(3)
 
-                    tab = self.browser.latest_tab
-                    if tab.url.find('x.com/intent/follow') >= 0:
-                        name = tab.url.split('=')[-1]
-                        self.logit(None, f'Try to Follow x: {name}')
-                        if self.inst_x.x_follow(name):
-                            tab.wait(1)
-                    elif tab.url.find('x.com/intent/retweet') >= 0:
-                        self.logit(None, f'Try to retweet x: {tab.url}')
-                        if self.inst_x.x_retweet():
-                            tab.wait(1)
-                    tab.close()
+                    x_status = self.inst_x.dic_status[self.args.s_profile][self.inst_x.IDX_STATUS] # noqa
+                    if x_status == self.inst_x.DEF_STATUS_OK:
+                        tab = self.browser.latest_tab
+                        if tab.url.find('x.com/intent/follow') >= 0:
+                            name = tab.url.split('=')[-1]
+                            self.logit(None, f'Try to Follow x: {name}')
+                            if self.inst_x.x_follow(name):
+                                tab.wait(1)
+                        elif tab.url.find('x.com/intent/retweet') >= 0:
+                            self.logit(None, f'Try to retweet x: {tab.url}')
+                            if self.inst_x.x_retweet():
+                                tab.wait(1)
+
+                    self.browser.latest_tab.close()
                     return True
         return False
 
@@ -864,6 +867,11 @@ def main(args):
         s_profile = random.choice(profiles)
         percent = math.floor((n / total) * 100)
         logger.info(f'Progress: {percent}% [{n}/{total}] [{s_profile}]') # noqa
+
+        if percent > args.max_percent:
+            logger.info(f'Progress is more than threshold {percent}% > {args.max_percent}% [{n}/{total}] [{s_profile}]')
+            break
+
         profiles.remove(s_profile)
 
         args.s_profile = s_profile
@@ -909,6 +917,8 @@ def main(args):
             continue
 
         logger.info(f'Progress: {percent}% [{n}/{total}] [{s_profile} Finish]')
+        if percent > args.max_percent:
+            continue
 
         if len(profiles) > 0:
             sleep_time = random.randint(args.sleep_sec_min, args.sleep_sec_max)
@@ -984,6 +994,11 @@ if __name__ == '__main__':
         '--get_task_status', required=False, action='store_true',
         help='Check task result'
     )
+    # 添加 --max_percent 参数
+    parser.add_argument(
+        '--max_percent', required=False, default=100, type=int,
+        help='[默认为 100] 执行的百分比'
+    )
 
     args = parser.parse_args()
     show_msg(args)
@@ -1017,4 +1032,5 @@ https://app.layer3.xyz/campaigns/brewing-the-future
 
 Week 1
 python layer3.py --auto_like --url=https://app.layer3.xyz/activations/intro-to-espresso
+python layer3.py --auto_like --url=https://app.layer3.xyz/activations/intro-to-espresso --sleep_sec_min=600 --sleep_sec_max=1800 --max_percent=50 --headless
 """
