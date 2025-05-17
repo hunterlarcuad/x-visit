@@ -33,11 +33,14 @@ from conf import DEF_PATH_DATA_STATUS
 
 from conf import DEF_HEADER_ACCOUNT
 
-from conf import TZ_OFFSET
+# from conf import TZ_OFFSET
 from conf import DEL_PROFILE_DIR
 
 from conf import FILENAME_LOG
 from conf import logger
+
+# gm Check-in use UTC Time
+TZ_OFFSET = 0
 
 """
 2025.05.17
@@ -234,6 +237,7 @@ class ClsLayer3():
         return False
 
     def connect_wallet(self):
+        n_tab = self.browser.tabs_count
         for i in range(1, DEF_NUM_TRY+1):
             tab = self.browser.latest_tab
 
@@ -252,35 +256,37 @@ class ClsLayer3():
                         self.logit(None, 'Log in success')
                         return True
 
-                n_tab = self.browser.tabs_count
-                ele_btn = tab.ele('@@tag()=span@@text()=OKX Wallet', timeout=2)
-                if not isinstance(ele_btn, NoneElement):
-                    if ele_btn.wait.clickable(timeout=5):
-                        ele_btn.click(by_js=True)
+            ele_btn = tab.ele('@@tag()=span@@text()=OKX Wallet', timeout=2)
+            if not isinstance(ele_btn, NoneElement):
+                if ele_btn.wait.clickable(timeout=5):
+                    ele_btn.click(by_js=True)
 
-                    if self.inst_okx.wait_popup(n_tab+1, 20):
-                        tab.wait(2)
-                        self.inst_okx.okx_connect()
+            if self.inst_okx.wait_popup(n_tab+1, 10):
+                tab.wait(2)
+                self.inst_okx.okx_connect()
+
+            if self.inst_okx.wait_popup(n_tab+1, 10):
+                tab.wait(2)
+                try:
+                    if self.inst_okx.okx_confirm():
+                        self.logit(None, 'Signature request Confirm')
+                        self.inst_okx.wait_popup(n_tab, 15)
                         tab.wait(3)
-                        try:
-                            if self.inst_okx.okx_confirm():
-                                self.logit(None, 'Signature request Confirm')
-                                self.inst_okx.wait_popup(n_tab, 15)
-                                tab.wait(3)
-                                continue
-                        except Exception as e: # noqa
-                            self.logit(None, f'Error: {e}') # noqa
-                            continue
+                except Exception as e: # noqa
+                    self.logit('connect_wallet', f'[okx_confirm] Error: {e}') # noqa
+                    continue
 
-                # Create a new account
-                lst_path = [
-                    '@@tag()=button@@text()=Create a new account',  # pc
-                ]
-                ele_btn = self.inst_dp.get_ele_btn(self.browser.latest_tab, lst_path) # noqa
-                if ele_btn is not NoneElement:
-                    if ele_btn.wait.clickable(timeout=3):
-                        ele_btn.click(by_js=True)
-                    tab.wait(6)
+            # Create a new account
+            lst_path = [
+                '@@tag()=button@@text()=Create a new account',  # pc
+            ]
+            ele_btn = self.inst_dp.get_ele_btn(self.browser.latest_tab, lst_path) # noqa
+            if ele_btn is not NoneElement:
+                self.logit(None, 'Try to Create a new account ...')
+                if ele_btn.wait.clickable(timeout=3):
+                    ele_btn.click(by_js=True)
+                    self.logit(None, 'Create a new account [Success]')
+                tab.wait(6)
 
         return False
 

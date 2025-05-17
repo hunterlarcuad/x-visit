@@ -358,12 +358,15 @@ class OkxUtils():
         tab = self.browser.latest_tab
         ele_btn = tab.ele('@@tag()=button@@data-testid=okd-button@@text()=Connect', timeout=2) # noqa
         if not isinstance(ele_btn, NoneElement):
-            ele_btn.click(by_js=True)
-            self.logit(None, 'Success to Click Connect Button') # noqa
-            return True
+            if ele_btn.wait.clickable(timeout=5):
+                ele_btn.click(by_js=True)
+                self.logit(None, 'Success to Click Connect Button') # noqa
+                return True
+            self.logit(None, 'Fail to Click Connect Button') # noqa
         else:
             self.logit(None, 'Fail to load Connect Button') # noqa
-            return False
+
+        return False
 
     def okx_cancel(self):
         tab = self.browser.latest_tab
@@ -385,12 +388,15 @@ class OkxUtils():
         tab = self.browser.latest_tab
         ele_btn = tab.ele('@@tag()=button@@data-testid=okd-button@@text():Confirm', timeout=2) # noqa
         if not isinstance(ele_btn, NoneElement):
-            ele_btn.wait.clickable(timeout=5).click(by_js=True)
-            self.logit(None, 'Success to Click Confirm Button') # noqa
-            return True
+            if ele_btn.wait.clickable(timeout=5):
+                ele_btn.click(by_js=True)
+                self.logit(None, 'Success to Click Confirm Button') # noqa
+                return True
+            self.logit(None, 'Fail to Click Confirm Button') # noqa
         else:
             self.logit(None, 'Fail to load Confirm Button') # noqa
-            return False
+
+        return False
 
     def get_addr_by_chain(self, s_chain, s_coin):
         tab = self.browser.latest_tab
