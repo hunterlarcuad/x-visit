@@ -446,6 +446,86 @@ class OkxUtils():
         self.logit(None, 'Fail to get address') # noqa
         return None
 
+    def get_balance_by_chain_coin(self, s_chain, s_coin):
+        s_balance_coin = '-1'
+        s_balance_usd = '-1'
+
+        tab = self.browser.latest_tab
+        n_max_try = 3
+
+        for i in range(1, n_max_try+1):
+            self.logit(None, f'get_addr_by_chain try_i={i}/{n_max_try}')
+
+            s_url = f'chrome-extension://{EXTENSION_ID_OKX}/home.html'
+            tab.get(s_url)
+            # tab.wait.load_start()
+            tab.wait(3)
+
+            # Click Icon in the upper right corner
+            ele_btn = tab.ele('@@tag()=div@@class=_container_1eikt_1', timeout=2) # noqa
+            if not isinstance(ele_btn, NoneElement):
+                ele_btn.wait.enabled(timeout=3)
+                ele_btn.click(by_js=True)
+                tab.wait(1)
+
+            # Search network name
+            ele_input = tab.ele('@@tag()=input@@data-testid=okd-input', timeout=2) # noqa
+            if not isinstance(ele_input, NoneElement):
+                self.logit(None, f'Change network to {s_chain} ...') # noqa
+                tab.actions.move_to(ele_input).click().type(s_chain)
+                tab.wait(3)
+                ele_btn = tab.ele(f'@@tag()=div@@class:_title@@text()={s_chain}', timeout=2) # noqa
+                if not isinstance(ele_btn, NoneElement):
+                    self.logit(None, f'Select network: {ele_btn.text} ...') # noqa
+                    ele_btn.wait.enabled(timeout=3)
+                    ele_btn.click(by_js=True)
+                    tab.wait(3)
+                # Hidden (1)
+                ele_blk = tab.ele('@@tag()=div@@class:root@@text():Hidden', timeout=2) # noqa
+                if not isinstance(ele_blk, NoneElement):
+                    s_text = ele_blk.text
+                    self.logit(None, f'Hidden: {s_text} ...') # noqa
+                    # 提取 () 中的数字
+                    s_num = re.search(r'\((.*?)\)', s_text).group(1)
+                    self.logit(None, f'Hidden: {s_num} ...') # noqa
+                    if int(s_num) > 0:
+                        ele_btn = ele_blk.ele('@@tag()=i@@class:icon', timeout=2) # noqa
+                        if not isinstance(ele_btn, NoneElement):
+                            # icon iconfont okds-arrow-chevron-up-md _icon_1e5k7_12
+                            # icon iconfont okds-arrow-chevron-down-md _icon_1e5k7_12
+                            if ele_btn.attr('class').find('okds-arrow-chevron-down-md') != -1:
+                                ele_btn.click(by_js=True)
+                                tab.wait(1)
+            else:
+                self.logit(None, 'Fail to search network name') # noqa
+
+            # Crypto list
+            lst_ele_btn = tab.eles(f'@@tag()=div@@class:_wallet-list__item@@text():{s_coin}', timeout=2) # noqa
+            if not lst_ele_btn:
+                continue
+
+            for ele_btn in lst_ele_btn:
+                s_info = ele_btn.text.replace('\n', ' ')
+                self.logit(None, f'Select network: {s_info} ...') # noqa
+                # ARB_ETH $2,480.9 -5.66% 0.000017 $0.04285
+                fields = s_info.split()
+                if len(fields) == 5:
+                    if fields[0] == s_coin:
+                        s_balance_coin = fields[-2]
+                        s_balance_usd = fields[-1]
+                        # s_balance_usd 去掉 $
+                        s_balance_usd = s_balance_usd.replace('$', '')
+                        break
+                    else:
+                        self.logit(None, f'balance fields is {len(fields)} != 5') # noqa
+                else:
+                    self.logit(None, f'balance fields is {len(fields)} != 5') # noqa
+                tab.wait(1)
+
+            break
+
+        return (s_balance_coin, s_balance_usd)
+
 
 if __name__ == "__main__":
     """
