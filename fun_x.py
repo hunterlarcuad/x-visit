@@ -1842,8 +1842,11 @@ class XUtils():
 
             # Get username
             self.set_username()
-            self.set_interest()
-            self.follow_some_accounts()
+            try:
+                self.set_interest()
+                self.follow_some_accounts()
+            except Exception as e:
+                self.logit(None, f'Error: {e}')
 
             self.is_login_success()  # IDX_AUTHTOKEN
             self.update_status(self.IDX_STATUS, self.DEF_STATUS_OK)
