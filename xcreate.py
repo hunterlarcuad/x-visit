@@ -334,9 +334,9 @@ def show_msg(args):
     print('########################################')
 
 
-def set_email(args):
+def set_email(args, update_email=False):
     email_fields = args.email.split('@')
-    if not email_fields[0]:
+    if not email_fields[0] or update_email:
         mnemo = Mnemonic("english")
         words = mnemo.generate(strength=12 * 32 // 3).split()
         # 选择两个最短的单词
@@ -361,17 +361,19 @@ def main(args):
 
     if args.vpn_list:
         (proxy_now, lst_available) = get_proxy_list()
+        # 过滤出延迟小于800毫秒的代理
+        lst_available = [proxy for proxy in lst_available if proxy[1] < 800]
+        # 随机打乱列表
+        random.shuffle(lst_available)
         for i in range(len(lst_available)):
             s_vpn, n_delay = lst_available[i]
-            if n_delay > 800:
-                continue
             print(f'proxy {i}: {s_vpn} delay {n_delay} mili seconds')
             s_profile = str(int(time.time()))
             args.vpn = s_vpn
             args.s_profile = s_profile
             print(f'args.s_profile: {args.s_profile}')
 
-            set_email(args)
+            set_email(args, update_email=True)
 
             x_create.set_args(args)
             x_create.inst_dp.set_args(args)
