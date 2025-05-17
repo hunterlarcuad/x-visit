@@ -40,7 +40,7 @@ from conf import FILENAME_LOG
 from conf import logger
 
 """
-2025.04.18
+2025.05.17
 """
 
 
@@ -66,9 +66,12 @@ class ClsLayer3():
         self.inst_dp.plugin_okx = True
 
         # output
-        self.DEF_HEADER_STATUS = 'account,status,update_time' # noqa
-        self.IDX_STATUS = 1
-        self.IDX_UPDATE = 2
+        self.DEF_HEADER_STATUS = 'account,task_status,complete_date,gm_value,gm_date,update_time' # noqa
+        self.IDX_MINT_STATUS = 1
+        self.IDX_MINT_DATE = 2
+        self.IDX_GM_VALUE = 3
+        self.IDX_GM_DATE = 4
+        self.IDX_UPDATE = 5
         self.FIELD_NUM = self.IDX_UPDATE + 1
 
     def set_args(self, args):
@@ -84,7 +87,7 @@ class ClsLayer3():
             logger.info('Invalid self.args.url')
             sys.exit(-1)
         filename = self.args.url.split('/')[-1]
-        self.file_status = f'{DEF_PATH_DATA_STATUS}/drops/{filename}.csv'
+        self.file_status = f'{DEF_PATH_DATA_STATUS}/layer3/{filename}.csv'
 
     def status_load(self):
         if self.file_status is None:
@@ -240,9 +243,9 @@ class ClsLayer3():
                     self.logit(None, f'Connect Wallet Button Text: {s_info}') # noqa
                     if s_info == 'Sign in':
                         ele_btn.wait.enabled(timeout=5)
-                        ele_btn.wait.clickable(timeout=5)
-                        ele_btn.click(by_js=True)
-                        tab.wait(1)
+                        if ele_btn.wait.clickable(timeout=5):
+                            ele_btn.click(by_js=True)
+                            tab.wait(1)
                     else:
                         self.logit(None, 'Log in success')
                         return True
@@ -250,7 +253,8 @@ class ClsLayer3():
                 n_tab = self.browser.tabs_count
                 ele_btn = tab.ele('@@tag()=span@@text()=OKX Wallet', timeout=2)
                 if not isinstance(ele_btn, NoneElement):
-                    ele_btn.click(by_js=True)
+                    if ele_btn.wait.clickable(timeout=5):
+                        ele_btn.click(by_js=True)
 
                     if self.inst_okx.wait_popup(n_tab+1, 20):
                         tab.wait(2)
@@ -268,7 +272,8 @@ class ClsLayer3():
                 ]
                 ele_btn = self.inst_dp.get_ele_btn(self.browser.latest_tab, lst_path) # noqa
                 if ele_btn is not NoneElement:
-                    ele_btn.wait.clickable(timeout=5).click(by_js=True)
+                    if ele_btn.wait.clickable(timeout=3):
+                        ele_btn.click(by_js=True)
                     tab.wait(6)
 
         return False
@@ -365,6 +370,11 @@ class ClsLayer3():
         tab.get(self.args.url)
         tab.wait.doc_loaded()
 
+        s_text = self.wait_continue(wait_sec=10)
+        if s_text == 'Not enough ETH':
+            return s_text
+
+        # Activation Completed
         ele_info = tab.ele('@@tag()=h1@@class:text-2xl@@text()=Activation Completed', timeout=2)
         if not isinstance(ele_info, NoneElement):
             s_text = ele_info.text
@@ -375,7 +385,8 @@ class ClsLayer3():
         ele_info = tab.ele('.text-center text-2xl font-semibold leading-tight text-content-primary', timeout=2)
         if not isinstance(ele_info, NoneElement):
             s_text = ele_info.text
-            self.logit(None, f'Claim Rewards: {s_text}')
+            self.logit(None, f'Button text: {s_text}')
+
             if s_text == 'Claim Rewards':
                 ele_blk = tab.ele('@@tag()=div@@style:padding-bottom', timeout=2)
                 if not isinstance(ele_blk, NoneElement):
@@ -468,6 +479,26 @@ class ClsLayer3():
                     return True
         return False
 
+    def wait_continue(self, wait_sec=10):
+        i = 0
+        while i < wait_sec:
+            i += 1
+            tab = self.browser.latest_tab
+            ele_blk = tab.ele('@@tag()=div@@style:padding-bottom', timeout=2)
+            if not isinstance(ele_blk, NoneElement):
+                lst_path = [
+                    '@@tag()=button@@text()=Continue',
+                    '@@tag()=button@@text()=Mint CUBE to claim',
+                    '@@tag()=button@@text()=Switch to Arbitrum One',
+                    '@@tag()=button@@text()=Not enough ETH',
+                ]
+                ele_btn = self.inst_dp.get_ele_btn(ele_blk, lst_path)
+                if ele_btn is not NoneElement:
+                    return ele_btn.text
+            self.logit(None, f'Wait for continue button ... {i}/{wait_sec}')
+            self.browser.wait(1)
+        return None
+
     def click_continue(self):
         tab = self.browser.latest_tab
         ele_blk = tab.ele('@@style:padding-bottom', timeout=2)
@@ -520,23 +551,51 @@ class ClsLayer3():
             return True
         return False
 
+    def get_step_num(self):
+        tab = self.browser.latest_tab
+        ele_blk = tab.ele('.absolute right-5 top-5 z-5 flex items-center gap-2', timeout=2)
+        if not isinstance(ele_blk, NoneElement):
+            ele_info = ele_blk.ele('@@tag()=button@@aria-haspopup=dialog', timeout=2)
+            if not isinstance(ele_info, NoneElement):
+                s_info = ele_info.text
+                # Step 7 of 8
+                # 提取 7 of 8 中的 7 ，去掉 Step ，转为数字
+                n_step = int(s_info.split('of')[0].strip().replace('Step', ''))
+                return n_step
+        return -1
+
     def complete_tasks(self):
         for i in range(1, DEF_NUM_TRY+1):
             self.logit('complete_tasks', f'trying ... {i}/{DEF_NUM_TRY}')
             # 一共8个任务
-            # 1-4 任务
-            # 前4个任务直接 Continue
-            for j in range(1, 5):
-                if self.click_continue():
+            task_num = 8
+
+            for j in range(1, task_num*3):
+                self.logit(None, f'Doing task j={j} (Start from 1)')
+                n_step = self.get_step_num()
+                if n_step == -1:
+                    self.logit(None, 'Step number not found [ERROR]')
+                    if j >= 3:
+                        return False
                     continue
 
-            # 5-7 任务
-            for j in range(1, 4):
-                self.task_x()
-                self.click_continue()
+                self.logit(None, f'Step number: {n_step}')
 
-            # 第8个 任务 quiz
-            self.task_quiz()
+                if (n_step >= 1) and (n_step <= 4):
+                    # 任务 1-4 直接 Continue
+                    if self.click_continue():
+                        continue
+                elif (n_step >= 5) and (n_step <= 7):
+                    # 任务 5-7
+                    self.task_x()
+                    self.click_continue()
+                elif n_step == 8:
+                    # 第8个 任务 quiz
+                    self.task_quiz()
+                    break
+                else:
+                    self.logit(None, f'Step number is not processable [n_step={n_step}]')
+                    break
 
             return True
 
@@ -572,8 +631,33 @@ class ClsLayer3():
             self.browser.wait(2)
         return False
 
+    def gm_checkin(self):
+        tab = self.browser.latest_tab
+        ele_blk = tab.ele('.flex w-full flex-col gap-1', timeout=1) # noqa
+        if not isinstance(ele_blk, NoneElement):
+            ele_btn = ele_blk.ele('@@tag()=button@@class:relative', timeout=2) # noqa
+            if not isinstance(ele_btn, NoneElement):
+                if ele_btn.wait.clickable(timeout=2):
+                    ele_btn.click(by_js=True)
+                    self.update_status(self.IDX_GM_DATE, format_ts(time.time(), style=1, tz_offset=TZ_OFFSET))
+                    tab.wait(2)
+                    return True
+        return False
+
+    def gm_value(self):
+        tab = self.browser.latest_tab
+        ele_blk = tab.ele('.flex w-full flex-col gap-1', timeout=1) # noqa
+        if not isinstance(ele_blk, NoneElement):
+            ele_info = ele_blk.ele('@@tag()=div@@class=flex items-center gap-2', timeout=2) # noqa
+            if not isinstance(ele_info, NoneElement):
+                s_info = ele_info.text
+                self.logit(None, f'GM value: {s_info}')
+                self.update_status(self.IDX_GM_VALUE, s_info)
+                return True
+        return False
+
     def layer3_process(self):
-        # open drops url
+        # open layer3 url
         # tab = self.browser.latest_tab
         # tab.get(self.args.url)
         tab = self.browser.new_tab(self.args.url)
@@ -585,12 +669,23 @@ class ClsLayer3():
         if self.connect_wallet() is False:
             return False
 
-        for i in range(1, DEF_NUM_TRY+1):
-            self.logit('layer3_process', f'trying ... {i}/{DEF_NUM_TRY}')
+        n_try = 5
+        for i in range(1, n_try+1):
+            self.logit('layer3_process', f'trying ... {i}/{n_try}')
 
             # Query Task Result
-            if self.get_task_result() in ['Activation Completed']:
+            s_status = self.get_task_result()
+            self.logit(None, f'Task status: {s_status}')
+
+            self.gm_checkin()
+            self.gm_value()
+
+            if s_status in ['Activation Completed', 'Not enough ETH']:
+                self.update_status(self.IDX_MINT_STATUS, s_status)
+                self.update_status(self.IDX_MINT_DATE, format_ts(time.time(), style=1, tz_offset=TZ_OFFSET))
                 return True
+            elif s_status in ['Mint CUBE to claim']:
+                continue
 
             self.complete_tasks()
 
@@ -622,7 +717,7 @@ class ClsLayer3():
         x_status = self.inst_x.dic_status[self.args.s_profile][self.inst_x.IDX_STATUS] # noqa
         if x_status != self.inst_x.DEF_STATUS_OK:
             self.logit('layer3_run', f'x_status is {x_status}')
-            return False
+            # return False
 
         self.layer3_process()
 
@@ -648,13 +743,13 @@ def send_msg(inst_layer3, lst_success):
 
             s_info += '- {},{}\n'.format(
                 s_profile,
-                lst_status[inst_layer3.IDX_STATUS],
+                lst_status[inst_layer3.IDX_MINT_STATUS],
             )
         d_cont = {
-            'title': 'Daily Check-In Finished! [layer3]',
+            'title': 'Layer3 Task Finished! [layer3]',
             'text': (
-                'Daily Check-In [layer3]\n'
-                '- account,time_next_claim\n'
+                'Layer3 Task\n'
+                '- account,task_status\n'
                 '{}\n'
                 .format(s_info)
             )
@@ -712,16 +807,20 @@ def main(args):
         date_now = format_ts(time.time(), style=1, tz_offset=TZ_OFFSET)
 
         if lst_status:
-            if date_now != lst_status[inst_layer3.IDX_UPDATE][:10]:
+            if len(lst_status) < inst_layer3.FIELD_NUM:
+                return False
+
+            if date_now != lst_status[inst_layer3.IDX_GM_DATE]:
                 b_ret = b_ret and False
 
-            for idx_status in [inst_layer3.IDX_STATUS]:
-                if lst_status[idx_status] in ['等待中签结果']:
-                    b_complete = True
-                else:
-                    b_complete = False
+            idx_status = inst_layer3.IDX_MINT_STATUS
+            lst_status_ok = ['Activation Completed', 'Mint CUBE to claim']
+            if lst_status[idx_status] in lst_status_ok:
+                b_complete = True
+            else:
+                b_complete = False
+            b_ret = b_ret and b_complete
 
-                b_ret = b_ret and b_complete
         else:
             b_ret = False
 
@@ -866,7 +965,7 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         '--url', required=False, default='',
-        help='okx drops url'
+        help='okx layer3 url'
     )
     parser.add_argument(
         '--get_task_status', required=False, action='store_true',
@@ -904,5 +1003,5 @@ Espresso 奥德赛
 https://app.layer3.xyz/campaigns/brewing-the-future
 
 Week 1
-python layer3.py --url=https://app.layer3.xyz/activations/intro-to-espresso
+python layer3.py --auto_like --url=https://app.layer3.xyz/activations/intro-to-espresso
 """
