@@ -70,8 +70,9 @@ DEF_LLM_ZHIPUAI = 'set_your_secretkey'
 DEF_DING_TOKEN = ''  # noqa
 ############################################################
 
-# 账号列表
+# 账户列表
 DEF_PATH_DATA_PURSE = 'datas/purse'
+DEF_FILE_PURSE_ENCRIPT = 'purse_words_encrypt.csv'
 DEF_HEADER_PURSE = 'account,purse,evm_address'
 DEF_COL_PURSE_KEY = 'purse'
 

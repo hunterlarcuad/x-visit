@@ -26,6 +26,7 @@ from decrypt_utils import decrypt_csv
 from conf import logger
 
 from conf import DEF_PATH_DATA_PURSE
+from conf import DEF_FILE_PURSE_ENCRIPT
 # from conf import DEF_HEADER_PURSE
 from conf import DEF_COL_PURSE_KEY
 
@@ -51,7 +52,7 @@ class OkxUtils():
         """
         self.args.decrypt_pwd
         """
-        self.file_purse = f'{DEF_PATH_DATA_PURSE}/purse_words_encrypt.csv'
+        self.file_purse = f'{DEF_PATH_DATA_PURSE}/{DEF_FILE_PURSE_ENCRIPT}'
         # self.dic_purse = load_file(
         #     file_in=self.file_purse,
         #     idx_key=0,
