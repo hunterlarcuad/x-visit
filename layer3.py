@@ -557,8 +557,11 @@ class ClsLayer3():
             s_status = self.get_task_result()
             self.logit(None, f'Task status: {s_status}')
 
-            self.gm_checkin()
+            is_gm_success = self.gm_checkin()
             self.gm_value()
+
+            if is_gm_success and self.args.only_gm:
+                return True
 
             if s_status in ['Activation Completed', 'Not enough ETH']:
                 self.update_status(self.IDX_MINT_STATUS, s_status)
@@ -704,16 +707,17 @@ def main(args):
             if len(lst_status) < inst_layer3.FIELD_NUM:
                 return False
 
-            if date_now != lst_status[inst_layer3.IDX_GM_DATE]:
-                b_ret = b_ret and False
-
-            idx_status = inst_layer3.IDX_MINT_STATUS
-            lst_status_ok = ['Activation Completed', 'Not enough ETH']
-            if lst_status[idx_status] in lst_status_ok:
-                b_complete = True
+            if args.only_gm:
+                if date_now != lst_status[inst_layer3.IDX_GM_DATE]:
+                    b_ret = b_ret and False
             else:
-                b_complete = False
-            b_ret = b_ret and b_complete
+                idx_status = inst_layer3.IDX_MINT_STATUS
+                lst_status_ok = ['Activation Completed', 'Not enough ETH']
+                if lst_status[idx_status] in lst_status_ok:
+                    b_complete = True
+                else:
+                    b_complete = False
+                b_ret = b_ret and b_complete
 
         else:
             b_ret = False
@@ -888,9 +892,19 @@ if __name__ == '__main__':
         '--max_percent', required=False, default=100, type=int,
         help='[默认为 100] 执行的百分比'
     )
+    parser.add_argument(
+        '--only_gm', required=False, action='store_true',
+        help='Only do gm checkin'
+    )
 
     args = parser.parse_args()
     show_msg(args)
+
+    if args.only_gm:
+        args.no_x = True
+        logger.info('-'*40)
+        logger.info('Only do gm checkin, set no_x=True')
+
     if args.loop_interval <= 0:
         main(args)
     else:
