@@ -371,9 +371,12 @@ class OkxUtils():
     def okx_cancel(self):
         tab = self.browser.latest_tab
         tab.wait.doc_loaded()
-        ele_info = tab.ele('@@tag()=div@@text():Signature request', timeout=1) # noqa
-        if isinstance(ele_info, NoneElement):
-            return False
+
+        # Unknown transaction
+        # Signature request
+        # ele_info = tab.ele('@@tag()=div@@text():Signature request', timeout=1) # noqa
+        # if isinstance(ele_info, NoneElement):
+        #     return False
 
         ele_btn = tab.ele('@@tag()=button@@data-testid=okd-button@@text():Cancel', timeout=2) # noqa
         if not isinstance(ele_btn, NoneElement):
