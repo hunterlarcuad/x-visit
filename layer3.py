@@ -394,35 +394,34 @@ class ClsLayer3():
             return s_text
 
         # Claim Rewards
-        ele_info = tab.ele('.text-center text-2xl font-semibold leading-tight text-content-primary', timeout=2)
-        if not isinstance(ele_info, NoneElement):
-            s_text = ele_info.text
-            self.logit(None, f'Button text: {s_text}')
+        if self.is_claim_rewards():
+            ele_blk = tab.ele('@@tag()=div@@style:padding-bottom', timeout=2)
+            if not isinstance(ele_blk, NoneElement):
+                tab.wait(2)
+                ele_btn = ele_blk.ele('@@tag()=button@@class:relative', timeout=2)
+                if not isinstance(ele_btn, NoneElement):
+                    self.logit(None, f'Claim Rewards Button: {ele_btn.text}')
+                    if ele_btn.text == 'Switch to Arbitrum One':
+                        if ele_btn.wait.clickable(timeout=2):
+                            ele_btn.click(by_js=True)
+                            tab.wait(2)
+                            return False
+                    elif ele_btn.text == 'Mint CUBE to claim':
+                        if ele_btn.wait.clickable(timeout=2):
+                            n_tab = self.browser.tabs_count
+                            ele_btn.click(by_js=True)
+                            tab.wait(2)
+                            if self.inst_okx.wait_popup(n_tab+1, 10) is False:
+                                return ele_btn.text
+                            if self.inst_okx.okx_confirm():
+                                self.logit(None, 'transaction Confirm')
+                                self.inst_okx.wait_popup(n_tab, 15)
+                                tab.wait(3)
+                                return ele_btn.text
+                    else:
+                        # ele_btn.text: 'Not enough ETH'
+                        return ele_btn.text
 
-            if s_text == 'Claim Rewards':
-                ele_blk = tab.ele('@@tag()=div@@style:padding-bottom', timeout=2)
-                if not isinstance(ele_blk, NoneElement):
-                    ele_btn = ele_blk.ele('@@tag()=button@@class:relative', timeout=2)
-                    if not isinstance(ele_btn, NoneElement):
-                        self.logit(None, f'Claim Rewards Button: {ele_btn.text}')
-                        if ele_btn.text == 'Switch to Arbitrum One':
-                            if ele_btn.wait.clickable(timeout=2):
-                                ele_btn.click(by_js=True)
-                                tab.wait(2)
-                                return False
-                        if ele_btn.text == 'Mint CUBE to claim':
-                            if ele_btn.wait.clickable(timeout=2):
-                                n_tab = self.browser.tabs_count
-                                ele_btn.click(by_js=True)
-                                tab.wait(2)
-                                if self.inst_okx.wait_popup(n_tab+1, 10) is False:
-                                    return ele_btn.text
-                                if self.inst_okx.okx_confirm():
-                                    self.logit(None, 'transaction Confirm')
-                                    self.inst_okx.wait_popup(n_tab, 15)
-                                    tab.wait(3)
-                                    return ele_btn.text
-                                    
         return None
 
     def process_btn(self, ele_btn):
@@ -579,8 +578,21 @@ class ClsLayer3():
                 return n_step
         return -1
 
+    def is_claim_rewards(self):
+        tab = self.browser.latest_tab
+        ele_info = tab.ele('.text-center text-2xl font-semibold leading-tight text-content-primary', timeout=2)
+        if not isinstance(ele_info, NoneElement):
+            s_text = ele_info.text
+            self.logit(None, f'Task info: {s_text}')
+            if s_text == 'Claim Rewards':
+                return True
+        return False
+
     def complete_tasks(self):
         for i in range(1, DEF_NUM_TRY+1):
+            if self.is_claim_rewards():
+                return True
+
             self.logit('complete_tasks', f'trying ... {i}/{DEF_NUM_TRY}')
             # 一共8个任务
             task_num = 8
@@ -684,7 +696,7 @@ class ClsLayer3():
         if self.connect_wallet() is False:
             return False
 
-        n_try = 6
+        n_try = 8
         for i in range(1, n_try+1):
             self.logit('layer3_process', f'trying ... {i}/{n_try}')
 
@@ -700,6 +712,8 @@ class ClsLayer3():
                 self.update_status(self.IDX_MINT_DATE, format_ts(time.time(), style=1, tz_offset=TZ_OFFSET))
                 return True
             elif s_status in ['Mint CUBE to claim']:
+                continue
+            elif s_status in ['Switch to Arbitrum One']:
                 continue
 
             self.complete_tasks()
