@@ -8,3 +8,6 @@ google-api-python-client
 google-auth-httplib2
 google-auth-oauthlib
 mnemonic
+pandas
+cryptography
+argon2-cffi

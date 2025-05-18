@@ -21,39 +21,50 @@ from DrissionPage._elements.none_element import NoneElement
 from fun_utils import ding_msg
 from fun_utils import load_file
 
-from fun_encode import decrypt
+from decrypt_utils import decrypt_csv
 
 from conf import logger
 
 from conf import DEF_PATH_DATA_PURSE
-from conf import DEF_HEADER_PURSE
+# from conf import DEF_HEADER_PURSE
+from conf import DEF_COL_PURSE_KEY
 
 from conf import DEF_NUM_TRY
 from conf import EXTENSION_ID_OKX
 from conf import DEF_OKX_PWD
-from conf import DEF_ENCODE_HANDLE_OKX
 
 
 class OkxUtils():
     def __init__(self) -> None:
         self.args = None
         self.dic_purse = {}
-        self.purse_load()
 
     def set_args(self, args):
         self.args = args
         self.is_update = False
+        # self.purse_load(self.args.decrypt_pwd)
 
     def set_browser(self, browser):
         self.browser = browser
 
-    def purse_load(self):
+    def purse_load(self, s_decrypt_pwd=None):
+        """
+        self.args.decrypt_pwd
+        """
         self.file_purse = f'{DEF_PATH_DATA_PURSE}/purse_words_encrypt.csv'
-        self.dic_purse = load_file(
-            file_in=self.file_purse,
-            idx_key=0,
-            header=DEF_HEADER_PURSE
-        )
+        # self.dic_purse = load_file(
+        #     file_in=self.file_purse,
+        #     idx_key=0,
+        #     header=DEF_HEADER_PURSE
+        # )
+
+        # 解密文件并获取 DataFrame
+        if not s_decrypt_pwd:
+            s_decrypt_pwd = input('Please input the decrypt password:')
+
+        df = decrypt_csv(self.file_purse, s_decrypt_pwd)
+        self.dic_purse = {row['account']: row for row in df.to_dict(orient='records')} # noqa
+        self.logit('purse_load', f'Success to load purse: {len(self.dic_purse)}') # noqa
 
     def logit(self, func_name=None, s_info=None):
         s_text = f'{self.args.s_profile}'
@@ -186,8 +197,7 @@ class OkxUtils():
                 ele_btn.click(by_js=True)
                 self.browser.wait(1)
 
-                encode_key = self.dic_purse[self.args.s_profile][1]
-                s_key = decrypt(DEF_ENCODE_HANDLE_OKX, encode_key)
+                s_key = self.dic_purse[self.args.s_profile][DEF_COL_PURSE_KEY]
 
                 if len(s_key.split()) == 1:
                     # Private key
@@ -213,6 +223,7 @@ class OkxUtils():
                     words = s_key.split()
 
                     # 输入助记词需要最大化窗口，否则最后几个单词可能无法输入
+                    (width, height) = tab.rect.window_size  # 保存原始窗口大小
                     tab.set.window.max()
 
                     ele_inputs = tab.eles('.mnemonic-words-inputs__container__input', timeout=2) # noqa
@@ -223,6 +234,9 @@ class OkxUtils():
                             tab.actions.move_to(ele_input).click().type(words[i]) # noqa
                             self.logit(None, f'Input word [{i+1}/{len(words)}]') # noqa
                             self.browser.wait(1)
+
+                        # 恢复原来的窗口大小
+                        tab.set.window.size(width, height)
 
                 # Confirm
                 max_wait_sec = 10

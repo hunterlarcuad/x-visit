@@ -1,5 +1,8 @@
 # X-Assistant Change List
 
+## 2025.05.18
+- 钱包加密方式改为 AES 加密
+
 ## 2025.04.29
 - 支持使用 auth_token 登录 X 账号
 
@@ -112,6 +115,11 @@ export https_proxy=http://127.0.0.1:7890 http_proxy=http://127.0.0.1:7890 all_pr
 
 export https_proxy=http://127.0.0.1:7890 http_proxy=http://127.0.0.1:7890 all_proxy=socks5://127.0.0.1:7890 NO_PROXY="127.0.0.1,localhost,oapi.dingtalk.com"
 ```
+
+## 钱包加密
+引用 git 项目代码
+https://github.com/alondai/private_key_encrypt_toolkit
+用法见项目 README.md
 
 # Run
 ```

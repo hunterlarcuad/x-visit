@@ -73,6 +73,7 @@ DEF_DING_TOKEN = ''  # noqa
 # 账号列表
 DEF_PATH_DATA_PURSE = 'datas/purse'
 DEF_HEADER_PURSE = 'account,purse,evm_address'
+DEF_COL_PURSE_KEY = 'purse'
 
 # 账号列表
 DEF_PATH_DATA_ACCOUNT = 'datas/account'

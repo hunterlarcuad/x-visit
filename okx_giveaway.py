@@ -585,6 +585,10 @@ def main(args):
     inst_giveaway = Giveaway()
     inst_giveaway.set_args(args)
 
+    args.s_profile = 'ALL'
+    inst_giveaway.inst_okx.set_args(args)
+    inst_giveaway.inst_okx.purse_load(args.decrypt_pwd)
+
     if len(args.profile) > 0:
         items = args.profile.split(',')
     else:
@@ -728,6 +732,10 @@ if __name__ == '__main__':
     parser.add_argument(
         '--profile', required=False, default='',
         help='按指定的 profile 执行，多个用英文逗号分隔'
+    )
+    parser.add_argument(
+        '--decrypt_pwd', required=False, default='',
+        help='decrypt password'
     )
     parser.add_argument(
         '--auto_like', required=False, action='store_true',

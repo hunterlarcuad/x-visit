@@ -675,6 +675,10 @@ def main(args):
     inst_layer3 = ClsLayer3()
     inst_layer3.set_args(args)
 
+    args.s_profile = 'ALL'
+    inst_layer3.inst_okx.set_args(args)
+    inst_layer3.inst_okx.purse_load(args.decrypt_pwd)
+
     if len(args.profile) > 0:
         items = args.profile.split(',')
     else:
@@ -831,6 +835,10 @@ if __name__ == '__main__':
     parser.add_argument(
         '--profile', required=False, default='',
         help='按指定的 profile 执行，多个用英文逗号分隔'
+    )
+    parser.add_argument(
+        '--decrypt_pwd', required=False, default='',
+        help='decrypt password'
     )
     # 不使用 X
     parser.add_argument(
