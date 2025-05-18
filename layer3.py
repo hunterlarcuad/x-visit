@@ -300,83 +300,6 @@ class ClsLayer3():
             return True
         return False
 
-    def connect_x(self):
-        n_tab = self.browser.tabs_count
-        for i in range(1, DEF_NUM_TRY+1):
-            self.logit('connect_x', f'trying ... {i}/{DEF_NUM_TRY}')
-            if self.okx_verify_click():
-
-                s_msg = f'[{self.args.s_profile}] OKX Graphic captcha challenge [TODO]' # noqa
-                ding_msg(s_msg, DEF_DING_TOKEN, msgtype='text')
-
-                b_manual = True
-                max_wait_sec = 300
-                i = 0
-                while i < max_wait_sec:
-                    i += 1
-                    if self.okx_verify_click() is False:
-                        self.logit(None, 'OKX Graphic captcha challenge is success') # noqa
-                        b_manual = False
-                        s_msg = f'[{self.args.s_profile}] OKX Graphic captcha challenge [Success]' # noqa
-                        ding_msg(s_msg, DEF_DING_TOKEN, msgtype='text')
-                        break
-                    self.browser.wait(1)
-
-                if b_manual:
-                    s_msg = 'Manual captcha challenge. Press any key to continue! ⚠️' # noqa
-                    input(s_msg)
-
-            tab = self.browser.latest_tab
-            ele_btn = tab.ele('@@tag()=button@@class:btn-outline-primary', timeout=1) # noqa
-            if not isinstance(ele_btn, NoneElement):
-                s_text = ele_btn.text.replace('\n', ' ')
-                self.logit(None, f'connect_x Button Status: {s_text}')
-                if s_text in ['连接中 加载中']:
-                    # 连接账号
-                    # 请注意钱包地址限定绑定一个 X 账号，完成任务后不可解除绑定
-                    ele_btn = tab.ele('@@tag()=button@@data-testid=okd-dialog-confirm-btn', timeout=1) # noqa
-                    if not isinstance(ele_btn, NoneElement):
-                        s_text = ele_btn.text
-                        self.logit(None, f'connect_x Button Status: {s_text}')
-                        ele_btn.wait.clickable(timeout=5).click(by_js=True)
-                        # Popup X window
-                        self.inst_okx.wait_popup(n_tab+1, 30)
-                    else:
-                        tab.wait(10)
-                elif s_text in ['连接', 'Cancel']:
-                    tab.actions.move_to(ele_btn)
-                    try:
-                        ele_btn.wait.clickable(timeout=5).click(by_js=True)
-                        self.logit(None, 'connect_x Button Clicked ...')
-                        self.inst_okx.wait_popup(n_tab+1, 20)
-
-                        tab.wait(2)
-                        if self.inst_okx.okx_confirm():
-                            self.logit(None, 'Signature request Confirm')
-                            self.inst_okx.wait_popup(n_tab, 15)
-                            tab.wait(3)
-                            continue
-                    except: # noqa
-                        continue
-                elif s_text in ['断开连接', '已连接']:
-                    self.logit(None, 'connect_x success')
-                    return True
-            if self.browser.tabs_count == (n_tab + 1):
-                if self.inst_x.should_sign_in():
-                    # 关闭登录弹窗
-                    self.browser.latest_tab.close()
-                    # 新打开一个标签页
-                    self.browser.new_tab()
-                    self.inst_x.xutils_login()
-                    # 登录后再关闭 X 页面
-                    self.browser.latest_tab.close()
-                    continue
-
-                self.inst_x.x_authorize_app()
-                self.inst_okx.wait_popup(n_tab, 10)
-                tab.wait(5)
-        return False
-
     def get_task_result(self):
         tab = self.browser.latest_tab
         tab.get(self.args.url)
@@ -424,48 +347,6 @@ class ClsLayer3():
 
         return None
 
-    def process_btn(self, ele_btn):
-        s_text = ele_btn.text
-        self.logit(None, f'Button text: {s_text}')
-        tab = self.browser.latest_tab
-        n_tab = self.browser.tabs_count
-        ele_btn.wait.clickable(timeout=5).click(by_js=True)
-        if self.inst_okx.wait_popup(n_tab+1, 10) is False:
-            return False
-
-        # Change to popup window
-        tab = self.browser.latest_tab
-        if tab.url.find('x.com/intent/follow') >= 0:
-            name = tab.url.split('=')[-1]
-            self.logit(None, f'Try to Follow x: {name}')
-            if self.inst_x.x_follow(name):
-                tab.wait(1)
-        elif tab.url.find('x.com/intent/retweet') >= 0:
-            # https://x.com/intent/retweet?tweet_id=1912443347928773118
-            # tweet_id = tab.url.split('=')[-1]
-            self.logit(None, f'Try to retweet x: {tab.url}')
-            if self.inst_x.x_retweet():
-                tab.wait(1)
-        elif tab.url.find('x.com/intent/like') >= 0:
-            # https://x.com/intent/like?tweet_id=1912443347928773118
-            self.logit(None, f'Try to retweet x: {tab.url}')
-            if self.inst_x.x_like():
-                tab.wait(1)
-        else:
-            self.logit(None, 'Manual task.')
-            s_msg = 'Manual task, Press any key to exit! ⚠️' # noqa
-            input(s_msg)
-        tab.close()
-
-    def task_read(self):
-        tab = self.browser.latest_tab
-        ele_btn = tab.ele('@@tag()=button@@text()=Continue', timeout=2) # noqa
-        if not isinstance(ele_btn, NoneElement):
-            ele_btn.wait.clickable(timeout=5).click(by_js=True)
-            tab.wait(2)
-            return True
-        return False
-
     def task_x(self):
         tab = self.browser.latest_tab
         ele_blk = tab.ele('@@class:bg-transparent transition-all', timeout=2)
@@ -476,18 +357,19 @@ class ClsLayer3():
                     ele_btn.click(by_js=True)
                     tab.wait(3)
 
-                    x_status = self.inst_x.dic_status[self.args.s_profile][self.inst_x.IDX_STATUS] # noqa
-                    if x_status == self.inst_x.DEF_STATUS_OK:
-                        tab = self.browser.latest_tab
-                        if tab.url.find('x.com/intent/follow') >= 0:
-                            name = tab.url.split('=')[-1]
-                            self.logit(None, f'Try to Follow x: {name}')
-                            if self.inst_x.x_follow(name):
-                                tab.wait(1)
-                        elif tab.url.find('x.com/intent/retweet') >= 0:
-                            self.logit(None, f'Try to retweet x: {tab.url}')
-                            if self.inst_x.x_retweet():
-                                tab.wait(1)
+                    if not self.args.no_x:
+                        x_status = self.inst_x.dic_status[self.args.s_profile][self.inst_x.IDX_STATUS] # noqa
+                        if x_status == self.inst_x.DEF_STATUS_OK:
+                            tab = self.browser.latest_tab
+                            if tab.url.find('x.com/intent/follow') >= 0:
+                                name = tab.url.split('=')[-1]
+                                self.logit(None, f'Try to Follow x: {name}')
+                                if self.inst_x.x_follow(name):
+                                    tab.wait(1)
+                            elif tab.url.find('x.com/intent/retweet') >= 0:
+                                self.logit(None, f'Try to retweet x: {tab.url}')
+                                if self.inst_x.x_retweet():
+                                    tab.wait(1)
 
                     self.browser.latest_tab.close()
                     return True
@@ -629,35 +511,6 @@ class ClsLayer3():
         self.logit(None, 'Task elements not found [ERROR]')
         return False
 
-    def get_verify_btn(self):
-        tab = self.browser.latest_tab
-        ele_blk = tab.ele('@@tag()=div@@class:index_inner-right', timeout=1) # noqa
-        if not isinstance(ele_blk, NoneElement):
-            lst_path = [
-                '@@tag()=button@@class:nft nft-btn btn-md btn-fill-highlight index_button',  # pc # noqa
-                '@@tag()=button@@class:nft nft-btn btn-md btn-fill-highlight mobile index_button-sub__X3Dbw',  # mobile # noqa
-                '@@tag()=button@@class:nft nft-btn btn-md btn-outline-primary btn-disabled', # task completed # noqa
-                '@@tag()=div@@class=index_wrap__NS7Tv', # task completed # noqa
-                '@@tag()=div@@class:index_text__', # 恭喜中签！ # noqa
-            ]
-            ele_btn = self.inst_dp.get_ele_btn(ele_blk, lst_path)
-        else:
-            ele_btn = NoneElement
-        return ele_btn
-
-    def task_verify(self):
-        for i in range(1, DEF_NUM_TRY+1):
-            self.logit('task_verify', f'trying ... {i}/{DEF_NUM_TRY}')
-            ele_btn = self.get_verify_btn()
-            if ele_btn is not NoneElement:
-                s_text = ele_btn.text
-                self.logit(None, f'Click Verify Button [{s_text}]')
-                ele_btn.wait.clickable(timeout=5).click(by_js=True)
-                self.browser.wait(3)
-                return True
-            self.browser.wait(2)
-        return False
-
     def gm_checkin(self):
         tab = self.browser.latest_tab
         ele_blk = tab.ele('.flex w-full flex-col gap-1', timeout=1) # noqa
@@ -735,25 +588,26 @@ class ClsLayer3():
         self.update_status(self.IDX_BALANCE_ETH, s_balance_coin)
         self.update_status(self.IDX_BALANCE_USD, s_balance_usd)
 
-        self.inst_x.status_load()
-        self.inst_x.set_browser(self.browser)
+        if not self.args.no_x:
+            if self.inst_dp.init_capmonster() is False:
+                return False
 
-        idx_vpn = get_index_from_header(DEF_HEADER_ACCOUNT, 'proxy')
-        s_vpn = self.inst_x.dic_account[self.args.s_profile][idx_vpn]
-        if self.inst_dp.set_vpn(s_vpn) is False:
-            return False
+            if self.inst_dp.init_yescaptcha() is False:
+                return False
 
-        if self.inst_dp.init_capmonster() is False:
-            return False
+            self.inst_x.status_load()
+            self.inst_x.set_browser(self.browser)
 
-        if self.inst_dp.init_yescaptcha() is False:
-            return False
+            idx_vpn = get_index_from_header(DEF_HEADER_ACCOUNT, 'proxy')
+            s_vpn = self.inst_x.dic_account[self.args.s_profile][idx_vpn]
+            if self.inst_dp.set_vpn(s_vpn) is False:
+                return False
 
-        self.inst_x.twitter_run()
-        x_status = self.inst_x.dic_status[self.args.s_profile][self.inst_x.IDX_STATUS] # noqa
-        if x_status != self.inst_x.DEF_STATUS_OK:
-            self.logit('layer3_run', f'x_status is {x_status}')
-            # return False
+            self.inst_x.twitter_run()
+            x_status = self.inst_x.dic_status[self.args.s_profile][self.inst_x.IDX_STATUS] # noqa
+            if x_status != self.inst_x.DEF_STATUS_OK:
+                self.logit('layer3_run', f'x_status is {x_status}')
+                # return False
 
         self.layer3_process()
 
@@ -909,8 +763,10 @@ def main(args):
 
                 inst_layer3.set_args(args)
                 inst_layer3.inst_dp.set_args(args)
-                inst_layer3.inst_x.set_args(args)
                 inst_layer3.inst_okx.set_args(args)
+
+                if not args.no_x:
+                    inst_layer3.inst_x.set_args(args)
 
                 if s_profile in inst_layer3.dic_status:
                     lst_status = inst_layer3.dic_status[s_profile]
@@ -975,6 +831,11 @@ if __name__ == '__main__':
     parser.add_argument(
         '--profile', required=False, default='',
         help='按指定的 profile 执行，多个用英文逗号分隔'
+    )
+    # 不使用 X
+    parser.add_argument(
+        '--no_x', required=False, action='store_true',
+        help='Not use X account'
     )
     parser.add_argument(
         '--auto_like', required=False, action='store_true',
