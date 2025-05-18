@@ -12,6 +12,7 @@ import pdb # noqa
 import shutil
 import math
 import re # noqa
+import getpass
 from datetime import datetime # noqa
 
 from DrissionPage import ChromiumOptions
@@ -61,7 +62,7 @@ class OkxUtils():
 
         # 解密文件并获取 DataFrame
         if not s_decrypt_pwd:
-            s_decrypt_pwd = input('Please input the decrypt password:')
+            s_decrypt_pwd = getpass.getpass('Please input the decrypt password:')
 
         df = decrypt_csv(self.file_purse, s_decrypt_pwd)
         self.dic_purse = {row['account']: row for row in df.to_dict(orient='records')} # noqa

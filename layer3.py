@@ -560,8 +560,11 @@ class ClsLayer3():
             is_gm_success = self.gm_checkin()
             self.gm_value()
 
-            if is_gm_success and self.args.only_gm:
-                return True
+            if self.args.only_gm:
+                if is_gm_success:
+                    return True
+                else:
+                    continue
 
             if s_status in ['Activation Completed', 'Not enough ETH']:
                 self.update_status(self.IDX_MINT_STATUS, s_status)
