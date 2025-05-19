@@ -549,6 +549,13 @@ class ClsLayer3():
         if self.connect_wallet() is False:
             return False
 
+        if self.args.set_window_size == 'max':
+            # 判断窗口是否是最大化
+            if tab.rect.window_state != 'maximized':
+                # 设置浏览器窗口最大化
+                tab.set.window.max()
+                self.logit(None, 'Set browser window to maximize')
+
         n_try = 8
         for i in range(1, n_try+1):
             self.logit('layer3_process', f'trying ... {i}/{n_try}')
@@ -898,6 +905,10 @@ if __name__ == '__main__':
     parser.add_argument(
         '--only_gm', required=False, action='store_true',
         help='Only do gm checkin'
+    )
+    parser.add_argument(
+        '--set_window_size', required=False, default='normal',
+        help='[默认为 normal] 窗口大小，normal 为正常，max 为最大化'
     )
 
     args = parser.parse_args()
