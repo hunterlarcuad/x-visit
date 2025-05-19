@@ -522,6 +522,12 @@ class ClsLayer3():
                     self.update_status(self.IDX_GM_DATE, format_ts(time.time(), style=1, tz_offset=TZ_OFFSET))
                     tab.wait(2)
                     return True
+            ele_info = ele_blk.ele('@@tag()=div@@class=flex w-full items-center', timeout=2) # noqa
+            if not isinstance(ele_info, NoneElement):
+                s_info = ele_info.text
+                self.logit(None, f'GM info: {s_info}')
+                self.update_status(self.IDX_GM_DATE, format_ts(time.time(), style=1, tz_offset=TZ_OFFSET))
+                return True
         return False
 
     def gm_value(self):
