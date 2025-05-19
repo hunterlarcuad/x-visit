@@ -49,7 +49,7 @@ def read_encrypted_file(file_path: str) -> tuple[bytes, bytes, bytes]:
             if len(ciphertext) < 16:  # 至少要包含16字节的认证标签
                 raise ValueError("文件格式错误: 密文长度不正确")
                 
-        print("已读取加密文件中的salt和nonce")
+        # print("已读取加密文件中的salt和nonce")
         return salt, nonce, ciphertext
         
     except Exception as e:
@@ -83,7 +83,7 @@ def derive_key(password: str, salt: bytes) -> bytes:
         # 从hash中提取32字节作为AES密钥
         key = hash.encode()[:32]
         
-        print("已使用Argon2id派生AES密钥")
+        # print("已使用Argon2id派生AES密钥")
         return key
         
     except Exception as e:
@@ -112,7 +112,7 @@ def decrypt_data(key: bytes, nonce: bytes, ciphertext: bytes) -> bytes:
         # 解密数据(GCM模式会自动验证认证标签)
         plaintext = aesgcm.decrypt(nonce, ciphertext, None)
         
-        print("已使用AES-256-GCM解密数据")
+        # print("已使用AES-256-GCM解密数据")
         return plaintext
         
     except InvalidTag:
@@ -145,7 +145,7 @@ def bytes_to_dataframe(data: bytes) -> pd.DataFrame:
         if df.empty:
             raise ValueError("解密后的数据为空")
             
-        print("已将解密数据转换为DataFrame")
+        # print("已将解密数据转换为DataFrame")
         return df
         
     except json.JSONDecodeError as e:
