@@ -506,21 +506,27 @@ class OkxUtils():
                     ele_btn.click(by_js=True)
                     tab.wait(3)
                 # Hidden (1)
-                ele_blk = tab.ele('@@tag()=div@@class:root@@text():Hidden', timeout=2) # noqa
-                if not isinstance(ele_blk, NoneElement):
-                    s_text = ele_blk.text
-                    self.logit(None, f'Hidden: {s_text} ...') # noqa
-                    # 提取 () 中的数字
-                    s_num = re.search(r'\((.*?)\)', s_text).group(1)
-                    self.logit(None, f'Hidden: {s_num} ...') # noqa
-                    if int(s_num) > 0:
-                        ele_btn = ele_blk.ele('@@tag()=i@@class:icon', timeout=2) # noqa
-                        if not isinstance(ele_btn, NoneElement):
-                            # icon iconfont okds-arrow-chevron-up-md _icon_1e5k7_12
-                            # icon iconfont okds-arrow-chevron-down-md _icon_1e5k7_12
-                            if ele_btn.attr('class').find('okds-arrow-chevron-down-md') != -1:
-                                ele_btn.click(by_js=True)
-                                tab.wait(1)
+                lst_path = [
+                    '@@tag()=div@@class:root@@text():Hidden',
+                    '@@tag()=div@@class:root@@text():Small assets'
+                ]
+                for s_path in lst_path:
+                    ele_blk = tab.ele(s_path, timeout=2)
+                    if not isinstance(ele_blk, NoneElement):
+                        s_text = ele_blk.text
+                        self.logit(None, f'Hidden: {s_text} ...') # noqa
+                        # 提取 () 中的数字
+                        s_num = re.search(r'\((.*?)\)', s_text).group(1)
+                        self.logit(None, f'Hidden: {s_num} ...') # noqa
+                        if int(s_num) > 0:
+                            ele_btn = ele_blk.ele('@@tag()=i@@class:icon', timeout=2) # noqa
+                            if not isinstance(ele_btn, NoneElement):
+                                # icon iconfont okds-arrow-chevron-up-md _icon_1e5k7_12
+                                # icon iconfont okds-arrow-chevron-down-md _icon_1e5k7_12
+                                if ele_btn.attr('class').find('okds-arrow-chevron-down-md') != -1:
+                                    ele_btn.click(by_js=True)
+                                    tab.wait(1)
+                        break
             else:
                 self.logit(None, 'Fail to search network name') # noqa
 

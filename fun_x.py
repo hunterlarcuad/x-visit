@@ -1015,6 +1015,19 @@ class XUtils():
 
         return auth_token
 
+    def is_auto_appeal(self):
+        if self.args.auto_appeal is True:
+            is_appeal = 'y'
+        else:
+            is_appeal = 'n'
+            # is_appeal = input('Your account is suspended. Will you appeal now ? [y/n]') # noqa
+
+        if is_appeal == 'y':
+            self.logit(None, 'appealing ...')
+            self.do_appeal()
+        else:
+            self.logit(None, 'Not appeal ...')
+
     def twitter_run(self):
         # if self.set_vpn() is False:
         #     return False
@@ -1038,6 +1051,7 @@ class XUtils():
             self.wait_loading()
 
         if self.is_suspend():
+            self.is_auto_appeal()
             return True
 
         if self.args.auto_like:
@@ -1052,17 +1066,7 @@ class XUtils():
             if not self.click_like():
                 return False
             if self.is_suspend():
-                if self.args.auto_appeal is True:
-                    is_appeal = 'y'
-                else:
-                    is_appeal = 'n'
-                    # is_appeal = input('Your account is suspended. Will you appeal now ? [y/n]') # noqa
-
-                if is_appeal == 'y':
-                    self.logit(None, 'appealing ...')
-                    self.do_appeal()
-                else:
-                    self.logit(None, 'Not appeal ...')
+                self.is_auto_appeal()
             else:
                 self.update_status(self.IDX_STATUS, self.DEF_STATUS_OK)
 
