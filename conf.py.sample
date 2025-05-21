@@ -30,8 +30,6 @@ NUM_MAX_TRY_PER_DAY = 5
 
 DEF_OKX_PWD = 'set_your_okx_password'
 
-DEF_ENCODE_HANDLE_X = 'ak6UVCxxx32H9#mSAMPLE'
-
 # encrypt & decrypt
 DEF_ENCODE_HANDLE_OKX = 'ak6UVCxxx32H9#mSAMPLE'
 
@@ -78,6 +76,14 @@ DEF_COL_PURSE_KEY = 'purse'
 
 # 账号列表
 DEF_PATH_DATA_ACCOUNT = 'datas/account'
+DEF_HEADER_ACCOUNT = 'account,x_username,x_pwd,x_verifycode,proxy'
+
+# X 账号列表
+DEF_PATH_DATA_ACCOUNT = 'datas/account'
+DEF_FILE_X_USE_ENCODE = False
+DEF_FILE_X_PLAIN = 'x_account.csv'
+DEF_FILE_X_ENCRIYPT = 'x_encrypt.csv'
+DEF_ENCODE_HANDLE_X = 'ak6UVCxxx32H9#mSAMPLE'
 DEF_HEADER_ACCOUNT = 'account,x_username,x_pwd,x_verifycode,proxy'
 
 # 记录账号状态信息

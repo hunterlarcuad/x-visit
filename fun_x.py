@@ -36,9 +36,12 @@ from conf import DEF_DEBUG
 from conf import DEF_NUM_TRY
 from conf import DEF_DING_TOKEN
 from conf import DEF_PATH_DATA_STATUS
-from conf import DEF_ENCODE_HANDLE_X
 
 from conf import DEF_PATH_DATA_ACCOUNT
+from conf import DEF_FILE_X_USE_ENCODE
+from conf import DEF_FILE_X_PLAIN
+from conf import DEF_FILE_X_ENCRIYPT
+from conf import DEF_ENCODE_HANDLE_X
 from conf import DEF_HEADER_ACCOUNT
 
 from conf import TZ_OFFSET
@@ -51,7 +54,11 @@ from conf import logger
 2025.03.18
 """
 
-DEF_FILE_X_ENCRIYPT = f'{DEF_PATH_DATA_ACCOUNT}/x_encrypt.csv'
+if DEF_FILE_X_USE_ENCODE:
+    DEF_FILE_X_ACCOUNT = f'{DEF_PATH_DATA_ACCOUNT}/{DEF_FILE_X_ENCRIYPT}'
+else:
+    DEF_FILE_X_ACCOUNT = f'{DEF_PATH_DATA_ACCOUNT}/{DEF_FILE_X_PLAIN}'
+
 DEF_FILE_X_STATUS = f'{DEF_PATH_DATA_STATUS}/x_status.csv'
 DEF_FILE_X_CREATE = f'{DEF_PATH_DATA_ACCOUNT}/x_create.csv'
 
@@ -74,7 +81,7 @@ class XUtils():
         self.inst_dp = DpUtils()
 
         self.dic_account = load_file(
-            file_in=DEF_FILE_X_ENCRIYPT,
+            file_in=DEF_FILE_X_ACCOUNT,
             idx_key=0,
             header=DEF_HEADER_ACCOUNT
         )
@@ -504,7 +511,10 @@ class XUtils():
                 logger.info('Twitter input password')
                 idx = get_index_from_header(DEF_HEADER_ACCOUNT, 'x_pwd')
                 encode_pwd = self.dic_account[self.args.s_profile][idx]
-                x_pwd = decrypt(DEF_ENCODE_HANDLE_X, encode_pwd)
+                if DEF_FILE_X_USE_ENCODE:
+                    x_pwd = decrypt(DEF_ENCODE_HANDLE_X, encode_pwd)
+                else:
+                    x_pwd = encode_pwd
                 ele_input.input(x_pwd)
                 time.sleep(1)
                 logger.info('Twitter Click Log in')
