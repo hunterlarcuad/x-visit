@@ -313,7 +313,7 @@ class ClsLayer3():
         ele_info = tab.ele('@@tag()=h1@@class:text-2xl@@text()=Activation Completed', timeout=2)
         if not isinstance(ele_info, NoneElement):
             s_text = ele_info.text
-            self.logit(None, f'Task status: {s_text}')
+            # self.logit(None, f'Task status: {s_text}')
             return s_text
 
         # Claim Rewards
@@ -517,11 +517,11 @@ class ClsLayer3():
         if not isinstance(ele_blk, NoneElement):
             ele_btn = ele_blk.ele('@@tag()=button@@class:relative', timeout=2) # noqa
             if not isinstance(ele_btn, NoneElement):
-                if ele_btn.wait.clickable(timeout=2):
-                    ele_btn.click(by_js=True)
-                    self.update_status(self.IDX_GM_DATE, format_ts(time.time(), style=1, tz_offset=TZ_OFFSET))
-                    tab.wait(2)
-                    return True
+                ele_btn.wait.clickable(timeout=3)
+                ele_btn.click(by_js=True)
+                self.update_status(self.IDX_GM_DATE, format_ts(time.time(), style=1, tz_offset=TZ_OFFSET))
+                tab.wait(2)
+                return True
             ele_info = ele_blk.ele('@@tag()=div@@class=flex w-full items-center', timeout=2) # noqa
             if not isinstance(ele_info, NoneElement):
                 s_info = ele_info.text
