@@ -470,12 +470,12 @@ class ClsLayer3():
                 return True
         return False
 
-    def complete_tasks(self):
+    def complete_tasks_week1(self):
         for i in range(1, DEF_NUM_TRY+1):
             if self.is_claim_rewards():
                 return True
 
-            self.logit('complete_tasks', f'trying ... {i}/{DEF_NUM_TRY}')
+            self.logit('complete_tasks_week1', f'trying ... {i}/{DEF_NUM_TRY}')
             # 一共8个任务
             task_num = 8
 
@@ -498,6 +498,149 @@ class ClsLayer3():
                     # 任务 5-7
                     self.task_x()
                     self.click_continue()
+                elif n_step == 8:
+                    # 第8个 任务 quiz
+                    self.task_quiz()
+                    break
+                else:
+                    self.logit(None, f'Step number is not processable [n_step={n_step}]')
+                    break
+
+            return True
+
+        self.logit(None, 'Task elements not found [ERROR]')
+        return False
+
+    def open_bridge(self):
+        tab = self.browser.latest_tab
+        ele_blk = tab.ele('@@class:bg-transparent transition-all', timeout=2)
+        if not isinstance(ele_blk, NoneElement):
+            ele_btn = ele_blk.ele('@@tag()=button@@class:relative', timeout=2) # noqa
+            if not isinstance(ele_btn, NoneElement):
+                ele_btn.wait.clickable(timeout=3)
+                ele_btn.click(by_js=True)
+                tab.wait(3)
+                return True
+        return False
+
+    def bridge_to_rari_mainnet(self):
+        n_tab = self.browser.tabs_count
+        tab = self.browser.latest_tab
+
+        for i in range(1, DEF_NUM_TRY+1):
+
+            # Agree to Terms and Continue
+            ele_btn = tab.ele('@@tag()=span@@class=truncate', timeout=2)
+            if not isinstance(ele_btn, NoneElement):
+                s_text = ele_btn.text
+                self.logit(None, f'Agree button: {s_text}')
+                if s_text == 'Agree to Terms and Continue':
+                    ele_btn.wait.clickable(timeout=3)
+                    ele_btn.click(by_js=True)
+                    tab.wait(1)
+
+            # Connect Wallet
+            ele_btn = tab.ele('@@tag()=button@@text()=Connect Wallet', timeout=2) # noqa
+            if not isinstance(ele_btn, NoneElement):
+                ele_btn.wait.clickable(timeout=3)
+                ele_btn.click(by_js=True)
+                tab.wait(1)
+
+                ele_btn = tab.ele('@@tag()=div@@text()=OKX Wallet', timeout=2)
+                if not isinstance(ele_btn, NoneElement):
+                    if ele_btn.wait.clickable(timeout=5):
+                        ele_btn.click()
+
+                if self.inst_okx.wait_popup(n_tab+1, 10):
+                    tab.wait(2)
+                    self.inst_okx.okx_connect()
+                    self.inst_okx.wait_popup(n_tab, 5)
+
+            # Move funds to RARI Mainnet
+            ele_btn = tab.ele('@@tag()=button@@text()=Move funds to RARI Mainnet', timeout=2) # noqa
+            if not isinstance(ele_btn, NoneElement):
+                ele_btn.wait.clickable(timeout=3)
+                ele_btn.click(by_js=True)
+                tab.wait(1)
+
+                if self.inst_okx.wait_popup(n_tab+1, 10):
+                    tab.wait(2)
+                    try:
+                        if self.inst_okx.okx_confirm():
+                            self.logit(None, 'Bridge Confirm')
+                            self.inst_okx.wait_popup(n_tab, 15)
+                            tab.wait(3)
+                    except Exception as e: # noqa
+                        self.logit('connect_wallet', f'[okx_confirm] Error: {e}') # noqa
+                        continue
+
+            ele_info = tab.ele('@@tag()=h2@@text():Internal Server Error', timeout=2)
+            if not isinstance(ele_info, NoneElement):
+                s_text = ele_info.text
+                self.logit(None, f'Error: {s_text}')
+                tab.refresh()
+                tab.wait.doc_loaded()
+                tab.wait(2)
+                continue
+
+        return False
+
+    def verify_bridge(self):
+        # 循环等待，最多等5分钟
+        n_max_sec = 300
+        ts_start = time.time()
+        while (time.time() - ts_start) < n_max_sec:
+            tab = self.browser.latest_tab
+            ele_blk = tab.ele('@@style:padding-bottom', timeout=2)
+            if not isinstance(ele_blk, NoneElement):
+            ele_btn = ele_blk.ele('@@tag()=button@@text()=Verify', timeout=2) # noqa
+            if not isinstance(ele_btn, NoneElement):
+                if ele_btn.wait.clickable(timeout=2):
+                    ele_btn.click(by_js=True)
+            tab.wait(2)
+
+            ele_info = tab.ele('@@tag()=p@@text():No matching transactions found', timeout=2)
+            if not isinstance(ele_info, NoneElement):
+                s_text = ele_info.text
+                self.logit(None, f'Error: {s_text}')
+                tab.wait(5)
+                continue
+
+            time.sleep(1)
+
+        return False
+
+    def complete_tasks_week2_2(self):
+        pdb.set_trace()
+        for i in range(1, DEF_NUM_TRY+1):
+            if self.is_claim_rewards():
+                return True
+
+            self.logit('complete_tasks_week1', f'trying ... {i}/{DEF_NUM_TRY}')
+            # 一共4个任务
+            task_num = 4
+
+            for j in range(1, task_num*3):
+                self.logit(None, f'Doing task j={j} (Start from 1)')
+                n_step = self.get_step_num()
+                if n_step == -1:
+                    self.logit(None, 'Step number not found')
+                    if j >= 3:
+                        return False
+                    continue
+
+                self.logit(None, f'Step number: {n_step}')
+
+                if (n_step >= 1) and (n_step <= 2):
+                    # 任务 1-2 直接 Continue
+                    if self.click_continue():
+                        continue
+                elif n_step == 3:
+                    # 任务 3 Bridge to RARI Mainnet
+                    self.open_bridge()
+                    if self.bridge_to_rari_mainnet():
+                        # Verify
+                        self.verify_bridge()
                 elif n_step == 8:
                     # 第8个 任务 quiz
                     self.task_quiz()
@@ -543,6 +686,7 @@ class ClsLayer3():
         return False
 
     def layer3_process(self):
+        s_task_name = self.args.url.split('/')[-1]
         # open layer3 url
         # tab = self.browser.latest_tab
         # tab.get(self.args.url)
@@ -588,7 +732,10 @@ class ClsLayer3():
             elif s_status in ['Switch to Arbitrum One']:
                 continue
 
-            self.complete_tasks()
+            if s_task_name == 'intro-to-espresso':
+                self.complete_tasks_week1()
+            elif s_task_name == 'brewing-the-future-rari':
+                self.complete_tasks_week2_2()
 
         return False
 
@@ -956,4 +1103,8 @@ https://app.layer3.xyz/campaigns/brewing-the-future
 Week 1
 python layer3.py --auto_like --url=https://app.layer3.xyz/activations/intro-to-espresso
 python layer3.py --auto_like --url=https://app.layer3.xyz/activations/intro-to-espresso --sleep_sec_min=600 --sleep_sec_max=1800 --max_percent=50 --headless
+
+Week 2
+Week 2_2 Brewing the Future: RARI
+python layer3.py --auto_like --url=https://app.layer3.xyz/activations/brewing-the-future-rari --profile=g50
 """

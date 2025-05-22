@@ -811,4 +811,6 @@ python okx_giveaway.py --get_task_status --force --url=https://web3.okx.com/zh-h
 
 python okx_giveaway.py --auto_like --url=https://web3.okx.com/zh-hans/giveaway/xpin_960k_reward_campaign --profile=g26
 
+python okx_giveaway.py --auto_like --url=https://web3.okx.com/zh-hans/giveaway/pharos --profile=g01
+
 """
