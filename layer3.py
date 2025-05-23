@@ -185,7 +185,8 @@ class ClsLayer3():
         lst_pre = self.dic_status.get(s_profile, [])
         if len(lst_pre) == self.FIELD_NUM:
             try:
-                s_val = int(lst_pre[idx_status])
+                # s_val = int(lst_pre[idx_status])
+                s_val = lst_pre[idx_status]
             except: # noqa
                 pass
 
@@ -560,6 +561,13 @@ class ClsLayer3():
                     self.inst_okx.okx_connect()
                     self.inst_okx.wait_popup(n_tab, 5)
 
+            # Switch to Transaction History Tab
+            # ele_btn = tab.ele('@@tag()=button@@aria-label=Switch to Transaction History Tab', timeout=2) # noqa
+            # if not isinstance(ele_btn, NoneElement):
+            #     ele_btn.wait.clickable(timeout=3)
+            #     ele_btn.click(by_js=True)
+            #     tab.wait(1)
+
             # Move funds to RARI Mainnet
             ele_btn = tab.ele('@@tag()=button@@text()=Move funds to RARI Mainnet', timeout=2) # noqa
             if not isinstance(ele_btn, NoneElement):
@@ -575,9 +583,19 @@ class ClsLayer3():
                             self.inst_okx.wait_popup(n_tab, 15)
                             tab.wait(3)
                     except Exception as e: # noqa
-                        self.logit('connect_wallet', f'[okx_confirm] Error: {e}') # noqa
+                        self.logit('connect_wallet', f'okx_confirm Exception: {e}') # noqa
                         continue
 
+            # 是否出现 You have 1 pending transaction
+            ele_info = tab.ele('@@tag()=span@@text():You have', timeout=2)
+            if not isinstance(ele_info, NoneElement):
+                s_text = ele_info.text
+                self.logit(None, f'Transaction result: {s_text}')
+                self.update_status(self.IDX_MINT_STATUS, s_text)
+                self.update_status(self.IDX_MINT_DATE, format_ts(time.time(), style=1, tz_offset=TZ_OFFSET))
+                return True
+
+            # 如果出现 Internal Server Error ，则刷新页面
             ele_info = tab.ele('@@tag()=h2@@text():Internal Server Error', timeout=2)
             if not isinstance(ele_info, NoneElement):
                 s_text = ele_info.text
@@ -601,7 +619,17 @@ class ClsLayer3():
                 if not isinstance(ele_btn, NoneElement):
                     if ele_btn.wait.clickable(timeout=2):
                         ele_btn.click(by_js=True)
+                        self.logit(None, 'Click Verify Button')
+                    else:
+                        self.logit(None, 'Verify Button is not clickable')
                 tab.wait(2)
+
+            n_step = self.get_step_num()
+            if n_step == 4:
+                self.logit(None, 'Verify bridge success')
+                self.update_status(self.IDX_MINT_STATUS, 'Verify bridge success')
+                self.update_status(self.IDX_MINT_DATE, format_ts(time.time(), style=1, tz_offset=TZ_OFFSET))
+                return True
 
             ele_info = tab.ele('@@tag()=p@@text():No matching transactions found', timeout=2)
             if not isinstance(ele_info, NoneElement):
@@ -610,12 +638,13 @@ class ClsLayer3():
                 tab.wait(5)
                 continue
 
-            time.sleep(1)
+            n_elapsed = int(time.time() - ts_start)
+            self.logit(None, f'sleep 10 seconds, elapsed seconds: {n_elapsed}/{n_max_sec}')
+            time.sleep(10)
 
         return False
 
     def complete_tasks_week2_2(self):
-        pdb.set_trace()
         for i in range(1, DEF_NUM_TRY+1):
             if self.is_claim_rewards():
                 return True
@@ -641,14 +670,20 @@ class ClsLayer3():
                         continue
                 elif n_step == 3:
                     # 任务 3 Bridge to RARI Mainnet
+                    # Verify
+                    # 如果 mint_status 为 You have 1 pending transaction ，则验证
+                    mint_status = self.get_status_by_idx(self.IDX_MINT_STATUS)
+                    if mint_status == 'You have 1 pending transaction':
+                        self.verify_bridge()
+                        continue
                     self.open_bridge()
                     if self.bridge_to_rari_mainnet():
-                        # Verify
-                        self.verify_bridge()
-                elif n_step == 8:
-                    # 第8个 任务 quiz
-                    self.task_quiz()
-                    break
+                        self.browser.latest_tab.close()
+                        continue
+                elif n_step == 4:
+                    # 第4个 任务 continue
+                    if self.click_continue():
+                        break
                 else:
                     self.logit(None, f'Step number is not processable [n_step={n_step}]')
                     break
@@ -718,10 +753,9 @@ class ClsLayer3():
             s_status = self.get_task_result()
             self.logit(None, f'Task status: {s_status}')
 
-            is_gm_success = self.gm_checkin()
-            self.gm_value()
-
             if self.args.only_gm:
+                is_gm_success = self.gm_checkin()
+                self.gm_value()
                 if is_gm_success:
                     return True
                 else:
@@ -1110,5 +1144,5 @@ python layer3.py --auto_like --url=https://app.layer3.xyz/activations/intro-to-e
 
 Week 2
 Week 2_2 Brewing the Future: RARI
-python layer3.py --auto_like --url=https://app.layer3.xyz/activations/brewing-the-future-rari --profile=g50
+python layer3.py --no_x --url=https://app.layer3.xyz/activations/brewing-the-future-rari --profile=g50
 """
