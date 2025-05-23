@@ -715,8 +715,12 @@ class XUtils():
                     else:
                         self.logit(None, f'verification code is {s_code}')
 
-                    tab.actions.move_to(ele_input).click().type(s_code)
-                    tab.wait(2)
+                    try:
+                        tab.actions.move_to(ele_input).click().type(s_code)
+                        tab.wait(3)
+                    except Exception as e: # noqa
+                        self.logit('register_verification_code', f'Type verification code Exception: {e}')
+                        return False
 
                     ele_btn = tab.ele('@@tag()=div@@class=css-175oi2r r-b9tw7p', timeout=2) # noqa
                     if not isinstance(ele_btn, NoneElement):
@@ -1852,13 +1856,15 @@ class XUtils():
                     self.logit(None, f'{s_info}')
                     if s_info in ['xxx', 'We sent you a code']:
                         self.logit(None, 'We sent you a code to your email')
-                        self.browser.wait(5)
+                        self.browser.wait(10)
                         break
                 self.logit(None, f'Wait YesCaptcha to verify ... {i}/{max_wait_sec}') # noqa
 
             if self.wait_email_verification_code() is False:
                 continue
             if self.set_password() is False:
+                continue
+            if self.confirm_error():
                 continue
             # Verify you are human by completing the action below
 

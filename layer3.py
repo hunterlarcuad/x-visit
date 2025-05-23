@@ -248,10 +248,14 @@ class ClsLayer3():
                     s_info = ele_btn.text
                     self.logit(None, f'Connect Wallet Button Text: {s_info}') # noqa
                     if s_info == 'Sign in':
-                        ele_btn.wait.enabled(timeout=5)
-                        if ele_btn.wait.clickable(timeout=5):
-                            ele_btn.click(by_js=True)
-                            tab.wait(1)
+                        try:
+                            ele_btn.wait.enabled(timeout=5)
+                            if ele_btn.wait.clickable(timeout=5):
+                                ele_btn.click(by_js=True)
+                                tab.wait(1)
+                        except Exception as e: # noqa
+                            # self.logit('connect_wallet', f'Sign in Exception: {e}')
+                            continue
                     else:
                         self.logit(None, 'Log in success')
                         return True
@@ -593,11 +597,11 @@ class ClsLayer3():
             tab = self.browser.latest_tab
             ele_blk = tab.ele('@@style:padding-bottom', timeout=2)
             if not isinstance(ele_blk, NoneElement):
-            ele_btn = ele_blk.ele('@@tag()=button@@text()=Verify', timeout=2) # noqa
-            if not isinstance(ele_btn, NoneElement):
-                if ele_btn.wait.clickable(timeout=2):
-                    ele_btn.click(by_js=True)
-            tab.wait(2)
+                ele_btn = ele_blk.ele('@@tag()=button@@text()=Verify', timeout=2) # noqa
+                if not isinstance(ele_btn, NoneElement):
+                    if ele_btn.wait.clickable(timeout=2):
+                        ele_btn.click(by_js=True)
+                tab.wait(2)
 
             ele_info = tab.ele('@@tag()=p@@text():No matching transactions found', timeout=2)
             if not isinstance(ele_info, NoneElement):

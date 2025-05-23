@@ -400,7 +400,7 @@ class OkxUtils():
             self.logit(None, 'Success to Click Cancel Button') # noqa
             return True
         else:
-            self.logit(None, 'No Cancel Button') # noqa
+            # self.logit(None, 'No Cancel Button') # noqa
             return False
 
     def okx_confirm(self):
