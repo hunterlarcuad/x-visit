@@ -308,8 +308,14 @@ class ClsLayer3():
 
     def get_task_result(self):
         tab = self.browser.latest_tab
-        tab.get(self.args.url)
+        # tab.get(self.args.url)
+        tab.refresh()
+
         tab.wait.doc_loaded()
+
+        # Connect wallet
+        if self.connect_wallet() is False:
+            return 'Fail_to_sign_in'
 
         s_text = self.wait_continue(wait_sec=10)
         if s_text == 'Not enough ETH':
@@ -393,6 +399,7 @@ class ClsLayer3():
                     '@@tag()=button@@text()=Mint CUBE to claim',
                     '@@tag()=button@@text()=Switch to Arbitrum One',
                     '@@tag()=button@@text()=Not enough ETH',
+                    '@@tag()=button@@text()=Verify',
                 ]
                 ele_btn = self.inst_dp.get_ele_btn(ele_blk, lst_path)
                 if ele_btn is not NoneElement:
@@ -698,11 +705,27 @@ class ClsLayer3():
         self.logit(None, 'Task elements not found [ERROR]')
         return False
 
+    def get_glp_amount(self):
+        tab = self.browser.latest_tab
+        s_path = 'x://*[@id="root"]/div/div[1]/div/div/div[2]/div[1]/div[2]/form/div[2]/div[2]/div[2]/div/div[3]/div[2]/span[2]'
+        ele_info = tab.ele(s_path, timeout=2)
+        if not isinstance(ele_info, NoneElement):
+            s_text = ele_info.text
+            self.logit('get_glp_amount', f'GLP amount: {s_text}')
+            try:
+                f_amount = float(s_text)
+                return f_amount
+            except Exception as e: # noqa
+                self.logit('get_glp_amount', f'Exception: {e}')
+                return 0
+        return 0
+
     def acquire_gmx(self):
         n_tab = self.browser.tabs_count
         tab = self.browser.latest_tab
 
         for i in range(1, DEF_NUM_TRY+1):
+            self.logit('acquire_gmx', f'trying ... {i}/{DEF_NUM_TRY}')
 
             # Connect Wallet
             ele_btn = tab.ele('@@tag()=button@@text()=Connect Wallet', timeout=2) # noqa
@@ -739,12 +762,17 @@ class ClsLayer3():
                         self.logit('connect_wallet', f'okx_confirm Exception: {e}') # noqa
                         continue
 
+            f_glp_amount = self.get_glp_amount()
+            if f_glp_amount > 0:
+                self.logit(None, f'[Success] GLP amount: {f_glp_amount}')
+                return True
+
             ele_blk = tab.ele('x://*[@id="root"]/div/div[1]/div/div/div[2]/div[1]/div[2]/form/div[2]/div[1]/div', timeout=2)
             if not isinstance(ele_blk, NoneElement):
                 ele_input = ele_blk.ele('@@tag()=input@@inputmode=decimal', timeout=2)
                 if not isinstance(ele_input, NoneElement):
                     # 生成一个0.0004到0.0006之间的随机数，保留4位小数
-                    f_amount = round(random.uniform(0.0004, 0.0006), 4)
+                    f_amount = round(random.uniform(0.0004, 0.0006), 6)
                     tab.actions.move_to(ele_input).click().type(f_amount) # noqa
                     tab.wait(2)
                     if ele_input.value == str(f_amount):
@@ -773,15 +801,6 @@ class ClsLayer3():
                                         except Exception as e: # noqa
                                             self.logit('connect_wallet', f'okx_confirm Exception: {e}') # noqa
                                             continue
-
-            # 是否出现 You have 1 pending transaction
-            ele_info = tab.ele('@@tag()=span@@text():You have', timeout=2)
-            if not isinstance(ele_info, NoneElement):
-                s_text = ele_info.text
-                self.logit(None, f'Transaction result: {s_text}')
-                self.update_status(self.IDX_MINT_STATUS, s_text)
-                self.update_status(self.IDX_MINT_DATE, format_ts(time.time(), style=1, tz_offset=TZ_OFFSET))
-                return True
 
         return False
 
@@ -816,7 +835,9 @@ class ClsLayer3():
                     # 第4个 任务 Acquire GLP or GLV on GMX
                     # Verify
                     if self.verify_bridge():
-                        break
+                        is_failed = self.inst_dp.get_tag_info('p', 'No matching transactions found')
+                        if is_failed is False:
+                            break
                     self.open_bridge()
                     if self.acquire_gmx():
                         self.browser.latest_tab.close()
