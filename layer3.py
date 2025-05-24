@@ -9,6 +9,7 @@ import shutil
 import math
 import re # noqa
 from datetime import datetime # noqa
+from datetime import timedelta
 
 from DrissionPage import ChromiumOptions
 from DrissionPage import Chromium
@@ -410,7 +411,7 @@ class ClsLayer3():
                     ele_btn.click(by_js=True)
             tab.wait(2)
 
-    def task_quiz(self):
+    def task_quiz(self, lst_answer=None):
         tab = self.browser.latest_tab
         ele_blk = tab.ele('@@class:bg-transparent transition-all', timeout=2)
         if not isinstance(ele_blk, NoneElement):
@@ -418,7 +419,8 @@ class ClsLayer3():
             self.click_continue()
 
             # 4 Questions
-            lst_answer = ['D', 'B', 'C', 'D']
+            if lst_answer is None:
+                lst_answer = ['D', 'B', 'C', 'D']
             # 将 A B C D 转换为 a1 a2 a3 a4
             lst_answer_ids = []
             for ans in lst_answer:
@@ -522,8 +524,11 @@ class ClsLayer3():
         if not isinstance(ele_blk, NoneElement):
             ele_btn = ele_blk.ele('@@tag()=button@@class:relative', timeout=2) # noqa
             if not isinstance(ele_btn, NoneElement):
+                s_text = ele_btn.text
+                self.logit(None, f'Jump to new tab: {s_text}')
                 ele_btn.wait.clickable(timeout=3)
                 ele_btn.click(by_js=True)
+                tab.wait.doc_loaded()
                 tab.wait(3)
                 return True
         return False
@@ -693,6 +698,143 @@ class ClsLayer3():
         self.logit(None, 'Task elements not found [ERROR]')
         return False
 
+    def acquire_gmx(self):
+        n_tab = self.browser.tabs_count
+        tab = self.browser.latest_tab
+
+        for i in range(1, DEF_NUM_TRY+1):
+
+            # Connect Wallet
+            ele_btn = tab.ele('@@tag()=button@@text()=Connect Wallet', timeout=2) # noqa
+            if not isinstance(ele_btn, NoneElement):
+                ele_btn.wait.clickable(timeout=3)
+                ele_btn.click(by_js=True)
+                tab.wait(1)
+
+                ele_btn = tab.ele('@@tag()=div@@text()=OKX Wallet', timeout=2)
+                if not isinstance(ele_btn, NoneElement):
+                    if ele_btn.wait.clickable(timeout=5):
+                        ele_btn.click()
+
+                if self.inst_okx.wait_popup(n_tab+1, 10):
+                    tab.wait(2)
+                    self.inst_okx.okx_connect()
+                    self.inst_okx.wait_popup(n_tab, 5)
+
+            # Buy GLP
+            ele_btn = tab.ele('@@tag()=a@@text()=Buy GLP', timeout=2)
+            if not isinstance(ele_btn, NoneElement):
+                ele_btn.wait.clickable(timeout=3)
+                ele_btn.click(by_js=True)
+                tab.wait(1)
+
+                if self.inst_okx.wait_popup(n_tab+1, 10):
+                    tab.wait(2)
+                    try:
+                        if self.inst_okx.okx_confirm():
+                            self.logit(None, 'Bridge Confirm')
+                            self.inst_okx.wait_popup(n_tab, 15)
+                            tab.wait(3)
+                    except Exception as e: # noqa
+                        self.logit('connect_wallet', f'okx_confirm Exception: {e}') # noqa
+                        continue
+
+            ele_blk = tab.ele('x://*[@id="root"]/div/div[1]/div/div/div[2]/div[1]/div[2]/form/div[2]/div[1]/div', timeout=2)
+            if not isinstance(ele_blk, NoneElement):
+                ele_input = ele_blk.ele('@@tag()=input@@inputmode=decimal', timeout=2)
+                if not isinstance(ele_input, NoneElement):
+                    # 生成一个0.0004到0.0006之间的随机数，保留4位小数
+                    f_amount = round(random.uniform(0.0004, 0.0006), 4)
+                    tab.actions.move_to(ele_input).click().type(f_amount) # noqa
+                    tab.wait(2)
+                    if ele_input.value == str(f_amount):
+                        self.logit(None, f'Input amount: {f_amount}')
+                        ele_btn = tab.ele('@@tag()=button@@type=submit', timeout=2)
+                        if not isinstance(ele_btn, NoneElement):
+                            s_text = ele_btn.text
+                            self.logit(None, f'Button text: {s_text}')
+                            if s_text == 'Insufficient ETH balance':
+                                self.update_status(self.IDX_MINT_STATUS, 'Insufficient ETH balance')
+                                self.update_status(self.IDX_MINT_DATE, format_ts(time.time(), style=1, tz_offset=TZ_OFFSET))
+                                return False
+                            else:
+                                if ele_btn.wait.clickable(timeout=3) is not False:
+                                    ele_btn.click(by_js=True)
+                                    tab.wait(1)
+
+                                    if self.inst_okx.wait_popup(n_tab+1, 10):
+                                        tab.wait(2)
+                                        try:
+                                            if self.inst_okx.okx_confirm():
+                                                self.logit(None, 'Buy GLP Confirm')
+                                                self.inst_okx.wait_popup(n_tab, 15)
+                                                tab.wait(3)
+                                                return True
+                                        except Exception as e: # noqa
+                                            self.logit('connect_wallet', f'okx_confirm Exception: {e}') # noqa
+                                            continue
+
+            # 是否出现 You have 1 pending transaction
+            ele_info = tab.ele('@@tag()=span@@text():You have', timeout=2)
+            if not isinstance(ele_info, NoneElement):
+                s_text = ele_info.text
+                self.logit(None, f'Transaction result: {s_text}')
+                self.update_status(self.IDX_MINT_STATUS, s_text)
+                self.update_status(self.IDX_MINT_DATE, format_ts(time.time(), style=1, tz_offset=TZ_OFFSET))
+                return True
+
+        return False
+
+    def complete_tasks_week2_1(self):
+        for i in range(1, DEF_NUM_TRY+1):
+            pdb.set_trace()
+            if self.is_claim_rewards():
+                return True
+
+            self.logit('complete_tasks_week1', f'trying ... {i}/{DEF_NUM_TRY}')
+            # 一共4个任务
+            task_num = 4
+
+            for j in range(1, task_num*3):
+                self.logit(None, f'Doing task j={j} (Start from 1)')
+                n_step = self.get_step_num()
+                if n_step == -1:
+                    self.logit(None, 'Step number not found')
+                    if j >= 3:
+                        return False
+                    continue
+
+                self.logit(None, f'Step number: {n_step}')
+
+                if (n_step >= 1) and (n_step <= 2):
+                    # 任务 1-2 直接 Continue
+                    if self.click_continue():
+                        continue
+                elif n_step == 3:
+                    # 任务 3 答题
+                    self.task_quiz(lst_answer=['C', 'C', 'D'])
+                elif n_step == 4:
+                    pdb.set_trace()
+                    # 第4个 任务 Acquire GLP or GLV on GMX
+                    # Verify
+                    # 如果 mint_status 为 You have 1 pending transaction ，则验证
+                    mint_status = self.get_status_by_idx(self.IDX_MINT_STATUS)
+                    if mint_status == 'You have 1 pending transaction':
+                        self.verify_bridge()
+                        continue
+                    self.open_bridge()
+                    if self.acquire_gmx():
+                        self.browser.latest_tab.close()
+                        continue
+                else:
+                    self.logit(None, f'Step number is not processable [n_step={n_step}]')
+                    break
+
+            return True
+
+        self.logit(None, 'Task elements not found [ERROR]')
+        return False
+
     def gm_checkin(self):
         tab = self.browser.latest_tab
         ele_blk = tab.ele('.flex w-full flex-col gap-1', timeout=1) # noqa
@@ -772,6 +914,8 @@ class ClsLayer3():
 
             if s_task_name == 'intro-to-espresso':
                 self.complete_tasks_week1()
+            elif s_task_name == 'brewing-the-future-arbitrum':
+                self.complete_tasks_week2_1()
             elif s_task_name == 'brewing-the-future-rari':
                 self.complete_tasks_week2_2()
 
@@ -883,8 +1027,21 @@ def main(args):
     inst_layer3.inst_okx.set_args(args)
     inst_layer3.inst_okx.purse_load(args.decrypt_pwd)
 
+    # 检查 profile 参数冲突
+    if args.profile and (args.profile_begin is not None or args.profile_end is not None):
+        logger.info('参数 --profile 与 --profile_begin/--profile_end 不能同时使用！')
+        sys.exit(1)
+
     if len(args.profile) > 0:
         items = args.profile.split(',')
+    elif args.profile_begin is not None and args.profile_end is not None:
+        # 生成 profile_begin 到 profile_end 的 profile 列表
+        prefix = re.match(r'^[a-zA-Z]+', args.profile_begin).group()
+        start_num = int(re.search(r'\d+', args.profile_begin).group())
+        end_num = int(re.search(r'\d+', args.profile_end).group())
+        num_width = len(re.search(r'\d+', args.profile_begin).group())
+        items = [f"{prefix}{str(i).zfill(num_width)}" for i in range(start_num, end_num + 1)]
+        logger.info(f'Profile list: {items}')
     else:
         # 从配置文件里获取钱包名称列表
         items = list(inst_layer3.inst_okx.dic_purse.keys())
@@ -1013,6 +1170,11 @@ def main(args):
                 logger.info('sleep {} seconds ...'.format(int(sleep_time)))
             time.sleep(sleep_time)
 
+            # 输出下次执行时间，格式为 YYYY-MM-DD HH:MM:SS
+            next_exec_time = datetime.now() + timedelta(seconds=sleep_time)
+            logger.info(f'next_exec_time: {next_exec_time.strftime("%Y-%m-%d %H:%M:%S")}')
+            time.sleep(sleep_time)
+
     send_msg(inst_layer3, lst_success)
 
 
@@ -1041,6 +1203,15 @@ if __name__ == '__main__':
         '--profile', required=False, default='',
         help='按指定的 profile 执行，多个用英文逗号分隔'
     )
+    parser.add_argument(
+        '--profile_begin', required=False, default=None,
+        help='按指定的 profile 开始后缀(包含) eg: g01'
+    )
+    parser.add_argument(
+        '--profile_end', required=False, default=None,
+        help='按指定的 profile 结束后缀(包含) eg: g05'
+    )
+
     parser.add_argument(
         '--decrypt_pwd', required=False, default='',
         help='decrypt password'
@@ -1112,6 +1283,8 @@ if __name__ == '__main__':
 
     if args.loop_interval <= 0:
         main(args)
+    elif len(args.profile) > 0:
+        main(args)
     else:
         while True:
             main(args)
@@ -1143,6 +1316,8 @@ python layer3.py --auto_like --url=https://app.layer3.xyz/activations/intro-to-e
 python layer3.py --auto_like --url=https://app.layer3.xyz/activations/intro-to-espresso --sleep_sec_min=600 --sleep_sec_max=1800 --max_percent=50 --headless
 
 Week 2
+Week 2_1 Brewing the Future: Arbitrum
+python layer3.py --no_x --url=https://app.layer3.xyz/activations/brewing-the-future-arbitrum
 Week 2_2 Brewing the Future: RARI
 python layer3.py --no_x --url=https://app.layer3.xyz/activations/brewing-the-future-rari --profile=g50
 """
