@@ -245,10 +245,13 @@ class DpUtils():
                     for s_text in ['保存', 'save']:
                         btn_save = tab.ele(f'tag:button@@text():{s_text}', timeout=2) # noqa
                         if not isinstance(btn_save, NoneElement):
-                            tab.actions.move_to(btn_save)
-                            btn_save.wait.clickable(timeout=10).click()
-                            self.logit(None, 'Save button is clicked')
-                            break
+                            try:
+                                tab.actions.move_to(btn_save)
+                                btn_save.wait.clickable(timeout=10).click()
+                                self.logit(None, 'Save button is clicked')
+                                break
+                            except Exception as e: # noqa
+                                self.logit('set_max_try_times', f'Save exception: {e}')
 
             self.logit(None, f'set_mint_num ... [{i}/{max_try}]')
 
