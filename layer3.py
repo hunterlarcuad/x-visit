@@ -427,8 +427,8 @@ class ClsLayer3():
                 # 将 A->a1, B->a2, C->a3, D->a4
                 idx = ord(ans) - ord('A') + 1
                 lst_answer_ids.append(f'a{idx}')
-                
-            for i in range(4):
+
+            for i in range(len(lst_answer)):
                 ele_info = ele_blk.ele('.body text-sm text-content-secondary', timeout=2)
                 if not isinstance(ele_info, NoneElement):
                     s_info = ele_info.text
@@ -787,7 +787,6 @@ class ClsLayer3():
 
     def complete_tasks_week2_1(self):
         for i in range(1, DEF_NUM_TRY+1):
-            pdb.set_trace()
             if self.is_claim_rewards():
                 return True
 
@@ -814,14 +813,10 @@ class ClsLayer3():
                     # 任务 3 答题
                     self.task_quiz(lst_answer=['C', 'C', 'D'])
                 elif n_step == 4:
-                    pdb.set_trace()
                     # 第4个 任务 Acquire GLP or GLV on GMX
                     # Verify
-                    # 如果 mint_status 为 You have 1 pending transaction ，则验证
-                    mint_status = self.get_status_by_idx(self.IDX_MINT_STATUS)
-                    if mint_status == 'You have 1 pending transaction':
-                        self.verify_bridge()
-                        continue
+                    if self.verify_bridge():
+                        break
                     self.open_bridge()
                     if self.acquire_gmx():
                         self.browser.latest_tab.close()
@@ -1168,7 +1163,6 @@ def main(args):
                 logger.info('sleep {} minutes ...'.format(int(sleep_time/60)))
             else:
                 logger.info('sleep {} seconds ...'.format(int(sleep_time)))
-            time.sleep(sleep_time)
 
             # 输出下次执行时间，格式为 YYYY-MM-DD HH:MM:SS
             next_exec_time = datetime.now() + timedelta(seconds=sleep_time)
