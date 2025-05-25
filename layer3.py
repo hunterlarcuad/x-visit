@@ -43,6 +43,10 @@ from conf import logger
 # gm Check-in use UTC Time
 TZ_OFFSET = 0
 
+DEF_INSUFFICIENT_ETH = 'Insufficient ETH balance'
+DEF_SUCCESS = 'Success'
+DEF_FAIL = 'Fail'
+
 """
 2025.05.17
 """
@@ -258,29 +262,31 @@ class ClsLayer3():
                         except Exception as e: # noqa
                             # self.logit('connect_wallet', f'Sign in Exception: {e}')
                             continue
+
+                        ele_btn = tab.ele('@@tag()=span@@text()=OKX Wallet', timeout=2)
+                        if not isinstance(ele_btn, NoneElement):
+                            if ele_btn.wait.clickable(timeout=5):
+                                ele_btn.click(by_js=True)
+
+                        if self.inst_okx.wait_popup(n_tab+1, 10):
+                            tab.wait(2)
+                            self.inst_okx.okx_connect()
+
+                        if self.inst_okx.wait_popup(n_tab+1, 10):
+                            tab.wait(2)
+                            try:
+                                if self.inst_okx.okx_confirm():
+                                    self.logit(None, 'Signature request Confirm')
+                                    self.inst_okx.wait_popup(n_tab, 15)
+                                    tab.wait(3)
+                            except Exception as e: # noqa
+                                self.logit('connect_wallet', f'[okx_confirm] Error: {e}') # noqa
+                                continue
+
                     else:
                         self.logit(None, 'Log in success')
                         return True
 
-            ele_btn = tab.ele('@@tag()=span@@text()=OKX Wallet', timeout=2)
-            if not isinstance(ele_btn, NoneElement):
-                if ele_btn.wait.clickable(timeout=5):
-                    ele_btn.click(by_js=True)
-
-            if self.inst_okx.wait_popup(n_tab+1, 10):
-                tab.wait(2)
-                self.inst_okx.okx_connect()
-
-            if self.inst_okx.wait_popup(n_tab+1, 10):
-                tab.wait(2)
-                try:
-                    if self.inst_okx.okx_confirm():
-                        self.logit(None, 'Signature request Confirm')
-                        self.inst_okx.wait_popup(n_tab, 15)
-                        tab.wait(3)
-                except Exception as e: # noqa
-                    self.logit('connect_wallet', f'[okx_confirm] Error: {e}') # noqa
-                    continue
 
             # Create a new account
             lst_path = [
@@ -312,6 +318,7 @@ class ClsLayer3():
         tab.refresh()
 
         tab.wait.doc_loaded()
+        tab.wait(3)
 
         # Connect wallet
         if self.connect_wallet() is False:
@@ -536,7 +543,7 @@ class ClsLayer3():
                 ele_btn.wait.clickable(timeout=3)
                 ele_btn.click(by_js=True)
                 tab.wait.doc_loaded()
-                tab.wait(3)
+                tab.wait(6)
                 return True
         return False
 
@@ -707,6 +714,7 @@ class ClsLayer3():
 
     def get_glp_amount(self):
         tab = self.browser.latest_tab
+        tab.wait(10)
         s_path = 'x://*[@id="root"]/div/div[1]/div/div/div[2]/div[1]/div[2]/form/div[2]/div[2]/div[2]/div/div[3]/div[2]/span[2]'
         ele_info = tab.ele(s_path, timeout=2)
         if not isinstance(ele_info, NoneElement):
@@ -720,6 +728,22 @@ class ClsLayer3():
                 return 0
         return 0
 
+    def get_eth_amount(self):
+        tab = self.browser.latest_tab
+        tab.wait(10)
+        s_path = 'x://*[@id="root"]/div/div[1]/div/div/div[2]/div[1]/div[2]/form/div[2]/div[1]/div/div[3]/div[2]/span[2]'
+        ele_info = tab.ele(s_path, timeout=2)
+        if not isinstance(ele_info, NoneElement):
+            s_text = ele_info.text
+            self.logit('get_eth_amount', f'ETH amount: {s_text}')
+            try:
+                f_amount = float(s_text)
+                return f_amount
+            except Exception as e: # noqa
+                self.logit('get_eth_amount', f'Exception: {e}')
+                return 0
+        return 0
+
     def acquire_gmx(self):
         n_tab = self.browser.tabs_count
         tab = self.browser.latest_tab
@@ -728,44 +752,60 @@ class ClsLayer3():
             self.logit('acquire_gmx', f'trying ... {i}/{DEF_NUM_TRY}')
 
             # Connect Wallet
-            ele_btn = tab.ele('@@tag()=button@@text()=Connect Wallet', timeout=2) # noqa
-            if not isinstance(ele_btn, NoneElement):
-                ele_btn.wait.clickable(timeout=3)
-                ele_btn.click(by_js=True)
-                tab.wait(1)
+            lst_path = [
+                'x://*[@id="root"]/div/div[1]/div/header/div/div/div[2]/div/button',
+                'x://*[@id="root"]/div/div[1]/div/header/div/div[2]/div/button'
+            ]
+            ele_btn = tab.ele('x://*[@id="root"]/div/div[1]/div/header/div/div/div[2]/div/button', timeout=2) # noqa
+            ele_btn = self.inst_dp.get_ele_btn(self.browser.latest_tab, lst_path) # noqa
+            if ele_btn is not NoneElement:
+                s_text = ele_btn.text
+                self.logit(None, f'Click Connect Wallet Button: {s_text}') # noqa
+                
+                if s_text in ['Connect', 'Connect Wallet']:
+                    ele_btn.wait.clickable(timeout=3)
+                    ele_btn.click(by_js=True)
+                    tab.wait(3)
 
-                ele_btn = tab.ele('@@tag()=div@@text()=OKX Wallet', timeout=2)
-                if not isinstance(ele_btn, NoneElement):
-                    if ele_btn.wait.clickable(timeout=5):
-                        ele_btn.click()
+                    ele_btn = tab.ele('@@tag()=div@@text()=OKX Wallet', timeout=2)
+                    if not isinstance(ele_btn, NoneElement):
+                        if ele_btn.wait.clickable(timeout=5):
+                            ele_btn.click()
 
-                if self.inst_okx.wait_popup(n_tab+1, 10):
-                    tab.wait(2)
-                    self.inst_okx.okx_connect()
-                    self.inst_okx.wait_popup(n_tab, 5)
+                            if self.inst_okx.wait_popup(n_tab+1, 10):
+                                tab.wait(2)
+                                self.inst_okx.okx_connect()
+                                self.inst_okx.wait_popup(n_tab, 5)
+                    elif self.inst_okx.wait_popup(n_tab+1, 3):
+                        tab.wait(2)
+                        self.inst_okx.okx_connect()
+                        self.inst_okx.wait_popup(n_tab, 3)
+                continue
 
             # Buy GLP
             ele_btn = tab.ele('@@tag()=a@@text()=Buy GLP', timeout=2)
             if not isinstance(ele_btn, NoneElement):
                 ele_btn.wait.clickable(timeout=3)
                 ele_btn.click(by_js=True)
-                tab.wait(1)
+                tab.wait(3)
 
-                if self.inst_okx.wait_popup(n_tab+1, 10):
-                    tab.wait(2)
-                    try:
-                        if self.inst_okx.okx_confirm():
-                            self.logit(None, 'Bridge Confirm')
-                            self.inst_okx.wait_popup(n_tab, 15)
-                            tab.wait(3)
-                    except Exception as e: # noqa
-                        self.logit('connect_wallet', f'okx_confirm Exception: {e}') # noqa
-                        continue
+                # if self.inst_okx.wait_popup(n_tab+1, 10):
+                #     tab.wait(2)
+                #     try:
+                #         if self.inst_okx.okx_confirm():
+                #             self.logit(None, 'Bridge Confirm')
+                #             self.inst_okx.wait_popup(n_tab, 15)
+                #             tab.wait(3)
+                #     except Exception as e: # noqa
+                #         self.logit('connect_wallet', f'okx_confirm Exception: {e}') # noqa
+                #         continue
 
             f_glp_amount = self.get_glp_amount()
             if f_glp_amount > 0:
                 self.logit(None, f'[Success] GLP amount: {f_glp_amount}')
-                return True
+                return DEF_SUCCESS
+
+            f_eth_amount = self.get_eth_amount()
 
             ele_blk = tab.ele('x://*[@id="root"]/div/div[1]/div/div/div[2]/div[1]/div[2]/form/div[2]/div[1]/div', timeout=2)
             if not isinstance(ele_blk, NoneElement):
@@ -773,6 +813,12 @@ class ClsLayer3():
                 if not isinstance(ele_input, NoneElement):
                     # 生成一个0.0004到0.0006之间的随机数，保留4位小数
                     f_amount = round(random.uniform(0.0004, 0.0006), 6)
+                    if f_amount >= f_eth_amount:
+                        self.logit(None, f'Insufficient ETH balance: {f_eth_amount}')
+                        self.update_status(self.IDX_MINT_STATUS, 'Insufficient ETH balance')
+                        self.update_status(self.IDX_MINT_DATE, format_ts(time.time(), style=1, tz_offset=TZ_OFFSET))
+                        return DEF_INSUFFICIENT_ETH
+
                     tab.actions.move_to(ele_input).click().type(f_amount) # noqa
                     tab.wait(2)
                     if ele_input.value == str(f_amount):
@@ -784,7 +830,7 @@ class ClsLayer3():
                             if s_text == 'Insufficient ETH balance':
                                 self.update_status(self.IDX_MINT_STATUS, 'Insufficient ETH balance')
                                 self.update_status(self.IDX_MINT_DATE, format_ts(time.time(), style=1, tz_offset=TZ_OFFSET))
-                                return False
+                                return DEF_INSUFFICIENT_ETH
                             else:
                                 if ele_btn.wait.clickable(timeout=3) is not False:
                                     ele_btn.click(by_js=True)
@@ -797,17 +843,17 @@ class ClsLayer3():
                                                 self.logit(None, 'Buy GLP Confirm')
                                                 self.inst_okx.wait_popup(n_tab, 15)
                                                 tab.wait(3)
-                                                return True
+                                                return DEF_SUCCESS
                                         except Exception as e: # noqa
                                             self.logit('connect_wallet', f'okx_confirm Exception: {e}') # noqa
                                             continue
 
-        return False
+        return DEF_FAIL
 
     def complete_tasks_week2_1(self):
         for i in range(1, DEF_NUM_TRY+1):
             if self.is_claim_rewards():
-                return True
+                return DEF_SUCCESS
 
             self.logit('complete_tasks_week1', f'trying ... {i}/{DEF_NUM_TRY}')
             # 一共4个任务
@@ -819,7 +865,7 @@ class ClsLayer3():
                 if n_step == -1:
                     self.logit(None, 'Step number not found')
                     if j >= 3:
-                        return False
+                        return DEF_FAIL
                     continue
 
                 self.logit(None, f'Step number: {n_step}')
@@ -835,21 +881,23 @@ class ClsLayer3():
                     # 第4个 任务 Acquire GLP or GLV on GMX
                     # Verify
                     if self.verify_bridge():
+                        self.browser.wait(3)
                         is_failed = self.inst_dp.get_tag_info('p', 'No matching transactions found')
                         if is_failed is False:
                             break
                     self.open_bridge()
-                    if self.acquire_gmx():
-                        self.browser.latest_tab.close()
-                        continue
+                    ret = self.acquire_gmx()
+                    self.browser.latest_tab.close()
+                    if ret == DEF_INSUFFICIENT_ETH:
+                        return DEF_INSUFFICIENT_ETH
                 else:
                     self.logit(None, f'Step number is not processable [n_step={n_step}]')
                     break
 
-            return True
+            return DEF_SUCCESS
 
         self.logit(None, 'Task elements not found [ERROR]')
-        return False
+        return DEF_FAIL
 
     def gm_checkin(self):
         tab = self.browser.latest_tab
@@ -919,7 +967,7 @@ class ClsLayer3():
                 else:
                     continue
 
-            if s_status in ['Activation Completed', 'Not enough ETH']:
+            if s_status in ['Activation Completed', 'Not enough ETH', DEF_INSUFFICIENT_ETH]:
                 self.update_status(self.IDX_MINT_STATUS, s_status)
                 self.update_status(self.IDX_MINT_DATE, format_ts(time.time(), style=1, tz_offset=TZ_OFFSET))
                 return True
@@ -931,7 +979,9 @@ class ClsLayer3():
             if s_task_name == 'intro-to-espresso':
                 self.complete_tasks_week1()
             elif s_task_name == 'brewing-the-future-arbitrum':
-                self.complete_tasks_week2_1()
+                ret = self.complete_tasks_week2_1()
+                if ret == DEF_INSUFFICIENT_ETH:
+                    return True
             elif s_task_name == 'brewing-the-future-rari':
                 self.complete_tasks_week2_2()
 
