@@ -587,6 +587,31 @@ class ClsLayer3():
             #     ele_btn.click(by_js=True)
             #     tab.wait(1)
 
+            s_path = 'x://*[@id="headlessui-tabs-panel-:r4:"]/div/div[1]/div[1]/div/div[2]/div[2]/div/div/div/div/span[2]'
+            f_eth_amount = self.get_eth_amount(s_path)
+            # Ammount
+            ele_input = tab.ele('x://*[@id="headlessui-tabs-panel-:r4:"]/div/div[1]/div[1]/div/div[2]/div[2]/div/div/input', timeout=2)
+            if not isinstance(ele_input, NoneElement):
+                ele_input.wait.clickable(timeout=3)
+
+                # 生成一个0.0004到0.0006之间的随机数，保留4位小数   
+                f_amount = round(random.uniform(0.00791, 0.00822), 5)
+                if f_amount >= f_eth_amount:
+                    self.logit(None, f'Insufficient ETH balance: {f_eth_amount}')
+                    self.update_status(self.IDX_MINT_STATUS, 'Insufficient ETH balance')
+                    self.update_status(self.IDX_MINT_DATE, format_ts(time.time(), style=1, tz_offset=TZ_OFFSET))
+                    return DEF_INSUFFICIENT_ETH
+
+                ele_input.click.multi(times=2)
+                tab.wait(1)
+                ele_input.clear(by_js=True)
+                tab.wait(1)
+                tab.actions.move_to(ele_input).click().type(f_amount) # noqa
+                tab.wait(1)
+                if ele_input.value != str(f_amount):
+                    continue
+
+
             # Move funds to RARI Mainnet
             ele_btn = tab.ele('@@tag()=button@@text()=Move funds to RARI Mainnet', timeout=2) # noqa
             if not isinstance(ele_btn, NoneElement):
@@ -728,10 +753,10 @@ class ClsLayer3():
                 return 0
         return 0
 
-    def get_eth_amount(self):
+    def get_eth_amount(self, s_path):
         tab = self.browser.latest_tab
         tab.wait(10)
-        s_path = 'x://*[@id="root"]/div/div[1]/div/div/div[2]/div[1]/div[2]/form/div[2]/div[1]/div/div[3]/div[2]/span[2]'
+        # s_path = 'x://*[@id="root"]/div/div[1]/div/div/div[2]/div[1]/div[2]/form/div[2]/div[1]/div/div[3]/div[2]/span[2]'
         ele_info = tab.ele(s_path, timeout=2)
         if not isinstance(ele_info, NoneElement):
             s_text = ele_info.text
@@ -805,7 +830,8 @@ class ClsLayer3():
                 self.logit(None, f'[Success] GLP amount: {f_glp_amount}')
                 return DEF_SUCCESS
 
-            f_eth_amount = self.get_eth_amount()
+            s_path = 'x://*[@id="root"]/div/div[1]/div/div/div[2]/div[1]/div[2]/form/div[2]/div[1]/div/div[3]/div[2]/span[2]'
+            f_eth_amount = self.get_eth_amount(s_path)
 
             ele_blk = tab.ele('x://*[@id="root"]/div/div[1]/div/div/div[2]/div[1]/div[2]/form/div[2]/div[1]/div', timeout=2)
             if not isinstance(ele_blk, NoneElement):
