@@ -314,12 +314,14 @@ class ClsArbUtil():
             if not isinstance(ele_btn, NoneElement):
                 if ele_btn.wait.clickable(timeout=3):
                     ele_btn.click(by_js=True)
-                    tab.wait(1)
+                    tab.wait(3)
 
-            s_path = 'x://*[@id="headlessui-tabs-panel-:r4:"]/div/div[1]/div[1]/div/div[2]/div[2]/div/div/div/div/span[2]'
+            # s_path = 'x://*[@id="headlessui-tabs-panel-:r4:"]/div/div[1]/div[1]/div/div[2]/div[2]/div/div/div/div/span[2]'
+            s_path = '.whitespace-nowrap text-sm text-white'
             f_eth_amount = self.get_eth_amount(s_path)
             # Max Ammount
-            s_path = 'x://*[@id="headlessui-tabs-panel-:r4:"]/div/div[1]/div[1]/div/div[2]/div[2]/div/div/input'
+            # s_path = 'x://*[@id="headlessui-tabs-panel-:r4:"]/div/div[1]/div[1]/div/div[2]/div[2]/div/div/input'
+            s_path = '.h-full w-full bg-transparent px-3 text-xl font-light text-white placeholder:text-gray-300 sm:text-3xl'
             ele_input = tab.ele(s_path, timeout=2)
             if not isinstance(ele_input, NoneElement):
                 max_amount = ele_input.value
@@ -354,6 +356,9 @@ class ClsArbUtil():
                 tab.wait(1)
                 if ele_input.value != str(f_amount):
                     continue
+            else:
+                self.logit(None, f'Input element is not found')
+                continue
 
             # Move funds to Arbitrum One
             ele_btn = tab.ele('@@tag()=button@@text()=Move funds to Arbitrum One', timeout=2) # noqa
@@ -380,6 +385,7 @@ class ClsArbUtil():
                         tab.wait(2)
                         if is_success:
                             self.logit(None, 'Bridge Confirm Success')
+                            self.is_update = True
                         else:
                             self.logit(None, f'Fail info: {s_info}')
                             self.update_status(self.IDX_TASK_STATUS, s_info)
