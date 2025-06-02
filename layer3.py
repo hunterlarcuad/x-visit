@@ -587,29 +587,30 @@ class ClsLayer3():
             #     ele_btn.click(by_js=True)
             #     tab.wait(1)
 
-            s_path = 'x://*[@id="headlessui-tabs-panel-:r4:"]/div/div[1]/div[1]/div/div[2]/div[2]/div/div/div/div/span[2]'
-            f_eth_amount = self.get_eth_amount(s_path)
-            # Ammount
-            ele_input = tab.ele('x://*[@id="headlessui-tabs-panel-:r4:"]/div/div[1]/div[1]/div/div[2]/div[2]/div/div/input', timeout=2)
-            if not isinstance(ele_input, NoneElement):
-                ele_input.wait.clickable(timeout=3)
+            # s_path = 'x://*[@id="headlessui-tabs-panel-:r4:"]/div/div[1]/div[1]/div/div[2]/div[2]/div/div/div/div/span[2]'
+            # f_eth_amount = self.get_eth_amount(s_path)
+            # # Ammount
+            # s_path = 'x://*[@id="headlessui-tabs-panel-:r5:"]/div/div[1]/div[1]/div/div[2]/div[2]/div/div/input'
+            # ele_input = tab.ele(s_path, timeout=2)
+            # if not isinstance(ele_input, NoneElement):
+            #     ele_input.wait.clickable(timeout=3)
 
-                # 生成一个0.0004到0.0006之间的随机数，保留4位小数   
-                f_amount = round(random.uniform(0.00791, 0.00822), 5)
-                if f_amount >= f_eth_amount:
-                    self.logit(None, f'Insufficient ETH balance: {f_eth_amount}')
-                    self.update_status(self.IDX_MINT_STATUS, 'Insufficient ETH balance')
-                    self.update_status(self.IDX_MINT_DATE, format_ts(time.time(), style=1, tz_offset=TZ_OFFSET))
-                    return DEF_INSUFFICIENT_ETH
+            #     # 生成一个0.0004到0.0006之间的随机数，保留4位小数   
+            #     f_amount = round(random.uniform(0.00791, 0.00822), 5)
+            #     if f_amount >= f_eth_amount:
+            #         self.logit(None, f'Insufficient ETH balance: {f_eth_amount}')
+            #         self.update_status(self.IDX_MINT_STATUS, 'Insufficient ETH balance')
+            #         self.update_status(self.IDX_MINT_DATE, format_ts(time.time(), style=1, tz_offset=TZ_OFFSET))
+            #         return DEF_INSUFFICIENT_ETH
 
-                ele_input.click.multi(times=2)
-                tab.wait(1)
-                ele_input.clear(by_js=True)
-                tab.wait(1)
-                tab.actions.move_to(ele_input).click().type(f_amount) # noqa
-                tab.wait(1)
-                if ele_input.value != str(f_amount):
-                    continue
+            #     ele_input.click.multi(times=2)
+            #     tab.wait(1)
+            #     ele_input.clear(by_js=True)
+            #     tab.wait(1)
+            #     tab.actions.move_to(ele_input).click().type(f_amount) # noqa
+            #     tab.wait(1)
+            #     if ele_input.value != str(f_amount):
+            #         continue
 
 
             # Move funds to RARI Mainnet

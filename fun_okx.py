@@ -38,6 +38,9 @@ from conf import DEF_OKX_PWD
 
 class OkxUtils():
     def __init__(self) -> None:
+        self.INFO_NOT_ENOUGH_TO_COVER_FEE = 'You don’t have enough ETH to cover the potential network fee.'
+        self.FEE_TOO_HIGH = 'Network fee is greater than max fee'
+
         self.args = None
         self.dic_purse = {}
 
@@ -402,6 +405,74 @@ class OkxUtils():
         else:
             # self.logit(None, 'No Cancel Button') # noqa
             return False
+
+    def okx_approve(self):
+        tab = self.browser.latest_tab
+        ele_btn = tab.ele('@@tag()=button@@data-testid=okd-button@@text():Approve', timeout=2) # noqa
+        if not isinstance(ele_btn, NoneElement):
+            if ele_btn.wait.clickable(timeout=5):
+                ele_btn.click(by_js=True)
+                self.logit(None, 'Success to Click Approve Button') # noqa
+                return True
+            self.logit(None, 'Fail to Click Approve Button') # noqa
+        else:
+            self.logit(None, 'No Approve Button') # noqa
+
+        return False
+
+    def okx_confirm_by_fee(self, max_fee):
+        """
+        Return:
+            (True/False, f_fee, s_info)
+            s_info:
+                [self.INFO_NOT_ENOUGH_TO_COVER_FEE] You don’t have enough ETH to cover the potential network fee
+                [self.FEE_TOO_HIGH] Network fee is greater than max fee
+        """
+        f_fee = -1
+        tab = self.browser.latest_tab
+        ele_btn = tab.ele('@@tag()=button@@data-testid=okd-button@@text():Confirm', timeout=2) # noqa
+        if not isinstance(ele_btn, NoneElement):
+            # Get network fee
+            ele_blk = tab.ele('@@tag()=div@@class:_networkFee__wrap_', timeout=2) # noqa
+            if not isinstance(ele_blk, NoneElement):
+                ele_info = ele_blk.text.replace('\n', ' ')
+                self.logit(None, f'Network fee text: {ele_info}') # noqa
+
+                # Est RARI Mainnet network fee\nE\n0.000185 ETH
+                s_fee = ele_blk.text.split('\n')[-1].split()[0]
+                self.logit(None, f'Network fee value: {s_fee} ...') # noqa
+                f_fee = float(s_fee)
+
+                s_max_fee = f"{max_fee:.8f}"
+
+                if f_fee > max_fee:
+                    self.logit(None, f'Network fee is greater than max fee: {s_fee} > {s_max_fee} [ERROR]') # noqa
+                    self.okx_cancel()
+                    return (False, f_fee, self.FEE_TOO_HIGH)
+                self.logit(None, f'Network fee is lower than max fee: {s_fee} <= {s_max_fee} [OK]') # noqa
+
+            ele_blk = tab.ele('@@tag()=div@@class:_tip-message', timeout=2) # noqa
+            if not isinstance(ele_blk, NoneElement):
+                ele_info = ele_blk.text.replace('\n', ' ')
+                self.logit(None, f'tip message text: {ele_info}') # noqa
+                self.okx_cancel()
+                # You don’t have enough ETH to cover the potential network fee
+                return (False, f_fee, ele_info)
+
+            if ele_btn.states.is_enabled is False:
+                self.logit(None, 'Confirm Button is_enabled=False')
+                self.okx_cancel()
+                return (False, f_fee, '')
+
+            if ele_btn.wait.clickable(timeout=5):
+                ele_btn.click(by_js=True)
+                self.logit(None, 'Success to Click Confirm Button') # noqa
+                return (True, f_fee, '')
+            self.logit(None, 'Fail to Click Confirm Button') # noqa
+        else:
+            self.logit(None, 'Fail to load Confirm Button') # noqa
+
+        return (False, f_fee, '')
 
     def okx_confirm(self):
         tab = self.browser.latest_tab
