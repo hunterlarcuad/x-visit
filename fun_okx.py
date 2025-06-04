@@ -169,7 +169,11 @@ class OkxUtils():
 
         for i in range(1, DEF_NUM_TRY+1):
             tab = self.browser.new_tab(s_url)
+            tab.wait.doc_loaded()
             self.browser.wait(1)
+            if not tab.html:
+                input('Press Check Addon is installed, Press Enter to continue ...')
+                continue
 
             self.browser.close_tabs(tab, others=True)
             self.browser.wait(1)
