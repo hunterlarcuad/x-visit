@@ -957,6 +957,77 @@ class ClsLayer3():
                 return True
         return False
 
+    def complete_tasks_week4(self):
+        for i in range(1, DEF_NUM_TRY+1):
+            if self.is_claim_rewards():
+                return True
+
+            self.logit('complete_tasks_week4', f'trying ... {i}/{DEF_NUM_TRY}')
+            # 一共4个任务
+            task_num = 4
+
+            for j in range(1, task_num*3):
+                self.logit(None, f'Doing task j={j} (Start from 1)')
+                n_step = self.get_step_num()
+                if n_step == -1:
+                    self.logit(None, 'Step number not found')
+                    if j >= 3:
+                        return False
+                    continue
+
+                self.logit(None, f'Step number: {n_step}')
+
+                if (n_step >= 1) and (n_step <= 2):
+                    # 任务 1-2 直接 Continue
+                    if self.click_continue():
+                        continue
+                elif (n_step >= 3):
+                    # 任务 3-4 手动完成
+                    input('请手动完成任务 3-4')
+                    break
+
+            return True
+
+        self.logit(None, 'Task elements not found [ERROR]')
+        return False
+
+    def complete_tasks_week5(self):
+        for i in range(1, DEF_NUM_TRY+1):
+            if self.is_claim_rewards():
+                return True
+
+            self.logit('complete_tasks_week5', f'trying ... {i}/{DEF_NUM_TRY}')
+            # 一共4个任务
+            task_num = 3
+
+            for j in range(1, task_num*3):
+                self.logit(None, f'Doing task j={j} (Start from 1)')
+                n_step = self.get_step_num()
+                if n_step == -1:
+                    self.logit(None, 'Step number not found')
+                    if j >= 3:
+                        return False
+                    continue
+
+                self.logit(None, f'Step number: {n_step}')
+
+                if (n_step >= 1) and (n_step <= 2):
+                    # 任务 1-2 直接 Continue
+                    if self.click_continue():
+                        continue
+                elif n_step == 3:
+                    # 第8个 任务 quiz
+                    self.task_quiz(lst_answer=['C', 'B', 'D'])
+                    break
+                else:
+                    self.logit(None, f'Step number is not processable [n_step={n_step}]')
+                    break
+
+            return True
+
+        self.logit(None, 'Task elements not found [ERROR]')
+        return False
+
     def layer3_process(self):
         s_task_name = self.args.url.split('/')[-1]
         # open layer3 url
@@ -1011,6 +1082,10 @@ class ClsLayer3():
                     return True
             elif s_task_name == 'brewing-the-future-rari':
                 self.complete_tasks_week2_2()
+            elif s_task_name == 'brewing-the-future-apechain':
+                self.complete_tasks_week4()
+            elif s_task_name == 'brewing-the-future-molten-network':
+                self.complete_tasks_week5()
 
         return False
 
@@ -1408,8 +1483,24 @@ python layer3.py --auto_like --url=https://app.layer3.xyz/activations/intro-to-e
 python layer3.py --auto_like --url=https://app.layer3.xyz/activations/intro-to-espresso --sleep_sec_min=600 --sleep_sec_max=1800 --max_percent=50 --headless
 
 Week 2
-Week 2_1 Brewing the Future: Arbitrum
+Week 2.1 Brewing the Future: Arbitrum
 python layer3.py --no_x --url=https://app.layer3.xyz/activations/brewing-the-future-arbitrum
-Week 2_2 Brewing the Future: RARI
+Week 2.2 Brewing the Future: RARI
 python layer3.py --no_x --url=https://app.layer3.xyz/activations/brewing-the-future-rari --profile=g50
+
+Week 3
+Week 3.1
+https://app.layer3.xyz/activations/brewing-the-future-caldera
+B 、B 、C
+Week 3.2
+https://app.layer3.xyz/activations/brewing-the-future-logx
+
+Week 4
+https://app.layer3.xyz/activations/brewing-the-future-apechain
+python layer3.py --no_x --url=https://app.layer3.xyz/activations/brewing-the-future-apechain --profile=g50
+
+Week 5
+https://app.layer3.xyz/activations/brewing-the-future-molten-network
+C、B、D
+python layer3.py --no_x --url=https://app.layer3.xyz/activations/brewing-the-future-molten-network --profile=g50
 """
