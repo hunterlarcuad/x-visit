@@ -41,7 +41,8 @@ from conf import FILENAME_LOG
 from conf import logger
 
 # gm Check-in use UTC Time
-TZ_OFFSET = 0
+# TZ_OFFSET = 0
+TZ_OFFSET = 8
 
 DEF_INSUFFICIENT_ETH = 'Insufficient ETH balance'
 DEF_SUCCESS = 'Success'
@@ -179,7 +180,7 @@ class ClsArbUtil():
         self.dic_status[self.args.s_profile][self.IDX_UPDATE] = update_time
 
         self.status_save()
-        self.is_update = True
+        # self.is_update = True
 
     def get_status_by_idx(self, idx_status, s_profile=None):
         if s_profile is None:
