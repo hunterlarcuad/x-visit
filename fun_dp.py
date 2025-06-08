@@ -166,12 +166,12 @@ class DpUtils():
                 print("{s_name} plugin directory is not exist. Exit!")
                 sys.exit(1)
 
-        if self.plugin_yescapcha:
-            addon(s_name='YesCaptcha', s_path=DEF_CAPTCHA_EXTENSION_PATH)
-        if self.plugin_capmonster:
-            addon(s_name='CapMonster', s_path=DEF_CAPMONSTER_EXTENSION_PATH)
-        if self.plugin_okx:
-            addon(s_name='okx', s_path=DEF_OKX_EXTENSION_PATH)
+        # if self.plugin_yescapcha:
+        #     addon(s_name='YesCaptcha', s_path=DEF_CAPTCHA_EXTENSION_PATH)
+        # if self.plugin_capmonster:
+        #     addon(s_name='CapMonster', s_path=DEF_CAPMONSTER_EXTENSION_PATH)
+        # if self.plugin_okx:
+        #     addon(s_name='okx', s_path=DEF_OKX_EXTENSION_PATH)
 
         # https://drissionpage.cn/ChromiumPage/browser_opt
         b_headless = DEF_USE_HEADLESS
@@ -184,6 +184,7 @@ class DpUtils():
 
         try:
             self.browser = Chromium(co)
+            # input('Manual install Addon ...')
 
             if self.plugin_okx:
                 # Close okx popup window
@@ -198,7 +199,8 @@ class DpUtils():
 
     def close_okx_popup(self):
         n_tabs_pre = self.browser.tabs_count
-        max_wait_sec = 10
+        max_wait_sec = 3
+        # max_wait_sec = 10
         i = 0
         while i < max_wait_sec:
             i += 1
