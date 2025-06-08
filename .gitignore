@@ -7,3 +7,5 @@ datas
 .vscode
 chrome_profile
 tmp_img
+credentials.json
+token.pickle
