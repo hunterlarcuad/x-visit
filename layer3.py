@@ -968,6 +968,57 @@ class ClsLayer3():
                 return True
         return False
 
+    def create_glyph_account(self):
+        n_tab = self.browser.tabs_count
+
+        n_try = 6
+        tab = self.browser.latest_tab
+        tab.wait.doc_loaded()
+        tab.wait(3)
+
+        for i in range(1, n_try+1):
+            self.logit('create_glyph_account', f'trying ... {i}/{n_try}')
+
+            tab = self.browser.latest_tab
+            ele_btn = tab.ele('@@tag()=span@@text()=Sign in with Glyph', timeout=2) # noqa
+            if not isinstance(ele_btn, NoneElement):
+                ele_btn.wait.clickable(timeout=3)
+                ele_btn.click(by_js=True)
+                tab.wait(2)
+
+            ele_btn = tab.ele('@@tag()=div@@text()=Continue with a wallet', timeout=2) # noqa
+            if not isinstance(ele_btn, NoneElement):
+                ele_btn.wait.clickable(timeout=3)
+                ele_btn.click(by_js=True)
+                tab.wait(2)
+            # OKX Wallet
+            ele_btn = tab.ele('@@tag()=span@@text()=OKX Wallet', timeout=2) # noqa
+            if not isinstance(ele_btn, NoneElement):
+                ele_btn.wait.clickable(timeout=3)
+                ele_btn.click(by_js=True)
+                tab.wait(2)
+                if self.inst_okx.wait_popup(n_tab+1, 10):
+                    tab.wait(2)
+                    self.inst_okx.okx_connect()
+                    tab.wait(3)
+                    self.inst_okx.okx_confirm()
+                    self.inst_okx.wait_popup(n_tab, 5)
+                    return True
+
+            tab.wait(3)
+
+        return False
+
+    def click_verify(self):
+        tab = self.browser.latest_tab
+        ele_blk = tab.ele('@@style:padding-bottom', timeout=2)
+        if not isinstance(ele_blk, NoneElement):
+            ele_btn = ele_blk.ele('@@tag()=button@@text()=Verify', timeout=2) # noqa
+            if not isinstance(ele_btn, NoneElement):
+                if ele_btn.wait.clickable(timeout=2):
+                    ele_btn.click(by_js=True)
+            tab.wait(2)
+
     def complete_tasks_week4(self):
         for i in range(1, DEF_NUM_TRY+1):
             if self.is_claim_rewards():
@@ -992,9 +1043,27 @@ class ClsLayer3():
                     # 任务 1-2 直接 Continue
                     if self.click_continue():
                         continue
-                elif (n_step >= 3):
-                    # 任务 3-4 手动完成
-                    input('请手动完成任务 3-4')
+                elif (n_step == 3):
+                    # 任务 3
+                    tab = self.browser.latest_tab
+                    ele_btn = tab.ele('@@tag()=button@@text()=Open Glyph', timeout=2) # noqa
+                    if not isinstance(ele_btn, NoneElement):
+                        ele_btn.wait.clickable(timeout=3)
+                        ele_btn.click(by_js=True)
+                        self.create_glyph_account()
+                        self.browser.latest_tab.close()
+                        self.click_verify()
+                    continue
+                elif (n_step == 4):
+                    tab = self.browser.latest_tab
+                    ele_btn = tab.ele('@@tag()=button@@text()=Open Alpine', timeout=2) # noqa
+                    if not isinstance(ele_btn, NoneElement):
+                        ele_btn.wait.clickable(timeout=3)
+                        ele_btn.click(by_js=True)
+                        tab.wait(2)
+                        self.browser.latest_tab.close()
+                        tab.wait(2)
+                        self.click_continue()
                     break
 
             return True
