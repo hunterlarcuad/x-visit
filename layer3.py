@@ -283,6 +283,16 @@ class ClsLayer3():
                                 self.logit('connect_wallet', f'[okx_confirm] Error: {e}') # noqa
                                 continue
 
+                        # Connect Wallet 弹窗，卡住，刷新页面
+                        lst_path = [
+                            '@@tag()=div@@class:text-content-primary@@text()=Connect Wallet',
+                        ]
+                        ele_btn = self.inst_dp.get_ele_btn(tab, lst_path)
+                        if ele_btn is not NoneElement:
+                            self.logit(None, 'Connect Wallet Stuck, Refresh Page')
+                            tab.refresh()
+                            tab.wait(3)
+                            continue
                     else:
                         self.logit(None, 'Log in success')
                         return True
@@ -1235,6 +1245,8 @@ def main(args):
 
             if args.only_gm:
                 if date_now != lst_status[inst_layer3.IDX_GM_DATE]:
+                    b_ret = b_ret and False
+                elif lst_status[inst_layer3.IDX_GM_VALUE] == '0':
                     b_ret = b_ret and False
             else:
                 idx_status = inst_layer3.IDX_MINT_STATUS
