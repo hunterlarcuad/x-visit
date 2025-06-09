@@ -180,7 +180,6 @@ class ClsLayer3():
         self.dic_status[self.args.s_profile][self.IDX_UPDATE] = update_time
 
         self.status_save()
-        self.is_update = True
 
     def get_status_by_idx(self, idx_status, s_profile=None):
         if s_profile is None:
@@ -343,6 +342,7 @@ class ClsLayer3():
         if not isinstance(ele_info, NoneElement):
             s_text = ele_info.text
             # self.logit(None, f'Task status: {s_text}')
+            self.is_update = True
             return s_text
 
         # Claim Rewards
@@ -368,6 +368,7 @@ class ClsLayer3():
                             if self.inst_okx.okx_confirm():
                                 self.logit(None, 'transaction Confirm')
                                 self.inst_okx.wait_popup(n_tab, 15)
+                                self.is_update = True
                                 tab.wait(3)
                                 return ele_btn.text
                     else:
