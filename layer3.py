@@ -243,8 +243,11 @@ class ClsLayer3():
 
     def connect_wallet(self):
         n_tab = self.browser.tabs_count
+
         for i in range(1, DEF_NUM_TRY+1):
             tab = self.browser.latest_tab
+            tab.wait.doc_loaded()
+            tab.wait(3)
 
             ele_blk = tab.ele('@@tag()=div@@class:flex shrink-0 items-center gap-3', timeout=2) # noqa
             if not isinstance(ele_blk, NoneElement):
@@ -295,7 +298,6 @@ class ClsLayer3():
                     else:
                         self.logit(None, 'Log in success')
                         return True
-
 
             # Create a new account
             lst_path = [
@@ -1019,6 +1021,50 @@ class ClsLayer3():
                     ele_btn.click(by_js=True)
             tab.wait(2)
 
+    def complete_tasks_week3_1(self):
+        for i in range(1, DEF_NUM_TRY+1):
+            if self.is_claim_rewards():
+                return True
+
+            self.logit('complete_tasks_week3_1', f'trying ... {i}/{DEF_NUM_TRY}')
+            # 一共4个任务
+            task_num = 3
+
+            for j in range(1, task_num*3):
+                self.logit(None, f'Doing task j={j} (Start from 1)')
+                n_step = self.get_step_num()
+                if n_step == -1:
+                    self.logit(None, 'Step number not found')
+                    if j >= 3:
+                        return False
+                    continue
+
+                self.logit(None, f'Step number: {n_step}')
+
+                if (n_step >= 1) and (n_step <= 2):
+                    # 任务 1-2 直接 Continue
+                    if self.click_continue():
+                        continue
+                elif (n_step == 3):
+                    # 任务 3
+                    tab = self.browser.latest_tab
+                    ele_btn = tab.ele('@@tag()=button@@text()=Open Caldera', timeout=2) # noqa
+                    if not isinstance(ele_btn, NoneElement):
+                        ele_btn.wait.clickable(timeout=3)
+                        ele_btn.click(by_js=True)
+                        tab.wait(2)
+                        self.browser.latest_tab.close()
+                        self.click_continue()
+                    continue
+                elif (n_step == 4):
+                    self.task_quiz(lst_answer=['B', 'B', 'C'])
+                    break
+
+            return True
+
+        self.logit(None, 'Task elements not found [ERROR]')
+        return False
+
     def complete_tasks_week4(self):
         for i in range(1, DEF_NUM_TRY+1):
             if self.is_claim_rewards():
@@ -1162,6 +1208,8 @@ class ClsLayer3():
                     return True
             elif s_task_name == 'brewing-the-future-rari':
                 self.complete_tasks_week2_2()
+            elif s_task_name == 'brewing-the-future-caldera':
+                self.complete_tasks_week3_1()
             elif s_task_name == 'brewing-the-future-apechain':
                 self.complete_tasks_week4()
             elif s_task_name == 'brewing-the-future-molten-network':
@@ -1574,7 +1622,9 @@ Week 3
 Week 3.1
 https://app.layer3.xyz/activations/brewing-the-future-caldera
 B 、B 、C
-Week 3.2
+python layer3.py --no_x --url=https://app.layer3.xyz/activations/brewing-the-future-caldera
+
+Week 3.2 (dc + logx)(complete by manual)
 https://app.layer3.xyz/activations/brewing-the-future-logx
 
 Week 4
