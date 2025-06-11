@@ -38,6 +38,8 @@ from conf import DEF_HEADER_ACCOUNT
 
 from conf import TZ_OFFSET
 
+from conf import EXTENSION_ID_OKX
+
 from conf import DEF_CAPTCHA_EXTENSION_PATH
 from conf import DEF_CAPTCHA_KEY
 from conf import EXTENSION_ID_YESCAPTCHA
@@ -121,6 +123,7 @@ class DpUtils():
         # Settings.singleton_tab_obj = True
 
         profile_path = s_profile
+        self.args.s_profile = s_profile
 
         # 是否设置无痕模式
         if DEF_INCOGNITO:
@@ -607,3 +610,91 @@ class DpUtils():
             if not isinstance(ele_btn, NoneElement):
                 return ele_btn
         return NoneElement
+
+    def is_extension_installed(self, extension_id: str, s_name: str) -> bool:
+        """
+        检查指定插件（extension_id）是否已正确安装。
+        仅支持在非 headless 模式下检测。
+        """
+        if not self.browser:
+            logger.info('Browser 未启动，无法检测插件。')
+            return False
+        try:
+            # chrome://extensions/?id=mcohilncbfahbmgdjkbpemcciiolgcge
+            s_url = f'chrome://extensions/?id={extension_id}'
+            tab = self.browser.new_tab(s_url)
+            tab.wait(2)
+            ele_extension = tab.ele('tag=extensions-manager', timeout=2)
+            if not isinstance(ele_extension, NoneElement):
+                ele_view = ele_extension.sr.ele('tag=cr-view-manager', timeout=2)
+                if not isinstance(ele_view, NoneElement):
+                    ele_detail = ele_view.ele('tag=extensions-detail-view', timeout=2)
+                    if not isinstance(ele_detail, NoneElement):
+                        ele_section = ele_detail.sr.ele('@@id=id-section', timeout=2)
+                        if not isinstance(ele_section, NoneElement):
+                            s_text = ele_section.text
+                            if extension_id in s_text:
+                                # self.logit(None, f'插件 {s_name} 已安装。')
+                                self.browser.close_tabs(tab)
+                                return True
+            # self.logit(None, f'插件 {s_name} 未安装。')
+            self.browser.close_tabs(tab)
+            return False
+        except Exception as e:
+            self.logit(None, f'检查插件异常: {e}')
+            return False
+
+    def check_extension(self) -> bool:
+        b_ret = True
+
+        tab = self.browser.new_tab('chrome://extensions/')
+        tab.wait(1)
+        self.browser.close_tabs(tab, others=True)
+
+        if self.args.extension_id == '':
+            lst_extension_id = [
+                (EXTENSION_ID_OKX, 'okx'),
+                (EXTENSION_ID_YESCAPTCHA, 'yescaptcha'),
+                (EXTENSION_ID_CAPMONSTER, 'capmonster'),
+            ]
+        else:
+            lst_extension_id = [(self.args.extension_id, 'custom')]
+
+        n_max_try = 3
+        for i in range(n_max_try):
+            b_ret = True
+            self.logit(None, f'Check Extension, try: {i+1}/{n_max_try} ...')
+
+            for extension_id, s_name in lst_extension_id:
+                is_installed = self.is_extension_installed(extension_id, s_name)
+                if is_installed:
+                    self.logit(None, f'插件 {s_name} 已安装 [OK]')
+                else:
+                    b_ret = b_ret and False
+                    self.logit(None, f'插件 {s_name} 未安装或检测失败 [NG]')
+                    input('Please Check and Press Enter to continue...')
+
+            if b_ret:
+                break
+
+        return b_ret
+
+
+def main():
+    parser = argparse.ArgumentParser(description='DrissionPage 插件检测工具')
+    parser.add_argument('--profile', type=str, required=True, help='浏览器用户目录名称')
+    parser.add_argument('--extension_id', type=str, required=False, default='', help='需要检测的插件 extension_id')
+    args = parser.parse_args()
+
+    dp = DpUtils()
+    dp.set_args(args)
+    browser = dp.get_browser(args.profile)
+    if browser is None:
+        print('浏览器启动失败')
+        return
+    dp.check_extension()
+    dp.close()
+
+
+if __name__ == '__main__':
+    main()
