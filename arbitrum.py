@@ -410,6 +410,93 @@ class ClsArbUtil():
 
         return False
 
+    def exist_claim_info(self):
+        tab = self.browser.latest_tab
+        # 是否出现 You must claim 1 transaction
+        ele_info = tab.ele('@@tag()=span@@text():You must claim', timeout=2)
+        if not isinstance(ele_info, NoneElement):
+            s_text = ele_info.text
+            self.logit(None, f'Pending transactions: {s_text}')
+            return s_text
+        return None
+
+    def claim_from_rari_mainnet_to_arb(self):
+        n_tab = self.browser.tabs_count
+        tab = self.browser.latest_tab
+        f_fee_keep = 0
+
+        for i in range(1, DEF_NUM_TRY+1):
+            self.logit('bridge_from_rari_mainnet_to_arb', f'trying ... {i}/{DEF_NUM_TRY}')
+
+            if self.browser.tabs_count > n_tab:
+                self.inst_okx.okx_cancel()
+
+            # Agree to Terms and Continue
+            ele_btn = tab.ele('@@tag()=span@@class=truncate', timeout=2)
+            if not isinstance(ele_btn, NoneElement):
+                s_text = ele_btn.text
+                self.logit(None, f'Agree button: {s_text}')
+                if s_text == 'Agree to Terms and Continue':
+                    ele_btn.wait.clickable(timeout=3)
+                    ele_btn.click(by_js=True)
+                    tab.wait(1)
+
+            # Connect Wallet
+            ele_btn = tab.ele('@@tag()=button@@text()=Connect Wallet', timeout=2) # noqa
+            if not isinstance(ele_btn, NoneElement):
+                ele_btn.wait.clickable(timeout=3)
+                ele_btn.click(by_js=True)
+                tab.wait(1)
+
+                ele_btn = tab.ele('@@tag()=div@@text()=OKX Wallet', timeout=2)
+                if not isinstance(ele_btn, NoneElement):
+                    if ele_btn.wait.clickable(timeout=5):
+                        ele_btn.click()
+
+                if self.inst_okx.wait_popup(n_tab+1, 10):
+                    tab.wait(2)
+                    self.inst_okx.okx_connect()
+                    self.inst_okx.wait_popup(n_tab, 5)
+
+            # Switch to Transaction History Tab
+            self.switch_tab(tab, 'Switch to Transaction History Tab')
+            tab.wait.doc_loaded()
+            tab.wait(10)
+
+            # 是否出现 You must claim 1 transaction
+            s_text = self.exist_claim_info()
+            if s_text is not None:
+                ele_btn = tab.ele('.flex justify-center px-3 align-middle', timeout=2)
+                if not isinstance(ele_btn, NoneElement):
+                    s_text = ele_btn.text.replace('\n', ' ')
+                    self.logit(None, f'Transaction result: {s_text}')
+
+                    if ele_btn.wait.clickable(timeout=3):
+                        ele_btn.click()
+                        tab.wait(3)
+
+                        if self.inst_okx.wait_popup(n_tab+1, 10):
+                            tab.wait(2)
+                            try:
+                                # Confirm
+                                (is_success, f_fee, s_info) = self.inst_okx.okx_confirm_by_fee(max_fee=self.args.max_fee)
+                                self.inst_okx.wait_popup(n_tab, 15)
+                                tab.wait(2)
+                                if is_success:
+                                    self.logit(None, 'Claim Confirm Success')
+                                    self.is_update = True
+                                    self.update_status(self.IDX_TASK_STATUS, DEF_SUCCESS)
+                                    self.update_status(self.IDX_TASK_DATE, format_ts(time.time(), style=1, tz_offset=TZ_OFFSET))
+                                    return DEF_SUCCESS
+                                else:
+                                    self.logit(None, f'Fail info: {s_info}')
+
+                            except Exception as e: # noqa
+                                self.logit('bridge_from_rari_mainnet_to_arb', f'okx_confirm Exception: {e}') # noqa
+                                continue
+
+        return False
+
     def arbutil_process(self):
         # open layer3 url
         # tab = self.browser.latest_tab
@@ -426,11 +513,13 @@ class ClsArbUtil():
                 tab.set.window.max()
                 self.logit(None, 'Set browser window to maximize')
 
-        n_try = 8
+        # n_try = 8
+        n_try = 3
         for i in range(1, n_try+1):
             self.logit('arbutil_process', f'trying ... {i}/{n_try}')
 
-            s_status = self.bridge_from_rari_mainnet_to_arb()
+            # s_status = self.bridge_from_rari_mainnet_to_arb()
+            s_status = self.claim_from_rari_mainnet_to_arb()
             if s_status == DEF_SUCCESS:
                 return True
 
@@ -444,14 +533,14 @@ class ClsArbUtil():
         if self.inst_okx.init_okx(is_bulk=True) is False:
             return False
 
+        self.arbutil_process()
+
         s_chain = 'Arbitrum One'
         s_coin = 'ARB_ETH'
         (s_balance_coin, s_balance_usd) = self.inst_okx.get_balance_by_chain_coin(s_chain, s_coin)
         self.logit(None, f'Balance: {s_balance_coin} {s_balance_usd} [{s_chain}][{s_coin}]')
         self.update_status(self.IDX_BALANCE_ETH, s_balance_coin)
         self.update_status(self.IDX_BALANCE_USD, s_balance_usd)
-
-        self.arbutil_process()
 
         if self.args.manual_exit:
             s_msg = 'Manual Exit. Press any key to exit! ⚠️' # noqa
@@ -564,7 +653,7 @@ def main(args):
                     b_ret = b_ret and False
             else:
                 idx_status = inst_arbutil.IDX_TASK_STATUS
-                lst_status_ok = ['Activation Completed', 'Not enough ETH']
+                lst_status_ok = ['Activation Completed', 'Not enough ETH', 'Success']
                 if lst_status[idx_status] in lst_status_ok:
                     b_complete = True
                 else:
