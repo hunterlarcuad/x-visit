@@ -1007,6 +1007,9 @@ class ClsLayer3():
                     self.inst_okx.wait_popup(n_tab, 5)
                     return True
 
+            if self.inst_dp.get_tag_info('p', 'You did not pass CAPTCHA'):
+                self.logit(None, 'Something went wrong')
+
             tab.wait(3)
 
         return False
@@ -1154,6 +1157,53 @@ class ClsLayer3():
         self.logit(None, 'Task elements not found [ERROR]')
         return False
 
+    def complete_tasks_week6(self):
+        for i in range(1, DEF_NUM_TRY+1):
+            if self.is_claim_rewards():
+                return True
+
+            self.logit('complete_tasks_week6', f'trying ... {i}/{DEF_NUM_TRY}')
+            # 任务数量
+            task_num = 5
+
+            for j in range(1, task_num*3):
+                self.logit(None, f'Doing task j={j} (Start from 1)')
+                n_step = self.get_step_num()
+                if n_step == -1:
+                    self.logit(None, 'Step number not found')
+                    if j >= 3:
+                        return False
+                    continue
+
+                self.logit(None, f'Step number: {n_step}')
+
+                if (n_step >= 1) and (n_step <= 3):
+                    # 任务 1-3 直接 Continue
+                    if self.click_continue():
+                        continue
+                elif n_step == 4:
+                    # 第8个 任务 quiz
+                    self.task_quiz(lst_answer=['B', 'A', 'C'])
+                elif n_step == 5:
+                    tab = self.browser.latest_tab
+                    ele_btn = tab.ele('@@tag()=button@@text()=Open Nexus', timeout=2) # noqa
+                    if not isinstance(ele_btn, NoneElement):
+                        ele_btn.wait.clickable(timeout=3)
+                        ele_btn.click(by_js=True)
+                        tab.wait(2)
+                        self.browser.latest_tab.close()
+                        tab.wait(2)
+                        self.click_continue()
+                    break
+                else:
+                    self.logit(None, f'Step number is not processable [n_step={n_step}]')
+                    break
+
+            return True
+
+        self.logit(None, 'Task elements not found [ERROR]')
+        return False
+
     def layer3_process(self):
         s_task_name = self.args.url.split('/')[-1]
         # open layer3 url
@@ -1214,6 +1264,8 @@ class ClsLayer3():
                 self.complete_tasks_week4()
             elif s_task_name == 'brewing-the-future-molten-network':
                 self.complete_tasks_week5()
+            elif s_task_name == 'brewing-the-future-buildn-brew':
+                self.complete_tasks_week6()
 
         return False
 
@@ -1602,8 +1654,6 @@ python layer3.py --auto_like --auto_appeal --sleep_sec_min=120 --sleep_sec_max=3
 python layer3.py --auto_like --auto_appeal --profile=g05
 python layer3.py --auto_like --auto_appeal --force --profile=g05
 
-python layer3.py --auto_like --auto_appeal --force --profile=t33
-
 2025.05.15
 Espresso 奥德赛
 https://app.layer3.xyz/campaigns/brewing-the-future
@@ -1616,7 +1666,7 @@ Week 2
 Week 2.1 Brewing the Future: Arbitrum
 python layer3.py --no_x --url=https://app.layer3.xyz/activations/brewing-the-future-arbitrum
 Week 2.2 Brewing the Future: RARI
-python layer3.py --no_x --url=https://app.layer3.xyz/activations/brewing-the-future-rari --profile=g50
+python layer3.py --no_x --url=https://app.layer3.xyz/activations/brewing-the-future-rari --profile=g05
 
 Week 3
 Week 3.1
@@ -1629,10 +1679,16 @@ https://app.layer3.xyz/activations/brewing-the-future-logx
 
 Week 4
 https://app.layer3.xyz/activations/brewing-the-future-apechain
-python layer3.py --no_x --url=https://app.layer3.xyz/activations/brewing-the-future-apechain --profile=g50
+python layer3.py --no_x --url=https://app.layer3.xyz/activations/brewing-the-future-apechain --profile=g05
 
 Week 5
 https://app.layer3.xyz/activations/brewing-the-future-molten-network
 C、B、D
-python layer3.py --no_x --url=https://app.layer3.xyz/activations/brewing-the-future-molten-network --profile=g50
+python layer3.py --no_x --url=https://app.layer3.xyz/activations/brewing-the-future-molten-network --profile=g05
+
+Week 6
+https://app.layer3.xyz/activations/brewing-the-future-buildn-brew
+B、A、C
+python layer3.py --no_x --url=https://app.layer3.xyz/activations/brewing-the-future-buildn-brew --profile=g05
+
 """
