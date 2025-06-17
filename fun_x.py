@@ -692,7 +692,12 @@ class XUtils():
                         i += 1
                         self.browser.wait(1)
                         s_in_title = 'is your X verification code'
-                        s_code = get_verify_code_from_gmail(s_in_title)
+
+                        try:
+                            s_code = get_verify_code_from_gmail(s_in_title)
+                        except:
+                            continue
+
                         if s_code is not None:
                             break
                         self.logit(None, f'Try to get verification code from gmail ... {i}/{max_wait_sec}') # noqa

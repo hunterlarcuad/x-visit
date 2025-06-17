@@ -644,12 +644,17 @@ class DpUtils():
             self.logit(None, f'检查插件异常: {e}')
             return False
 
-    def check_extension(self) -> bool:
+    def check_extension(self, n_max_try=3) -> bool:
         b_ret = True
 
         tab = self.browser.new_tab('chrome://extensions/')
         tab.wait(1)
         self.browser.close_tabs(tab, others=True)
+
+        try:
+            id = self.args.extension_id
+        except:
+            self.args.extension_id = ''
 
         if self.args.extension_id == '':
             lst_extension_id = [
@@ -660,7 +665,6 @@ class DpUtils():
         else:
             lst_extension_id = [(self.args.extension_id, 'custom')]
 
-        n_max_try = 3
         for i in range(n_max_try):
             b_ret = True
             self.logit(None, f'Check Extension, try: {i+1}/{n_max_try} ...')

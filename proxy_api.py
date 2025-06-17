@@ -202,7 +202,7 @@ def get_proxy_list(s_mode=None):
 
     lst_available = []
     for proxy_name in lst_proxy:
-        if proxy_name == 'Auto':
+        if proxy_name in ['Auto', 'DIRECT', 'REJECT', '节点选择']:
             continue
         if proxy_name.startswith('Valid until'):
             continue
@@ -221,6 +221,8 @@ def get_proxy_list(s_mode=None):
                 lst_available.append([proxy_name, mean_delay])
             else:
                 # print(proxy_name)
+                mean_delay = -1
+                lst_available.append([proxy_name, mean_delay])
                 pass
 
     # 使用列表的 sort 方法进行排序
