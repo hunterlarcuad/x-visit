@@ -623,6 +623,7 @@ class XUtils():
             if self.enter_verification_code() is False:
                 continue
 
+            self.browser.wait(3)
             self.x_unlocked()
 
             if self.twitter_login_pwd():
@@ -1066,6 +1067,7 @@ class XUtils():
         self.x_unlocked()
 
         self.wait_loading()
+
         if self.wrong_retry():
             self.wait_loading()
 
@@ -1076,10 +1078,11 @@ class XUtils():
         if self.args.auto_like:
             is_like = 'y'
         else:
+            is_like = 'n'
             print(f'[{self.args.s_profile}] Success to log in !')
             # s_msg = 'Press any key to continue! ⚠️' # noqa
-            s_msg = 'Will you Like a post ? [y/n]' # noqa
-            is_like = input(s_msg)
+            #s_msg = 'Will you Like a post ? [y/n]' # noqa
+            #is_like = input(s_msg)
 
         if is_like == 'y':
             if not self.click_like():
@@ -1236,7 +1239,7 @@ class XUtils():
             ele_btn = tab.ele('@@tag()=button@@data-testid=unlike', timeout=2)
             if not isinstance(ele_btn, NoneElement):
                 s_info = ele_btn.text
-                self.logit(None, f'Already liked. Likes num: {s_info}')
+                self.logit(None, f'Already liked. Likes num: {s_info} ✅')
                 return True
 
         return False
