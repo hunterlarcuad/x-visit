@@ -231,6 +231,96 @@ class XWool():
                 return True
         return False
 
+    def is_keyword_follow(self, s_tweet_text):
+        """
+        互关贴
+        """
+        lst_keywords = [
+            '互关',
+            '互粉',
+        ]
+        for s_keyword in lst_keywords:
+            # 不区分大小写
+            if s_keyword.lower() in s_tweet_text.lower():
+                return True
+        return False
+
+    def is_keyword_analyze(self, s_tweet_text):
+        """
+        分析贴，调用大模型回复
+        """
+        lst_keywords = [
+            'cookiedotfun',
+            'Cookie',
+            'SNAPS',
+            'Spark',
+            'Sapien',
+        ]
+        for s_keyword in lst_keywords:
+            # 不区分大小写
+            if s_keyword.lower() in s_tweet_text.lower():
+                return True
+        return False
+
+    def get_tweet_type_by_keyword(self, s_tweet_text):
+        """
+        根据关键词判断帖子类型
+        """
+        if self.is_keyword_follow(s_tweet_text):
+            return 'follow'
+        elif self.is_keyword_analyze(s_tweet_text):
+            return 'analyze'
+        else:
+            return 'other'
+
+    def follow_user(self, name):
+        user_url = f'https://x.com/{name}'
+        tab = self.browser.new_tab(user_url)
+        if self.is_followed(name):
+            self.logit(None, f'Already followed, skip ...')
+        else:
+            self.logit(None, f'Try to Follow x: {name}')
+            if self.inst_x.x_follow(name):
+                tab.wait(1)
+                self.status_append(
+                    s_op_type='follow',
+                    s_url=user_url,
+                    s_msg=f'Follow x: {name}',
+                    s_status='OK',
+                )
+            else:
+                self.logit(None, f'Follow x: {name} [Failed]')
+        tab.close()
+
+    def reply_tweet(self, s_tweet_type, s_tweet_text):
+        s_reply = ''
+        if s_tweet_type == 'follow':
+            lst_reply = [
+                '互关',
+                '互粉',
+                '互关互粉',
+                '来啦！互关！'
+            ]
+            s_reply = random.choice(lst_reply)
+        elif s_tweet_type == 'analyze':
+            # 调用大模型
+            pass
+        if not s_reply:
+            self.logit(None, 's_reply is empty, skip ...')
+            return False
+
+        #pdb.set_trace()
+
+        # if self.inst_x.x_reply(s_reply):
+        #     self.status_append(
+        #         s_op_type='reply',
+        #         s_url=self.browser.latest_tab.url,
+        #         s_msg=f'[Reply] {s_reply}',
+        #         s_status='OK',
+        #     )
+        #     return True
+        return False
+
     def proc_tw_url(self, tweet_url):
         if not tweet_url:
             return
@@ -238,28 +328,30 @@ class XWool():
         if tweet_url.startswith('https://x.com/'):
             name = tweet_url.split('com/')[-1].split('/')[0]
 
-            # follow
-            user_url = f'https://x.com/{name}'
-            tab = self.browser.new_tab(user_url)
-            if self.is_followed(name):
-                self.logit(None, f'Already followed, skip ...')
-            else:
-                self.logit(None, f'Try to Follow x: {name}')
-                if self.inst_x.x_follow(name):
-                    tab.wait(1)
-                    self.status_append(
-                        s_op_type='follow',
-                        s_url=tweet_url,
-                        s_msg=f'Follow x: {name}',
-                        s_status='OK',
-                    )
-                else:
-                    self.logit(None, f'Follow x: {name} [Failed]')
-            tab.close()
-
-            # like
             tab = self.browser.new_tab(tweet_url)
             self.logit(None, f'Try to Like x: {tweet_url}')
+
+            # get tweet text
+            ele_tweet_text = tab.ele('@@tag()=div@@data-testid=tweetText', timeout=3)
+            if ele_tweet_text is not NoneElement:
+                s_tweet_text = ele_tweet_text.text
+                self.logit(None, f'tweet_text: {s_tweet_text[:30]} ...')
+            else:
+                self.logit(None, 'tweet_text is not found')
+                tab.close()
+                return
+
+            s_tweet_type = self.get_tweet_type_by_keyword(s_tweet_text)
+            if s_tweet_type == 'other':
+                self.logit(None, 'other tweet, skip ...')
+                tab.close()
+                return
+            self.logit(None, f's_tweet_type: {s_tweet_type}')
+
+            # reply
+            self.reply_tweet(s_tweet_type, s_tweet_text)
+
+            # like
             if self.inst_x.x_like():
                 tab.wait(1)
                 self.status_append(
@@ -269,6 +361,10 @@ class XWool():
                     s_status='OK',
                 )
             tab.close()
+
+            # follow
+            self.follow_user(name)
+
 
     def interaction(self):
         tab = self.browser.latest_tab
@@ -284,16 +380,23 @@ class XWool():
                 self.logit(None, 'get_new_post [Success]')
             tab.wait(2)
 
-        ele_blks_top = tab.eles('@@tag()=div@@class=css-175oi2r@@data-testid=cellInnerDiv', timeout=3)
-        # ele_blk = tab.eles('@@tag()=article@@aria-labelledby:id', timeout=3)
-        self.logit(None, f'len(ele_blks_top)={len(ele_blks_top)}')
+        for i in range(1, 5):
+            ele_blks_top = tab.eles('@@tag()=div@@class=css-175oi2r@@data-testid=cellInnerDiv', timeout=3)
+            if len(ele_blks_top) > 0:
+                break
+            self.inst_x.wrong_retry()
+            time.sleep(3)
+
+        n_blks_top = len(ele_blks_top)
+        self.logit(None, f'len(ele_blks_top)={n_blks_top}')
         if not ele_blks_top:
+            self.inst_x.wrong_retry()
             return
 
         num_blk = 0
         for ele_blk_top in ele_blks_top:
             num_blk += 1
-            self.logit(None, f'num_blk={num_blk}')
+            self.logit(None, f'num_blk={num_blk}/{n_blks_top}')
             ele_blk = ele_blk_top.ele('@@tag()=article@@aria-labelledby:id', timeout=3)
 
             if ele_blk is NoneElement:
@@ -312,7 +415,7 @@ class XWool():
             else:
                 self.logit(None, 'tweet_url is not found')
 
-            tab.wait(2)
+            tab.wait(10)
 
     def xwool_run(self):
         self.browser = self.inst_dp.get_browser(self.args.s_profile)
@@ -320,18 +423,21 @@ class XWool():
         self.inst_x.status_load()
         self.inst_x.set_browser(self.browser)
 
-        if self.args.vpn is None:
-            idx_vpn = get_index_from_header(DEF_HEADER_ACCOUNT, 'proxy')
-            if self.args.s_profile in self.inst_x.dic_account:
-                s_vpn = self.inst_x.dic_account[self.args.s_profile][idx_vpn]
-            else:
-                logger.info(f'{self.args.s_profile} is not in self.inst_x.dic_account [ERROR]') # noqa
-                sys.exit(0)
+        if self.args.no_auto_vpn:
+            logger.info(f'{self.args.s_profile} Use Current VPN') # noqa
         else:
-            s_vpn = self.args.vpn
+            if self.args.vpn is None:
+                idx_vpn = get_index_from_header(DEF_HEADER_ACCOUNT, 'proxy')
+                if self.args.s_profile in self.inst_x.dic_account:
+                    s_vpn = self.inst_x.dic_account[self.args.s_profile][idx_vpn]
+                else:
+                    logger.info(f'{self.args.s_profile} is not in self.inst_x.dic_account [ERROR]') # noqa
+                    sys.exit(0)
+            else:
+                s_vpn = self.args.vpn
 
-        if self.inst_dp.set_vpn(s_vpn) is False:
-            return False
+            if self.inst_dp.set_vpn(s_vpn) is False:
+                return False
 
         if self.inst_dp.init_capmonster() is False:
             return False
@@ -340,9 +446,16 @@ class XWool():
             return False
 
         self.inst_x.twitter_run()
-        self.interaction()
+        n_max_run = 10
+        for i in range(1, n_max_run+1):
+            self.logit(None, f'Run {i}/{n_max_run} times ...')
+            self.interaction()
+            self.browser.latest_tab.refresh()
+            n_sleep = random.randint(60, 120)
+            self.logit(None, f'Sleep {n_sleep} seconds ...')
+            time.sleep(n_sleep)
 
-        if self.args.manual_exit:
+        if self.args.manual_exit and self.args.headless is False:
             s_msg = 'Press any key to exit! ⚠️' # noqa
             input(s_msg)
 
@@ -371,7 +484,7 @@ def send_msg(x_wool, lst_success):
             'title': 'Daily Check-In Finished! [xwool]',
             'text': (
                 'Daily Check-In [xwool]\n'
-                '- account,time_next_claim\n'
+                '- account,op_date\n'
                 '{}\n'
                 .format(s_info)
             )
@@ -576,6 +689,10 @@ if __name__ == '__main__':
         help='Set vpn, default is None'
     )
     parser.add_argument(
+        '--no_auto_vpn', required=False, action='store_true',
+        help='Ignore Clash Verge API'
+    )
+    parser.add_argument(
         '--name', required=False, default='',
         help='Optional, can be generated by default'
     )
@@ -614,5 +731,6 @@ if __name__ == '__main__':
 
 """
 # noqa
-python xwool.py --force --manual_exit --profile=g01
+python xwool.py --no_auto_vpn --force --profile=g01
+python xwool.py --no_auto_vpn --force --manual_exit --profile=g01
 """
