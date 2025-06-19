@@ -111,6 +111,8 @@ class XWool():
         ]
         self.DEF_HEADER_STATUS = ','.join(self.lst_header_status)
 
+        self.set_url_processed = set([])
+
     def set_args(self, args):
         self.args = args
         self.is_update = False
@@ -299,9 +301,12 @@ class XWool():
         s_reply = ''
         if s_tweet_type == 'follow':
             lst_reply = [
-                '互关',
-                '互粉',
-                '互关互粉',
+                '来了！',
+                '来啦！',
+                '安排！',
+                '互关！',
+                '互粉！',
+                '互关互粉，冲！',
                 '来啦！互关！'
             ]
             lst_tw = [
@@ -333,8 +338,9 @@ class XWool():
             if not s_reply:
                 self.logit(None, 's_reply from llm is empty, skip ...')
                 return False
+            """
             s_reply += '\n'
-            s_reply += '@@sparkdotfi @cookiedotfun @cookiedotfuncn'
+            s_reply += '@sparkdotfi @cookiedotfun @cookiedotfuncn'
 
             if s_tweet_type == 'Spark':
                 s_reply += '\n'
@@ -345,9 +351,11 @@ class XWool():
             else:
                 s_reply += '\n'
                 s_reply += '#Cookie #SNAPS'
+            """
 
         if self.inst_x.x_reply(s_reply):
             s_msg = s_reply.replace('\n', ' ')
+            self.logit(None, f'Reply Text: {s_msg}')
             self.status_append(
                 s_op_type='reply',
                 s_url=self.browser.latest_tab.url,
@@ -370,8 +378,8 @@ class XWool():
             # get tweet text
             ele_tweet_text = tab.ele('@@tag()=div@@data-testid=tweetText', timeout=3)
             if not isinstance(ele_tweet_text, NoneElement):
-                s_tweet_text = ele_tweet_text.text
-                self.logit(None, f'tweet_text: {s_tweet_text[:30]} ...')
+                s_tweet_text = ele_tweet_text.text.replace('\n', ' ')
+                self.logit(None, f'tweet_text: {s_tweet_text[:50]} ...')
             else:
                 self.logit(None, 'tweet_text is not found')
                 tab.close()
@@ -443,7 +451,7 @@ class XWool():
         if not isinstance(ele_blk, NoneElement):
             ele_btns = ele_blk.eles('@@tag()=div@@role=presentation', timeout=3)
             for ele_btn in ele_btns:
-                self.logit(None, f'list_tabs: {ele_btn.text}')
+                # self.logit(None, f'list_tabs: {ele_btn.text}')
                 if ele_btn.text != s_tab_name:
                     continue
                 if ele_btn.wait.clickable(timeout=3):
@@ -494,6 +502,10 @@ class XWool():
             if not isinstance(ele_tweet_url, NoneElement):
                 tweet_url = ele_tweet_url.attr('href')
                 self.logit(None, f'tweet_url: {tweet_url}')
+                if tweet_url in self.set_url_processed:
+                    self.logit(None, 'tweet_url is already processed, continue ...')
+                    continue
+                self.set_url_processed.add(tweet_url)
                 self.proc_tw_url(tweet_url)
             else:
                 self.logit(None, 'tweet_url is not found')

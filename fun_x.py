@@ -1245,8 +1245,9 @@ class XUtils():
         return False
 
     def x_reply(self, s_text):
-        for i in range(1, DEF_NUM_TRY+1):
-            self.logit('x_reply', f'try_i={i}/{DEF_NUM_TRY}')
+        max_try = 5
+        for i in range(1, max_try+1):
+            self.logit('x_reply', f'try_i={i}/{max_try}')
             tab = self.browser.latest_tab
             tab.wait.doc_loaded()
 
