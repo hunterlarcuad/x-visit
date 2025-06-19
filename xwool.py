@@ -534,6 +534,8 @@ class XWool():
             if self.inst_dp.set_vpn(s_vpn) is False:
                 return False
 
+        self.inst_dp.check_extension(n_max_try=1)
+
         if self.inst_dp.init_capmonster() is False:
             return False
 
