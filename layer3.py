@@ -1157,12 +1157,12 @@ class ClsLayer3():
         self.logit(None, 'Task elements not found [ERROR]')
         return False
 
-    def complete_tasks_week6(self):
+    def complete_tasks_week6_1(self):
         for i in range(1, DEF_NUM_TRY+1):
             if self.is_claim_rewards():
                 return True
 
-            self.logit('complete_tasks_week6', f'trying ... {i}/{DEF_NUM_TRY}')
+            self.logit('complete_tasks_week6_1', f'trying ... {i}/{DEF_NUM_TRY}')
             # 任务数量
             task_num = 5
 
@@ -1194,6 +1194,62 @@ class ClsLayer3():
                         self.browser.latest_tab.close()
                         tab.wait(2)
                         self.click_continue()
+                    break
+                else:
+                    self.logit(None, f'Step number is not processable [n_step={n_step}]')
+                    break
+
+            return True
+
+        self.logit(None, 'Task elements not found [ERROR]')
+        return False
+
+    def complete_tasks_week6_2(self):
+        for i in range(1, DEF_NUM_TRY+1):
+            if self.is_claim_rewards():
+                return True
+
+            self.logit('complete_tasks_week6_2', f'trying ... {i}/{DEF_NUM_TRY}')
+            # 任务数量
+            task_num = 5
+
+            for j in range(1, task_num*3):
+                self.logit(None, f'Doing task j={j} (Start from 1)')
+                n_step = self.get_step_num()
+                if n_step == -1:
+                    self.logit(None, 'Step number not found')
+                    if j >= 3:
+                        return False
+                    continue
+
+                self.logit(None, f'Step number: {n_step}')
+
+                if (n_step >= 1) and (n_step <= 2):
+                    # 任务 1-2 直接 Continue
+                    if self.click_continue():
+                        continue
+                elif n_step == 3:
+                    tab = self.browser.latest_tab
+                    ele_btn = tab.ele('@@tag()=button@@text()=Open X', timeout=2) # noqa
+                    if not isinstance(ele_btn, NoneElement):
+                        ele_btn.wait.clickable(timeout=3)
+                        ele_btn.click(by_js=True)
+                        tab.wait(2)
+                        self.browser.latest_tab.close()
+                        self.click_continue()
+                    continue
+                elif n_step == 4:
+                    tab = self.browser.latest_tab
+                    ele_btn = tab.ele('@@tag()=button@@text()=Open Discord', timeout=2) # noqa
+                    if not isinstance(ele_btn, NoneElement):
+                        ele_btn.wait.clickable(timeout=3)
+                        ele_btn.click(by_js=True)
+                        tab.wait(2)
+                        self.browser.latest_tab.close()
+                        self.click_continue()
+                    continue
+                elif n_step == 5:
+                    self.click_continue()
                     break
                 else:
                     self.logit(None, f'Step number is not processable [n_step={n_step}]')
@@ -1265,7 +1321,9 @@ class ClsLayer3():
             elif s_task_name == 'brewing-the-future-molten-network':
                 self.complete_tasks_week5()
             elif s_task_name == 'brewing-the-future-buildn-brew':
-                self.complete_tasks_week6()
+                self.complete_tasks_week6_1()
+            elif s_task_name == 'brewing-the-future-caffeinated-creators':
+                self.complete_tasks_week6_2()
 
         return False
 
@@ -1686,9 +1744,12 @@ https://app.layer3.xyz/activations/brewing-the-future-molten-network
 C、B、D
 python layer3.py --no_x --url=https://app.layer3.xyz/activations/brewing-the-future-molten-network --profile=g05
 
-Week 6
+Week 6.1
 https://app.layer3.xyz/activations/brewing-the-future-buildn-brew
 B、A、C
 python layer3.py --no_x --url=https://app.layer3.xyz/activations/brewing-the-future-buildn-brew --profile=g05
 
+Week 6.2
+https://app.layer3.xyz/activations/brewing-the-future-caffeinated-creators
+python layer3.py --no_x --url=https://app.layer3.xyz/activations/brewing-the-future-caffeinated-creators --profile=g01
 """
