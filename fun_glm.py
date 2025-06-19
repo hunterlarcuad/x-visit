@@ -105,9 +105,11 @@ def gene_by_llm(s_prompt):
         None: Fail to generate msg by llm
         string: generated content by llm
     """
+    # s_model = "glm-4-air"
+    s_model = "glm-4-plus"
     client = get_glm_client()
     response = client.chat.asyncCompletions.create(
-        model="GLM-4-Air",  # 请填写您要调用的模型名称
+        model=s_model,  # 请填写您要调用的模型名称
         messages=[
             {
                 "role": "user",
