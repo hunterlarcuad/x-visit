@@ -330,6 +330,7 @@ class XWool():
                 "回复内容要避开敏感信息"
                 "请用中文输出"
                 "输出不要出现换行符"
+                "中文与非中文之间要加空格"
                 "输出不要超过60字"
                 "【帖子内容如下】"
                 f"{s_cont}"
@@ -493,10 +494,6 @@ class XWool():
                 self.logit(None, f'An error occurred, continue ...')
                 continue
 
-            if self.is_liked(ele_blk):
-                self.logit(None, 'Already liked, continue ...')
-                continue
-
             # xuser_name
             ele_tweet_url = ele_blk.ele('@@tag()=a@@href:status@@dir=ltr', timeout=3)
             if not isinstance(ele_tweet_url, NoneElement):
@@ -505,6 +502,14 @@ class XWool():
                 if tweet_url in self.set_url_processed:
                     self.logit(None, 'tweet_url is already processed, continue ...')
                     continue
+
+                if '/ablenavy/' in tweet_url:
+                    continue
+
+                if self.is_liked(ele_blk):
+                    self.logit(None, 'Already liked, continue ...')
+                    continue
+
                 self.set_url_processed.add(tweet_url)
                 self.proc_tw_url(tweet_url)
             else:
