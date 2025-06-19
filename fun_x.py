@@ -1267,8 +1267,42 @@ class XUtils():
                 self.logit(None, 'Try to input reply text ...')
                 tab.actions.move_to(ele_btn)
                 if ele_btn.text.replace('\n', ' ') != s_text.replace('\n', ' '):
-                    ele_btn.input(s_text)
-                    tab.wait(2)
+                    # ele_btn.input(s_text)
+                    # tab.wait(2)
+
+                    ########## 在 div text 中不起作用
+                    # ele_btn.click.multi(times=2)
+                    # tab.wait(1)
+                    # ele_btn.clear(by_js=True)
+                    # tab.wait(1)
+                    # tab.actions.move_to(ele_btn).click().type(s_text) # noqa
+
+                    try:
+                        tab.actions.move_to(ele_btn).click()
+                        tab.wait(0.5)
+                        # 清除 DraftJS 编辑器内容
+                        tab.run_js('''
+                            var element = arguments[0];
+                            var editor = element.querySelector('[data-testid="tweetTextarea_0"]');
+                            if (editor) {
+                                editor.focus();
+                                // 清除内容但保持结构
+                                var range = document.createRange();
+                                range.selectNodeContents(editor);
+                                var selection = window.getSelection();
+                                selection.removeAllRanges();
+                                selection.addRange(range);
+                                document.execCommand('delete');
+                            }
+                        ''', ele_btn)
+                        tab.wait(0.5)
+                        tab.actions.type(s_text)
+                    except Exception as e:
+                        tab.actions.move_to(ele_btn).click()
+                        tab.wait(0.5)
+                        tab.actions.type(s_text)
+                    
+                    tab.wait(1)
 
                 if ele_btn.text.replace('\n', ' ') != s_text.replace('\n', ' '):
                     self.logit(None, 'reply ele_btn.text != s_text')
