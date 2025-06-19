@@ -1279,27 +1279,28 @@ class XUtils():
 
                     try:
                         tab.actions.move_to(ele_btn).click()
-                        tab.wait(0.5)
-                        # 清除 DraftJS 编辑器内容
-                        tab.run_js('''
-                            var element = arguments[0];
-                            var editor = element.querySelector('[data-testid="tweetTextarea_0"]');
-                            if (editor) {
-                                editor.focus();
-                                // 清除内容但保持结构
-                                var range = document.createRange();
-                                range.selectNodeContents(editor);
-                                var selection = window.getSelection();
-                                selection.removeAllRanges();
-                                selection.addRange(range);
-                                document.execCommand('delete');
-                            }
-                        ''', ele_btn)
-                        tab.wait(0.5)
+                        tab.wait(1)
+                        if ele_btn.text != '发布你的回复':
+                            # 清除 DraftJS 编辑器内容
+                            tab.run_js('''
+                                var element = arguments[0];
+                                var editor = element.querySelector('[data-testid="tweetTextarea_0"]');
+                                if (editor) {
+                                    editor.focus();
+                                    // 清除内容但保持结构
+                                    var range = document.createRange();
+                                    range.selectNodeContents(editor);
+                                    var selection = window.getSelection();
+                                    selection.removeAllRanges();
+                                    selection.addRange(range);
+                                    document.execCommand('delete');
+                                }
+                            ''', ele_btn)
+                            tab.wait(2)
                         tab.actions.type(s_text)
                     except Exception as e:
                         tab.actions.move_to(ele_btn).click()
-                        tab.wait(0.5)
+                        tab.wait(1)
                         tab.actions.type(s_text)
                     
                     tab.wait(1)

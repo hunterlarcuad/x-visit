@@ -31,6 +31,8 @@ from fun_okx import OkxUtils
 from fun_x import XUtils
 from fun_dp import DpUtils
 
+from fun_glm import gene_by_llm
+
 from conf import DEF_USE_HEADLESS
 from conf import DEF_DEBUG
 from conf import DEF_PATH_USER_DATA
@@ -205,7 +207,7 @@ class XWool():
             '@@tag()=button@@data-testid=unlike',
         ]
         ele_like = self.inst_dp.get_ele_btn(ele_blk, lst_path)
-        if ele_like is not NoneElement:
+        if not isinstance(ele_like, NoneElement):
             s_attr = ele_like.attr('data-testid')
             if s_attr == 'unlike':
                 return True
@@ -238,6 +240,7 @@ class XWool():
         lst_keywords = [
             '互关',
             '互粉',
+            '有关必回',
         ]
         for s_keyword in lst_keywords:
             # 不区分大小写
@@ -245,22 +248,23 @@ class XWool():
                 return True
         return False
 
-    def is_keyword_analyze(self, s_tweet_text):
+    def get_analyze_type(self, s_tweet_text):
         """
         分析贴，调用大模型回复
         """
-        lst_keywords = [
-            'cookiedotfun',
-            'Cookie',
-            'SNAPS',
-            'Spark',
-            'Sapien',
-        ]
-        for s_keyword in lst_keywords:
+        s_lower_text = s_tweet_text.lower()
+        if 'cookie' not in s_lower_text:
+            return 'other'
+
+        dic_keywords = {
+            'Spark': 'Spark',
+            'Sapien': 'Sapien',
+        }
+        for s_keyword, s_type in dic_keywords.items():
             # 不区分大小写
-            if s_keyword.lower() in s_tweet_text.lower():
-                return True
-        return False
+            if s_keyword.lower() in s_lower_text:
+                return s_type
+        return 'other'
 
     def get_tweet_type_by_keyword(self, s_tweet_text):
         """
@@ -268,10 +272,9 @@ class XWool():
         """
         if self.is_keyword_follow(s_tweet_text):
             return 'follow'
-        elif self.is_keyword_analyze(s_tweet_text):
-            return 'analyze'
         else:
-            return 'other'
+            s_analyze_type = self.get_analyze_type(s_tweet_text)
+            return s_analyze_type
 
     def follow_user(self, name):
         user_url = f'https://x.com/{name}'
@@ -285,7 +288,7 @@ class XWool():
                 self.status_append(
                     s_op_type='follow',
                     s_url=user_url,
-                    s_msg=f'Follow x: {name}',
+                    s_msg=f'{name}',
                     s_status='OK',
                 )
             else:
@@ -301,24 +304,57 @@ class XWool():
                 '互关互粉',
                 '来啦！互关！'
             ]
+            lst_tw = [
+                'https://x.com/ablenavy/status/1935333243873628525',
+                'https://x.com/ablenavy/status/1935347866815610917',
+            ]
             s_reply = random.choice(lst_reply)
-        elif s_tweet_type == 'analyze':
+            s_reply += '\n'
+            s_reply += random.choice(lst_tw)
+        else:
             # 调用大模型
-            pass
-        if not s_reply:
-            self.logit(None, 's_reply is empty, skip ...')
-            return False
+            s_cont = s_tweet_text[:300]
 
-        #pdb.set_trace()
+            # "回复尽量幽默风趣，使用小红书风格"
 
-        # if self.inst_x.x_reply(s_reply):
-        #     self.status_append(
-        #         s_op_type='reply',
-        #         s_url=self.browser.latest_tab.url,
-        #         s_msg=f'[Reply] {s_reply}',
-        #         s_status='OK',
-        #     )
-        #     return True
+            s_prompt = (
+                "【功能】"
+                "根据给定帖子内容，生成回复"
+                "【要求】"
+                "回复内容要符合给定帖子内容"
+                "回复内容要避开敏感信息"
+                "请用中文输出"
+                "输出不要出现换行符"
+                "输出不要超过60字"
+                "【帖子内容如下】"
+                f"{s_cont}"
+            )
+            s_reply = gene_by_llm(s_prompt)
+            if not s_reply:
+                self.logit(None, 's_reply from llm is empty, skip ...')
+                return False
+            s_reply += '\n'
+            s_reply += '@@sparkdotfi @cookiedotfun @cookiedotfuncn'
+
+            if s_tweet_type == 'Spark':
+                s_reply += '\n'
+                s_reply += '#SparkFi #Cookie #SNAPS'
+            elif s_tweet_type == 'Sapien':
+                s_reply += '\n'
+                s_reply += '#SapienFi #Cookie #SNAPS'
+            else:
+                s_reply += '\n'
+                s_reply += '#Cookie #SNAPS'
+
+        if self.inst_x.x_reply(s_reply):
+            s_msg = s_reply.replace('\n', ' ')
+            self.status_append(
+                s_op_type='reply',
+                s_url=self.browser.latest_tab.url,
+                s_msg=f'[Reply] {s_msg}',
+                s_status='OK',
+            )
+            return True
         return False
 
     def proc_tw_url(self, tweet_url):
@@ -333,7 +369,7 @@ class XWool():
 
             # get tweet text
             ele_tweet_text = tab.ele('@@tag()=div@@data-testid=tweetText', timeout=3)
-            if ele_tweet_text is not NoneElement:
+            if not isinstance(ele_tweet_text, NoneElement):
                 s_tweet_text = ele_tweet_text.text
                 self.logit(None, f'tweet_text: {s_tweet_text[:30]} ...')
             else:
@@ -365,8 +401,7 @@ class XWool():
             # follow
             self.follow_user(name)
 
-
-    def interaction(self):
+    def click_display_post(self):
         tab = self.browser.latest_tab
         # 显示 xx 帖子
         lst_path = [
@@ -380,9 +415,53 @@ class XWool():
                 self.logit(None, 'get_new_post [Success]')
             tab.wait(2)
 
+    def list_tabs(self):
+        """
+        获取所有标签
+
+        为你推荐
+        关注
+        X 推特华语区 ｜蓝V互关｜Kaito｜Cookie
+        X 推特华语区【蓝V互关】
+        互关
+        """
+        lst_tabs = []
+        tab = self.browser.latest_tab
+        ele_blk = tab.ele('@@tag()=div@@data-testid=ScrollSnap-List', timeout=3)
+        if not isinstance(ele_blk, NoneElement):
+            ele_btns = ele_blk.eles('@@tag()=div@@role=presentation', timeout=3)
+            for ele_btn in ele_btns:
+                self.logit(None, f'list_tabs: {ele_btn.text}')
+                if ele_btn.text in ['关注']:
+                    continue
+                lst_tabs.append(ele_btn.text)
+        return lst_tabs
+
+    def select_tab(self, s_tab_name):
+        tab = self.browser.latest_tab
+        ele_blk = tab.ele('@@tag()=div@@data-testid=ScrollSnap-List', timeout=3)
+        if not isinstance(ele_blk, NoneElement):
+            ele_btns = ele_blk.eles('@@tag()=div@@role=presentation', timeout=3)
+            for ele_btn in ele_btns:
+                self.logit(None, f'list_tabs: {ele_btn.text}')
+                if ele_btn.text != s_tab_name:
+                    continue
+                if ele_btn.wait.clickable(timeout=3):
+                    ele_btn.click()
+                    self.logit(None, f'select_tab[{s_tab_name}] [Success]')
+                    tab.wait.doc_loaded()
+                    tab.wait(5)
+                    return True
+        return False
+
+    def interaction(self):
+        self.click_display_post()
+        tab = self.browser.latest_tab
+
         for i in range(1, 5):
             ele_blks_top = tab.eles('@@tag()=div@@class=css-175oi2r@@data-testid=cellInnerDiv', timeout=3)
             if len(ele_blks_top) > 0:
+                time.sleep(3)
                 break
             self.inst_x.wrong_retry()
             time.sleep(3)
@@ -397,9 +476,13 @@ class XWool():
         for ele_blk_top in ele_blks_top:
             num_blk += 1
             self.logit(None, f'num_blk={num_blk}/{n_blks_top}')
-            ele_blk = ele_blk_top.ele('@@tag()=article@@aria-labelledby:id', timeout=3)
-
-            if ele_blk is NoneElement:
+            try:
+                ele_blk = ele_blk_top.ele('@@tag()=article@@aria-labelledby:id', timeout=3)
+                if isinstance(ele_blk, NoneElement):
+                    continue
+            except Exception as e:
+                #self.logit(None, f'An error occurred: {e}')
+                self.logit(None, f'An error occurred, continue ...')
                 continue
 
             if self.is_liked(ele_blk):
@@ -408,7 +491,7 @@ class XWool():
 
             # xuser_name
             ele_tweet_url = ele_blk.ele('@@tag()=a@@href:status@@dir=ltr', timeout=3)
-            if ele_tweet_url is not NoneElement:
+            if not isinstance(ele_tweet_url, NoneElement):
                 tweet_url = ele_tweet_url.attr('href')
                 self.logit(None, f'tweet_url: {tweet_url}')
                 self.proc_tw_url(tweet_url)
@@ -449,7 +532,12 @@ class XWool():
         n_max_run = 10
         for i in range(1, n_max_run+1):
             self.logit(None, f'Run {i}/{n_max_run} times ...')
-            self.interaction()
+            lst_tabs = self.list_tabs()
+            # lst_tabs = ['X 推特华语区【蓝V互关】']
+            # lst_tabs = ['为你推荐']
+            for s_tab_name in lst_tabs:
+                self.select_tab(s_tab_name)
+                self.interaction()
             self.browser.latest_tab.refresh()
             n_sleep = random.randint(60, 120)
             self.logit(None, f'Sleep {n_sleep} seconds ...')

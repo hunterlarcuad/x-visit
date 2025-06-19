@@ -99,6 +99,41 @@ def gene_repeal_msg(s_in):
     return None
 
 
+def gene_by_llm(s_prompt):
+    """
+    Return:
+        None: Fail to generate msg by llm
+        string: generated content by llm
+    """
+    client = get_glm_client()
+    response = client.chat.asyncCompletions.create(
+        model="GLM-4-Air",  # 请填写您要调用的模型名称
+        messages=[
+            {
+                "role": "user",
+                "content": s_prompt
+            }
+        ],
+    )
+    task_id = response.id
+    task_status = ''
+    get_cnt = 0
+
+    while task_status != 'SUCCESS' and task_status != 'FAILED' and get_cnt <= 40:
+        result_response = client.chat.asyncCompletions.retrieve_completion_result(id=task_id)
+        # print(result_response)
+        task_status = result_response.task_status
+
+        if task_status == 'SUCCESS':
+            s_cont = result_response.choices[0].message.content
+            return s_cont
+
+        time.sleep(2)
+        get_cnt += 1
+
+    return None
+
+
 # def main():
 #     parser = argparse.ArgumentParser(description="CSV 文件加密工具")
 #     parser.add_argument("--file_in", help="输入的 CSV 文件路径")
