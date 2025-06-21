@@ -310,9 +310,9 @@ class XWool():
                 '来啦！互关！'
             ]
             lst_tw = [
-                'https://x.com/ablenavy/status/1936063819635474853',
-                'https://x.com/ablenavy/status/1936058674927353908',
-                'https://x.com/ablenavy/status/1936086416058204507',
+                'https://x.com/ablenavy/status/1936212691250823202',
+                'https://x.com/ablenavy/status/1936221502976016859',
+                'https://x.com/ablenavy/status/1936233127867040145',
             ]
             s_reply = random.choice(lst_reply)
             s_reply += '\n'
