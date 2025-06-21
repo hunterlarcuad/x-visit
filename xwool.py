@@ -112,6 +112,7 @@ class XWool():
         self.DEF_HEADER_STATUS = ','.join(self.lst_header_status)
 
         self.set_url_processed = set([])
+        self.lst_advertise_url = []
 
     def set_args(self, args):
         self.args = args
@@ -121,6 +122,53 @@ class XWool():
 
     def __del__(self):
         pass
+
+    def load_advertising_urls(self):
+        """
+        加载广告 URL
+
+        过滤当天的 url 列表，如果结果为空，则加载所有 url
+
+        date,project,url
+        2025-06-21,Spark,https://x.com/ablenavy/status/1936212691250823202
+        """
+        csv_file = 'datas/status/xwool/advertising.csv'
+        lst_urls_today = []
+        lst_urls_all = []
+        
+        # 获取今天的日期
+        today = format_ts(time.time(), style=1, tz_offset=TZ_OFFSET)
+        
+        try:
+            # 使用 load_file 函数加载 CSV 数据
+            dic_data = load_file(csv_file, idx_key=2)
+            
+            # 提取 URL（CSV 格式：date,project,url）
+            for key, fields in dic_data.items():
+                if len(fields) >= 3:
+                    date_str = fields[0].strip()
+                    url = fields[2].strip()
+                    if url and url.startswith('https://'):
+                        lst_urls_all.append(url)
+                        # 如果是今天的日期，添加到今天的列表
+                        if date_str == today:
+                            lst_urls_today.append(url)
+            
+            # 优先使用今天的 URL，如果今天没有则使用所有 URL
+            if lst_urls_today:
+                self.lst_advertise_url = lst_urls_today
+                self.logit(None, f'Loaded {len(lst_urls_today)} URLs for today')
+            else:
+                self.lst_advertise_url = lst_urls_all
+                self.logit(None, f'No URLs for today, loaded {len(lst_urls_all)} '
+                                 f'total URLs from CSV')
+            
+        except Exception as e:
+            self.logit(None, f'Error loading advertising URLs: {str(e)}')
+            # 加载失败，使用空列表
+            self.lst_advertise_url = []
+
+        return
 
     def append2file(self, file_ot, s_content, header=''):
         """
@@ -309,14 +357,11 @@ class XWool():
                 '互关互粉，冲！',
                 '来啦！互关！'
             ]
-            lst_tw = [
-                'https://x.com/ablenavy/status/1936212691250823202',
-                'https://x.com/ablenavy/status/1936221502976016859',
-                'https://x.com/ablenavy/status/1936233127867040145',
-            ]
+            # 使用已加载的广告 URL
             s_reply = random.choice(lst_reply)
-            s_reply += '\n'
-            s_reply += random.choice(lst_tw)
+            if len(self.lst_advertise_url) > 0:
+                s_reply += '\n'
+                s_reply += random.choice(self.lst_advertise_url)
         else:
             # 调用大模型
             s_cont = s_tweet_text[:300]
@@ -331,9 +376,10 @@ class XWool():
                 "回复内容要避开敏感信息"
                 "请用中文输出"
                 "输出不要出现换行符"
-                "中文与非中文之间要加空格"
+                "回复内容 @用户不要超过2个，避免引用#话题"
                 "回复内容积极向上，不要出现负面情绪"
                 "输出不要超过60字"
+                "特别注意，中文(汉字)与非中文(英文、数字、符号)之间要加一个空格，不要连在一起，增加可读性"
                 "特别注意，不要出现回复如下之类的字眼，直接输出回复内容"
                 "# 【帖子内容如下】"
                 f"{s_cont}"
@@ -520,7 +566,7 @@ class XWool():
 
             tab.wait(10)
 
-    def xwool_run(self):
+    def xwool_run(self):        
         self.browser = self.inst_dp.get_browser(self.args.s_profile)
 
         self.inst_x.status_load()
@@ -554,6 +600,10 @@ class XWool():
         n_max_run = 10
         for i in range(1, n_max_run+1):
             self.logit(None, f'Run {i}/{n_max_run} times ...')
+
+            # 加载广告 URL
+            self.load_advertising_urls()
+
             lst_tabs = self.list_tabs()
             # lst_tabs = ['X 推特华语区【蓝V互关】']
             # lst_tabs = ['为你推荐']
