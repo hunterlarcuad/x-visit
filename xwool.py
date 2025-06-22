@@ -345,6 +345,57 @@ class XWool():
                 self.logit(None, f'Follow x: {name} [Failed]')
         tab.close()
 
+    def is_reply_ok(self, s_reply, n_max_len=60):
+        """
+        检查回复内容是否合格
+        
+        检查规则：
+        1. 如果 @ # $ 出现次数超过 1 次，则认为回复不合格
+        2. 如果回复长度超过 n_max_len 字，则认为回复不合格
+        3. 如果非中文字符串(英文、数字、符号，符号只考虑 @ # $ 三个)与中文之间没有空格，则认为回复不合格
+        
+        Args:
+            s_reply: 回复内容
+            n_max_len: 最大长度限制，默认60字
+            
+        Returns:
+            tuple: (bool, str) - (是否合格, 不合格原因)
+                   True表示合格，False表示不合格
+        """
+        errors = []
+        
+        # 检查长度
+        if len(s_reply) > n_max_len:
+            errors.append(f'长度超限({len(s_reply)}>{n_max_len})')
+        
+        # 检查特殊字符出现次数
+        special_chars = ['@', '#', '$']
+        for char in special_chars:
+            count = s_reply.count(char)
+            if count > 1:
+                errors.append(f'"{char}"出现{count}次')
+        
+        # 检查非中文字符(英文、数字、符号，符号只考虑 @ # $ 三个)与中文之间是否有空格
+        # 查找中文字符后紧跟非中文字符的情况(英文、数字、@ # $ 符号)
+        pattern1 = r'[\u4e00-\u9fff][a-zA-Z0-9@#$]'
+        # 查找非中文字符后紧跟中文字符的情况
+        pattern2 = r'[a-zA-Z0-9@#$][\u4e00-\u9fff]'
+        
+        match1 = re.search(pattern1, s_reply)
+        match2 = re.search(pattern2, s_reply)
+        
+        if match1 or match2:
+            problem_text = match1.group() if match1 else match2.group()
+            errors.append(f'中英文之间缺少空格，问题片段: "... {problem_text} ..."')
+        
+        # 如果有错误，返回 False 和拼接的错误信息
+        if errors:
+            error_msg = '; '.join(errors)
+            self.logit(None, f'Reply not qualified: {error_msg}')
+            return False, error_msg
+        
+        return True, 'OK'
+    
     def reply_tweet(self, s_tweet_type, s_tweet_text):
         s_reply = ''
         if s_tweet_type == 'follow':
@@ -367,28 +418,56 @@ class XWool():
             s_cont = s_tweet_text[:300]
 
             # "回复尽量幽默风趣，使用小红书风格"
+            s_rules = (
+                "回复内容要符合给定帖子内容\n"
+                "回复内容要避开敏感信息\n"
+                "请用中文输出\n"
+                "输出不要出现换行符\n"
+                "回复内容 @ 不要超过1个\n"
+                "避免引用#话题，禁止出现 # \n"
+                "回复内容积极向上，不要出现负面情绪\n"
+                "输出不要超过60字\n"
+                "特别注意，中文(汉字)与非中文(英文、数字、符号)之间要加一个空格，不要连在一起，增加可读性\n"
+                "特别注意，不要出现回复如下之类的字眼，直接输出回复内容\n"
+            )
 
             s_prompt = (
-                "# 【功能】"
-                "阅读给定帖子内容，生成回复"
-                "# 【要求】"
-                "回复内容要符合给定帖子内容"
-                "回复内容要避开敏感信息"
-                "请用中文输出"
-                "输出不要出现换行符"
-                "回复内容 @用户 不要超过1个"
-                "避免引用#话题，禁止出现 # "
-                "回复内容积极向上，不要出现负面情绪"
-                "输出不要超过60字"
-                "特别注意，中文(汉字)与非中文(英文、数字、符号)之间要加一个空格，不要连在一起，增加可读性"
-                "特别注意，不要出现回复如下之类的字眼，直接输出回复内容"
-                "# 【帖子内容如下】"
+                "# 【功能】\n"
+                "阅读给定帖子内容，生成回复\n"
+                "# 【要求】\n"
+                f"{s_rules}"
+                "# 【帖子内容如下】\n"
                 f"{s_cont}"
             )
             s_reply = gene_by_llm(s_prompt)
             if not s_reply:
                 self.logit(None, 's_reply from llm is empty, skip ...')
                 return False
+
+            # 尝试生成合格的回复，最多3次
+            max_attempts = 5
+            for attempt in range(1, max_attempts + 1):
+                # 验证回复内容是否合格
+                is_ok, reason = self.is_reply_ok(s_reply)
+                if is_ok:
+                    self.logit(None, f'Reply qualified on attempt {attempt}/{max_attempts}')
+                    break
+                else:
+                    self.logit(None, f'Attempt {attempt}/{max_attempts}: Reply not qualified: {reason}')
+                    if attempt < max_attempts:
+                        # 修改 prompt，要求大模型根据错误原因进行改进
+                        s_prompt = (
+                            "# 【要求】\n"
+                            f"{s_rules}"
+                            f"# 【回复内容有问题，请根据错误原因进行修改】\n"
+                            f"{reason}\n"
+                            f"# 【回复内容】{s_reply}"
+                        )
+                        s_reply = gene_by_llm(s_prompt)
+                    else:
+                        self.logit(None, 'All attempts failed, skip ...')
+                        return False
+
             """
             s_reply += '\n'
             s_reply += '@sparkdotfi @cookiedotfun @cookiedotfuncn'
