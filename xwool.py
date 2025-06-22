@@ -309,6 +309,7 @@ class XWool():
         dic_keywords = {
             'Spark': 'Spark',
             'Sapien': 'Sapien',
+            'Openledger': 'Openledger',
         }
         for s_keyword, s_type in dic_keywords.items():
             # 不区分大小写
@@ -476,6 +477,11 @@ class XWool():
                 s_reply += '\n'
                 s_reply += '#SparkFi #Cookie #SNAPS'
             elif s_tweet_type == 'Sapien':
+                s_reply += '\n'
+                s_reply += '#SapienFi #Cookie #SNAPS'
+            elif s_tweet_type == 'Openledger':
+                s_reply += '\n'
+                s_reply += '@OpenledgerHQ\n'
                 s_reply += '\n'
                 s_reply += '#SapienFi #Cookie #SNAPS'
             else:
