@@ -1244,8 +1244,36 @@ class XUtils():
 
         return False
 
+    def x_is_replied(self):
+        idx = get_index_from_header(DEF_HEADER_ACCOUNT, 'x_username')
+        x_username = self.dic_account[self.args.s_profile][idx]
+
+        tab = self.browser.latest_tab
+        tab.wait.doc_loaded()
+        tab.wait(3)
+
+        ele_btn = tab.ele('@@tag()=div@@data-testid=tweetTextarea_0_label', timeout=2)
+        if not isinstance(ele_btn, NoneElement):
+            try:
+                tab.actions.move_to(ele_btn).click()
+                tab.wait(1)
+            except Exception as e:
+                self.logit(None, f'Error: {e}')
+                # 如果点击失败，则认为已回复
+                return True
+
+        ele_block = tab.ele('@@tag()=div@@data-testid=primaryColumn', timeout=2)
+        if not isinstance(ele_block, NoneElement):
+            ele_reply = ele_block.eles(f'@@tag()=a@@href=/{x_username}', timeout=2)
+            # 未回复，出现一次
+            # 回复一次，出现三次
+            if len(ele_reply) >= 4:
+                return True
+
+        return False
+
     def x_reply(self, s_text):
-        max_try = 5
+        max_try = 10
         for i in range(1, max_try+1):
             self.logit('x_reply', f'try_i={i}/{max_try}')
             tab = self.browser.latest_tab
@@ -1281,24 +1309,40 @@ class XUtils():
                     try:
                         tab.actions.move_to(ele_btn).click()
                         tab.wait(1)
-                        if ele_btn.text != '发布你的回复':
-                            # 清除 DraftJS 编辑器内容
-                            tab.run_js('''
-                                var element = arguments[0];
-                                var editor = element.querySelector('[data-testid="tweetTextarea_0"]');
-                                if (editor) {
-                                    editor.focus();
-                                    // 清除内容但保持结构
-                                    var range = document.createRange();
-                                    range.selectNodeContents(editor);
-                                    var selection = window.getSelection();
-                                    selection.removeAllRanges();
-                                    selection.addRange(range);
-                                    document.execCommand('delete');
-                                }
-                            ''', ele_btn)
-                            tab.wait(2)
-                        tab.actions.type(s_text)
+                        # if ele_btn.text != '发布你的回复' and ele_btn.text != '':
+                        #     # 清除 DraftJS 编辑器内容
+                        #     tab.run_js('''
+                        #         var element = arguments[0];
+                        #         var editor = element.querySelector('[data-testid="tweetTextarea_0"]');
+                        #         if (editor) {
+                        #             editor.focus();
+                        #             // 清除内容但保持结构
+                        #             var range = document.createRange();
+                        #             range.selectNodeContents(editor);
+                        #             var selection = window.getSelection();
+                        #             selection.removeAllRanges();
+                        #             selection.addRange(range);
+                        #             document.execCommand('delete');
+                        #         }
+                        #     ''', ele_btn)
+                        #     tab.wait(2)
+                        if i <= 3:
+                            tab.actions.type(s_text)
+                        else:
+                            n_len = len(s_text)
+                            for j in range(n_len):
+                                s_char = s_text[j]
+                                tab.actions.type(s_char)
+                                tab.wait(0.3)
+                                if s_char == ' ':
+                                    continue
+                                if ele_btn.text != s_text[:j+1]:
+                                    self.logit(None, f'reply ele_btn.text != s_text[:j+1]')
+                                    self.logit(None, f'-- ele_btn.text: {ele_btn.text}')
+                                    self.logit(None, f'-- s_text[:j+1]: {s_text[:j+1]}')
+                                    is_input_ok = False
+                                    break
+
                     except Exception as e:
                         tab.actions.move_to(ele_btn).click()
                         tab.wait(1)
@@ -1310,6 +1354,7 @@ class XUtils():
                     self.logit(None, 'reply ele_btn.text != s_text')
                     self.logit(None, f'-- ele_btn.text: {ele_btn.text}')
                     self.logit(None, f'-- s_text: {s_text}')
+                    tab.refresh()
                     continue
             else:
                 continue

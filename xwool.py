@@ -21,6 +21,7 @@ from fun_utils import save2file
 from fun_utils import format_ts
 from fun_utils import time_difference
 from fun_utils import get_index_from_header
+from fun_utils import load_advertising_urls
 
 from fun_encode import decrypt
 from fun_gmail import get_verify_code_from_gmail
@@ -119,56 +120,10 @@ class XWool():
         self.is_update = False
 
         self.file_status = f'{DEF_PATH_DATA_STATUS}/xwool/status_{self.args.s_profile}.csv'
+        self.file_advertising = f'{DEF_PATH_DATA_STATUS}/xwool/advertising.csv'
 
     def __del__(self):
         pass
-
-    def load_advertising_urls(self):
-        """
-        加载广告 URL
-
-        过滤当天的 url 列表，如果结果为空，则加载所有 url
-
-        date,project,url
-        2025-06-21,Spark,https://x.com/ablenavy/status/1936212691250823202
-        """
-        csv_file = 'datas/status/xwool/advertising.csv'
-        lst_urls_today = []
-        lst_urls_all = []
-        
-        # 获取今天的日期
-        today = format_ts(time.time(), style=1, tz_offset=TZ_OFFSET)
-        
-        try:
-            # 使用 load_file 函数加载 CSV 数据
-            dic_data = load_file(csv_file, idx_key=2)
-            
-            # 提取 URL（CSV 格式：date,project,url）
-            for key, fields in dic_data.items():
-                if len(fields) >= 3:
-                    date_str = fields[0].strip()
-                    url = fields[2].strip()
-                    if url and url.startswith('https://'):
-                        lst_urls_all.append(url)
-                        # 如果是今天的日期，添加到今天的列表
-                        if date_str == today:
-                            lst_urls_today.append(url)
-            
-            # 优先使用今天的 URL，如果今天没有则使用所有 URL
-            if lst_urls_today:
-                self.lst_advertise_url = lst_urls_today
-                self.logit(None, f'Loaded {len(lst_urls_today)} URLs for today')
-            else:
-                self.lst_advertise_url = lst_urls_all
-                self.logit(None, f'No URLs for today, loaded {len(lst_urls_all)} '
-                                 f'total URLs from CSV')
-            
-        except Exception as e:
-            self.logit(None, f'Error loading advertising URLs: {str(e)}')
-            # 加载失败，使用空列表
-            self.lst_advertise_url = []
-
-        return
 
     def append2file(self, file_ot, s_content, header=''):
         """
@@ -229,13 +184,6 @@ class XWool():
         if s_info:
             s_text += f' {s_info}'
         logger.info(s_text)
-
-    def save_screenshot(self, name):
-        tab = self.browser.latest_tab
-        # 对整页截图并保存
-        # tab.set.window.max()
-        s_name = f'{self.args.s_profile}_{name}'
-        tab.get_screenshot(path='tmp_img', name=s_name, full_page=True)
 
     def is_task_complete(self, idx_status, s_profile=None):
         if s_profile is None:
@@ -367,7 +315,8 @@ class XWool():
         
         # 检查长度
         if len(s_reply) > n_max_len:
-            errors.append(f'长度超限({len(s_reply)}>{n_max_len})')
+            # errors.append(f'长度超限({len(s_reply)}>{n_max_len})')
+            errors.append(f'长度超限({len(s_reply)}>{n_max_len}) [回答太长了，简短一点]')
         
         # 检查特殊字符出现次数
         special_chars = ['@', '#', '$']
@@ -427,7 +376,7 @@ class XWool():
                 "回复内容 @ 不要超过1个\n"
                 "避免引用#话题，禁止出现 # \n"
                 "回复内容积极向上，不要出现负面情绪\n"
-                "输出不要超过60字\n"
+                "输出不要超过 50 字\n"
                 "特别注意，中文(汉字)与非中文(英文、数字、符号)之间要加一个空格，不要连在一起，增加可读性\n"
                 "特别注意，不要出现回复如下之类的字眼，直接输出回复内容\n"
             )
@@ -652,6 +601,69 @@ class XWool():
 
             tab.wait(10)
 
+    def water_by_url(self, tweet_url):
+        """
+        Like, Follow, Retweet, Comment
+        """
+        # Like
+        tab = self.browser.new_tab(tweet_url)
+        self.logit(None, f'Try to Like x: {tweet_url}')
+
+        # Follow
+        # Retweet
+        # Comment
+
+        if self.inst_x.x_is_replied():
+            self.logit(None, 'Already replied, skip ...')
+        else:
+            # get tweet text
+            ele_tweet_text = tab.ele('@@tag()=div@@data-testid=tweetText', timeout=3)
+            if not isinstance(ele_tweet_text, NoneElement):
+                s_tweet_text = ele_tweet_text.text.replace('\n', ' ')
+                self.logit(None, f'tweet_text: {s_tweet_text[:50]} ...')
+            else:
+                self.logit(None, 'tweet_text is not found')
+                tab.close()
+                return
+
+            s_tweet_type = self.get_tweet_type_by_keyword(s_tweet_text)
+            # if s_tweet_type == 'other':
+            #     self.logit(None, 'other tweet, skip ...')
+            #     tab.close()
+            #     return
+            self.logit(None, f's_tweet_type: {s_tweet_type}')
+
+            # reply
+            self.reply_tweet(s_tweet_type, s_tweet_text)
+
+        # like
+        if self.inst_x.x_like():
+            tab.wait(1)
+            self.status_append(
+                s_op_type='like',
+                s_url=tweet_url,
+                s_msg='',
+                s_status='OK',
+            )
+
+        # retweet
+        if self.inst_x.x_retweet():
+            tab.wait(1)
+            self.status_append(
+                s_op_type='retweet',
+                s_url=tweet_url,
+                s_msg='',
+                s_status='OK',
+            )
+
+        tab.close()
+
+        # follow
+        name = tweet_url.split('com/')[-1].split('/')[0]
+        self.follow_user(name)
+
+        return True
+
     def xwool_run(self):        
         self.browser = self.inst_dp.get_browser(self.args.s_profile)
 
@@ -683,23 +695,29 @@ class XWool():
             return False
 
         self.inst_x.twitter_run()
-        n_max_run = 10
-        for i in range(1, n_max_run+1):
-            self.logit(None, f'Run {i}/{n_max_run} times ...')
 
-            # 加载广告 URL
-            self.load_advertising_urls()
+        if self.args.water:
+            self.lst_advertise_url = load_advertising_urls(self.file_advertising)
+            for s_url in self.lst_advertise_url:
+                self.water_by_url(s_url)
+        else:
+            n_max_run = 10
+            for i in range(1, n_max_run+1):
+                self.logit(None, f'Run {i}/{n_max_run} times ...')
 
-            lst_tabs = self.list_tabs()
-            # lst_tabs = ['X 推特华语区【蓝V互关】']
-            # lst_tabs = ['为你推荐']
-            for s_tab_name in lst_tabs:
-                self.select_tab(s_tab_name)
-                self.interaction()
-            self.browser.latest_tab.refresh()
-            n_sleep = random.randint(60, 120)
-            self.logit(None, f'Sleep {n_sleep} seconds ...')
-            time.sleep(n_sleep)
+                # 加载广告 URL
+                self.lst_advertise_url = load_advertising_urls(self.file_advertising)
+
+                lst_tabs = self.list_tabs()
+                # lst_tabs = ['X 推特华语区【蓝V互关】']
+                # lst_tabs = ['为你推荐']
+                for s_tab_name in lst_tabs:
+                    self.select_tab(s_tab_name)
+                    self.interaction()
+                self.browser.latest_tab.refresh()
+                n_sleep = random.randint(60, 120)
+                self.logit(None, f'Sleep {n_sleep} seconds ...')
+                time.sleep(n_sleep)
 
         if self.args.manual_exit and self.args.headless is False:
             s_msg = 'Press any key to exit! ⚠️' # noqa
@@ -965,6 +983,11 @@ if __name__ == '__main__':
         help='Disable headless mode'
     )
 
+    parser.add_argument(
+        '--water', required=False, action='store_true',
+        help='Water by url, like https://x.com/xuser/status/1896000000000000000'
+    )
+
     args = parser.parse_args()
     show_msg(args)
     if args.loop_interval <= 0:
@@ -979,4 +1002,6 @@ if __name__ == '__main__':
 # noqa
 python xwool.py --no_auto_vpn --force --profile=g01
 python xwool.py --no_auto_vpn --force --manual_exit --profile=g01
+
+python xwool.py --no_auto_vpn --force --manual_exit --water --profile=g02
 """

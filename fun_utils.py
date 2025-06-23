@@ -15,6 +15,8 @@ import re
 import random
 import string
 
+from conf import TZ_OFFSET
+
 
 DEF_URL_DINGTALK = "https://oapi.dingtalk.com/robot/send"
 access_token = "0313ed7471f2910596c1d91cef6569c132"  # noqa
@@ -394,6 +396,58 @@ def generate_password(length):
             password[i + 1] = random.choice(non_underscore_characters)
 
     return ''.join(password)
+
+
+def load_advertising_urls(csv_file):
+    """
+    加载广告 URL
+
+    过滤当天的 url 列表，如果结果为空，则加载所有 url
+
+    date,project,url
+    2025-06-21,Spark,https://x.com/ablenavy/status/1936212691250823202
+    """
+    # csv_file = 'datas/status/xwool/advertising.csv'
+    lst_urls_today = []
+    lst_urls_all = []
+    lst_ret = []
+
+    if not os.path.exists(csv_file):
+        self.logit(None, f'CSV file not found: {csv_file}')
+        return []
+    
+    # 获取今天的日期
+    today = format_ts(time.time(), style=1, tz_offset=TZ_OFFSET)
+    
+    try:
+        # 使用 load_file 函数加载 CSV 数据
+        dic_data = load_file(csv_file, idx_key=2)
+        
+        # 提取 URL（CSV 格式：date,project,url）
+        for key, fields in dic_data.items():
+            if len(fields) >= 3:
+                date_str = fields[0].strip()
+                url = fields[2].strip()
+                if url and url.startswith('https://'):
+                    lst_urls_all.append(url)
+                    # 如果是今天的日期，添加到今天的列表
+                    if date_str == today:
+                        lst_urls_today.append(url)
+        
+        # 优先使用今天的 URL，如果今天没有则使用所有 URL
+        if lst_urls_today:
+            print(f'Loaded {len(lst_urls_today)} URLs for today')
+            lst_ret = lst_urls_today
+        else:
+            print(f'No URLs for today, loaded {len(lst_urls_all)} '
+                                f'total URLs from CSV')
+            lst_ret = lst_urls_all
+            
+    except Exception as e:
+        print(f'Error loading advertising URLs: {str(e)}')
+        # 加载失败，使用空列表
+
+    return lst_ret
 
 
 if __name__ == "__main__":
