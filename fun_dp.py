@@ -663,7 +663,9 @@ class DpUtils():
                 (EXTENSION_ID_CAPMONSTER, 'capmonster'),
             ]
         else:
-            lst_extension_id = [(self.args.extension_id, 'custom')]
+            # id 用逗号分隔
+            lst_extension_id = [(s_id, 'custom') for s_id in self.args.extension_id.split(',')]
+            # lst_extension_id = [(self.args.extension_id, 'custom')]
 
         for i in range(n_max_try):
             b_ret = True
