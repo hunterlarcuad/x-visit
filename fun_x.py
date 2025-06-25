@@ -249,6 +249,18 @@ class XUtils():
         self.status_save()
         self.is_update = True
 
+    def get_x_status(self, s_profile=None):
+        idx_status = self.IDX_STATUS
+        if s_profile is None:
+            s_profile = self.args.s_profile
+
+        s_val = ''
+        lst_val = self.dic_status.get(s_profile, [])
+        if len(lst_val) == self.FIELD_NUM:
+            s_val = lst_val[idx_status]
+
+        return s_val
+
     def get_status_by_idx(self, idx_status, s_profile=None):
         if s_profile is None:
             s_profile = self.args.s_profile

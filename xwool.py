@@ -686,6 +686,9 @@ class XWool():
             if self.inst_dp.set_vpn(s_vpn) is False:
                 return False
 
+        if self.args.reset:
+            input('Remove the cookie, delete token from status.csv, Press Enter to continue ...')
+
         self.inst_dp.check_extension(n_max_try=1)
 
         if self.inst_dp.init_capmonster() is False:
@@ -695,6 +698,10 @@ class XWool():
             return False
 
         self.inst_x.twitter_run()
+
+        if self.inst_x.get_x_status() != 'OK':
+            self.logit(None, 'X Account is suspended, return ...')
+            return True
 
         if self.args.water:
             self.lst_advertise_url = load_advertising_urls(self.file_advertising)
@@ -988,6 +995,12 @@ if __name__ == '__main__':
         help='Water by url, like https://x.com/xuser/status/1896000000000000000'
     )
 
+    # 增加 --reset 参数，用于重置账号
+    parser.add_argument(
+        '--reset', required=False, action='store_true',
+        help='Reset account status'
+    )
+
     args = parser.parse_args()
     show_msg(args)
     if args.loop_interval <= 0:
@@ -1004,4 +1017,8 @@ python xwool.py --no_auto_vpn --force --profile=g01
 python xwool.py --no_auto_vpn --force --manual_exit --profile=g01
 
 python xwool.py --no_auto_vpn --force --manual_exit --water --profile=g02
+
+python xwool.py --manual_exit --water
+
+python xwool.py --auto_like --auto_appeal --manual_exit --water --profile=g22
 """
