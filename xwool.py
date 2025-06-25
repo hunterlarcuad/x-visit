@@ -316,7 +316,7 @@ class XWool():
         # 检查长度
         if len(s_reply) > n_max_len:
             # errors.append(f'长度超限({len(s_reply)}>{n_max_len})')
-            errors.append(f'长度超限({len(s_reply)}>{n_max_len}) [回答太长了，简短一点]')
+            errors.append(f'长度超限({len(s_reply)}>{n_max_len}) [回答太长了，字数减少一半]')
         
         # 检查特殊字符出现次数
         special_chars = ['@', '#', '$']
@@ -394,9 +394,10 @@ class XWool():
                 self.logit(None, 's_reply from llm is empty, skip ...')
                 return False
 
-            # 尝试生成合格的回复，最多3次
-            max_attempts = 5
+            # 尝试生成合格的回复，最多尝试次数
+            max_attempts = 8
             for attempt in range(1, max_attempts + 1):
+                self.logit(None, f'[To Verify]reply_by_llm: {s_reply}')
                 # 验证回复内容是否合格
                 is_ok, reason = self.is_reply_ok(s_reply)
                 if is_ok:
@@ -699,7 +700,10 @@ class XWool():
 
         self.inst_x.twitter_run()
 
-        if self.inst_x.get_x_status() != 'OK':
+        s_x_status = self.inst_x.get_x_status()
+        if not s_x_status:
+            pass
+        elif s_x_status != DEF_STATUS_OK:
             self.logit(None, 'X Account is suspended, return ...')
             return True
 

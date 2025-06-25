@@ -257,14 +257,14 @@ class ClsSahUtil():
             return s_text
         return None
 
-    def bridge_from_rari_mainnet_to_arb(self):
+    def sahara_airdrop(self):
         n_tab = self.browser.tabs_count
         tab = self.browser.latest_tab
         f_fee_keep = 0
 
         for i in range(1, DEF_NUM_TRY+1):
             self.logit(
-                'bridge_from_rari_mainnet_to_arb',
+                'sahara_airdrop',
                 f'trying ... {i}/{DEF_NUM_TRY}'
             )
 
@@ -449,7 +449,7 @@ class ClsSahUtil():
 
                     except Exception as e:  # noqa
                         self.logit(
-                            'bridge_from_rari_mainnet_to_arb',
+                            'sahara_airdrop',
                             f'okx_confirm Exception: {e}'
                         )  # noqa
                         continue
@@ -633,7 +633,7 @@ class ClsSahUtil():
 
         for i in range(1, DEF_NUM_TRY+1):
             self.logit(
-                'bridge_from_rari_mainnet_to_arb',
+                'sahara_airdrop',
                 f'trying ... {i}/{DEF_NUM_TRY}'
             )
 
