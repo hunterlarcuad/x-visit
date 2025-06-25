@@ -258,6 +258,7 @@ class XWool():
             'Spark': 'Spark',
             'Sapien': 'Sapien',
             'Openledger': 'Openledger',
+            'Recall': 'Recall',
         }
         for s_keyword, s_type in dic_keywords.items():
             # 不区分大小写
@@ -399,7 +400,7 @@ class XWool():
             for attempt in range(1, max_attempts + 1):
                 self.logit(None, f'[To Verify]reply_by_llm: {s_reply}')
                 # 验证回复内容是否合格
-                is_ok, reason = self.is_reply_ok(s_reply)
+                is_ok, reason = self.is_reply_ok(s_reply, n_max_len=69)
                 if is_ok:
                     self.logit(None, f'Reply qualified on attempt {attempt}/{max_attempts}')
                     break
@@ -709,7 +710,10 @@ class XWool():
 
         if self.args.water:
             self.lst_advertise_url = load_advertising_urls(self.file_advertising)
-            for s_url in self.lst_advertise_url:
+            # 打乱顺序，最多取n个
+            lst_random = copy.deepcopy(self.lst_advertise_url)
+            random.shuffle(lst_random)
+            for s_url in lst_random[:5]:
                 self.water_by_url(s_url)
         else:
             n_max_run = 10
