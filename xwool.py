@@ -41,6 +41,9 @@ from conf import DEF_NUM_TRY
 from conf import DEF_DING_TOKEN
 from conf import DEF_PATH_DATA_STATUS
 
+from conf import EXTENSION_ID_CAPMONSTER
+from conf import EXTENSION_ID_YESCAPTCHA
+
 from conf import DEF_HEADER_ACCOUNT
 
 from conf import TZ_OFFSET
@@ -251,14 +254,15 @@ class XWool():
         分析贴，调用大模型回复
         """
         s_lower_text = s_tweet_text.lower()
-        if 'cookie' not in s_lower_text:
-            return 'other'
+        # if 'cookie' not in s_lower_text:
+        #     return 'other'
 
         dic_keywords = {
-            'Spark': 'Spark',
-            'Sapien': 'Sapien',
+            # 'Spark': 'Spark',
+            # 'Sapien': 'Sapien',
             'Openledger': 'Openledger',
-            'Recall': 'Recall',
+            # 'Recall': 'Recall',
+            'Kaito': 'Kaito',
         }
         for s_keyword, s_type in dic_keywords.items():
             # 不区分大小写
@@ -369,15 +373,29 @@ class XWool():
             s_cont = s_tweet_text[:300]
 
             # "回复尽量幽默风趣，使用小红书风格"
+            # s_rules = (
+            #     "回复内容要符合给定帖子内容\n"
+            #     "回复内容要避开敏感信息\n"
+            #     "请用中文输出\n"
+            #     "输出不要出现换行符\n"
+            #     "回复内容 @ 不要超过1个\n"
+            #     "避免引用#话题，禁止出现 # \n"
+            #     "回复内容积极向上，不要出现负面情绪\n"
+            #     "输出不要超过 50 字\n"
+            #     "特别注意，中文(汉字)与非中文(英文、数字、符号)之间要加一个空格，不要连在一起，增加可读性\n"
+            #     "特别注意，不要出现回复如下之类的字眼，直接输出回复内容\n"
+            # )
+
+            # "回复尽量简短，一句话回复"
             s_rules = (
+                "简短回复，一句话回复\n"
                 "回复内容要符合给定帖子内容\n"
                 "回复内容要避开敏感信息\n"
                 "请用中文输出\n"
                 "输出不要出现换行符\n"
-                "回复内容 @ 不要超过1个\n"
+                "回复内容禁止出现 @\n"
                 "避免引用#话题，禁止出现 # \n"
-                "回复内容积极向上，不要出现负面情绪\n"
-                "输出不要超过 50 字\n"
+                "回复不要超过 30 字\n"
                 "特别注意，中文(汉字)与非中文(英文、数字、符号)之间要加一个空格，不要连在一起，增加可读性\n"
                 "特别注意，不要出现回复如下之类的字眼，直接输出回复内容\n"
             )
@@ -394,6 +412,8 @@ class XWool():
             if not s_reply:
                 self.logit(None, 's_reply from llm is empty, skip ...')
                 return False
+            # 如果有多个空格，只保留1个空格
+            s_reply = re.sub(r'\s+', ' ', s_reply)
 
             # 尝试生成合格的回复，最多尝试次数
             max_attempts = 8
@@ -691,7 +711,11 @@ class XWool():
         if self.args.reset:
             input('Remove the cookie, delete token from status.csv, Press Enter to continue ...')
 
-        self.inst_dp.check_extension(n_max_try=1)
+        lst_extension_id = [
+            (EXTENSION_ID_YESCAPTCHA, 'yescaptcha'),
+            (EXTENSION_ID_CAPMONSTER, 'capmonster'),
+        ]
+        self.inst_dp.check_extension(n_max_try=1, lst_extension_id=lst_extension_id)
 
         if self.inst_dp.init_capmonster() is False:
             return False

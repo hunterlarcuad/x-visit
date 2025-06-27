@@ -644,28 +644,34 @@ class DpUtils():
             self.logit(None, f'检查插件异常: {e}')
             return False
 
-    def check_extension(self, n_max_try=3) -> bool:
+    def check_extension(self, n_max_try=3, lst_extension_id=None) -> bool:
+        """
+        lst_extension_id:
+            [(extension_id, s_name), ...]
+            None: Use self.args.extension_id
+        """
         b_ret = True
 
         tab = self.browser.new_tab('chrome://extensions/')
         tab.wait(1)
         self.browser.close_tabs(tab, others=True)
 
-        try:
-            id = self.args.extension_id
-        except:
-            self.args.extension_id = ''
+        if lst_extension_id is None:
+            try:
+                id = self.args.extension_id
+            except:
+                self.args.extension_id = ''
 
-        if self.args.extension_id == '':
-            lst_extension_id = [
-                (EXTENSION_ID_OKX, 'okx'),
-                (EXTENSION_ID_YESCAPTCHA, 'yescaptcha'),
-                (EXTENSION_ID_CAPMONSTER, 'capmonster'),
-            ]
-        else:
-            # id 用逗号分隔
-            lst_extension_id = [(s_id, 'custom') for s_id in self.args.extension_id.split(',')]
-            # lst_extension_id = [(self.args.extension_id, 'custom')]
+            if self.args.extension_id == '':
+                lst_extension_id = [
+                    (EXTENSION_ID_OKX, 'okx'),
+                    (EXTENSION_ID_YESCAPTCHA, 'yescaptcha'),
+                    (EXTENSION_ID_CAPMONSTER, 'capmonster'),
+                ]
+            else:
+                # id 用逗号分隔
+                lst_extension_id = [(s_id, 'custom') for s_id in self.args.extension_id.split(',')]
+                # lst_extension_id = [(self.args.extension_id, 'custom')]
 
         for i in range(n_max_try):
             b_ret = True

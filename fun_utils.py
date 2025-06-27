@@ -402,22 +402,27 @@ def load_advertising_urls(csv_file):
     """
     加载广告 URL
 
-    过滤当天的 url 列表，如果结果为空，则加载所有 url
+    过滤当天的 url 列表
+    如果当天结果为空，取前一天的列表
+    如果前一天的列表也为空，则加载所有 url
+    如果所有列表都为空，则返回空列表
 
     date,project,url
     2025-06-21,Spark,https://x.com/ablenavy/status/1936212691250823202
     """
     # csv_file = 'datas/status/xwool/advertising.csv'
     lst_urls_today = []
+    lst_urls_yesterday = []
     lst_urls_all = []
     lst_ret = []
 
     if not os.path.exists(csv_file):
-        self.logit(None, f'CSV file not found: {csv_file}')
+        print(f'CSV file not found: {csv_file}')
         return []
     
     # 获取今天的日期
     today = format_ts(time.time(), style=1, tz_offset=TZ_OFFSET)
+    yesterday = format_ts(time.time() - 24 * 60 * 60, style=1, tz_offset=TZ_OFFSET)
     
     try:
         # 使用 load_file 函数加载 CSV 数据
@@ -428,21 +433,34 @@ def load_advertising_urls(csv_file):
             if len(fields) >= 3:
                 date_str = fields[0].strip()
                 url = fields[2].strip()
+
                 if url and url.startswith('https://'):
                     lst_urls_all.append(url)
                     # 如果是今天的日期，添加到今天的列表
                     if date_str == today:
                         lst_urls_today.append(url)
-        
+                    elif date_str == yesterday:
+                        lst_urls_yesterday.append(url)
+                    else:
+                        lst_urls_all.append(url)
+
         # 优先使用今天的 URL，如果今天没有则使用所有 URL
         if lst_urls_today:
             print(f'Loaded {len(lst_urls_today)} URLs for today')
             lst_ret = lst_urls_today
+        elif lst_urls_yesterday:
+            print(f'No URLs for today, loaded {len(lst_urls_yesterday)} '
+                                'URLs for yesterday')
+            lst_ret = lst_urls_yesterday
+        elif lst_urls_all:
+            print(f'No URLs for today and yesterday, loaded {len(lst_urls_all)} '
+                                'total URLs from CSV')
+            lst_ret = lst_urls_yesterday
         else:
-            print(f'No URLs for today, loaded {len(lst_urls_all)} '
-                                f'total URLs from CSV')
+            print(f'No URLs for today and yesterday, loaded {len(lst_urls_all)} '
+                                'total URLs from CSV')
             lst_ret = lst_urls_all
-            
+
     except Exception as e:
         print(f'Error loading advertising URLs: {str(e)}')
         # 加载失败，使用空列表
