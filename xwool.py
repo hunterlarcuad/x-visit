@@ -9,35 +9,25 @@ import shutil
 import math
 import re # noqa
 from datetime import datetime # noqa
-import pyotp
 
-from DrissionPage import ChromiumOptions
-from DrissionPage import Chromium
 from DrissionPage._elements.none_element import NoneElement
 
 from fun_utils import ding_msg
-from fun_utils import load_file
-from fun_utils import save2file
 from fun_utils import format_ts
 from fun_utils import time_difference
 from fun_utils import get_index_from_header
 from fun_utils import load_advertising_urls
+from fun_utils import load_ad_user
 
-from fun_encode import decrypt
-from fun_gmail import get_verify_code_from_gmail
-
-from proxy_api import set_proxy
+from fun_glm import gene_by_llm
 
 from fun_okx import OkxUtils
 from fun_x import XUtils
 from fun_dp import DpUtils
 
-from fun_glm import gene_by_llm
-
 from conf import DEF_USE_HEADLESS
 from conf import DEF_DEBUG
 from conf import DEF_PATH_USER_DATA
-from conf import DEF_NUM_TRY
 from conf import DEF_DING_TOKEN
 from conf import DEF_PATH_DATA_STATUS
 
@@ -122,8 +112,16 @@ class XWool():
         self.args = args
         self.is_update = False
 
-        self.file_status = f'{DEF_PATH_DATA_STATUS}/xwool/status_{self.args.s_profile}.csv'
-        self.file_advertising = f'{DEF_PATH_DATA_STATUS}/xwool/advertising.csv'
+        # Current X User
+        self.i_xuser = None
+
+        self.file_status = (
+            f'{DEF_PATH_DATA_STATUS}/xwool/status_{self.args.s_profile}.csv'
+        )
+        self.file_advertising = (
+            f'{DEF_PATH_DATA_STATUS}/xwool/advertising.csv'
+        )
+        self.file_ad_user = f'{DEF_PATH_DATA_STATUS}/xwool/ad_user.csv'
 
     def __del__(self):
         pass
@@ -238,6 +236,10 @@ class XWool():
         """
         互关贴
         """
+        # 如果帖子长度超过 120 字，则认为不是互关贴
+        if len(s_tweet_text) > 120:
+            return False
+
         lst_keywords = [
             '互关',
             '互粉',
@@ -281,10 +283,11 @@ class XWool():
             return s_analyze_type
 
     def follow_user(self, name):
+        b_ret = False
         user_url = f'https://x.com/{name}'
         tab = self.browser.new_tab(user_url)
         if self.is_followed(name):
-            self.logit(None, f'Already followed, skip ...')
+            self.logit(None, 'Already followed, skip ...')
         else:
             self.logit(None, f'Try to Follow x: {name}')
             if self.inst_x.x_follow(name):
@@ -295,9 +298,12 @@ class XWool():
                     s_msg=f'{name}',
                     s_status='OK',
                 )
+                b_ret = True
             else:
                 self.logit(None, f'Follow x: {name} [Failed]')
         tab.close()
+
+        return b_ret
 
     def is_reply_ok(self, s_reply, n_max_len=60):
         """
@@ -422,10 +428,17 @@ class XWool():
                 # 验证回复内容是否合格
                 is_ok, reason = self.is_reply_ok(s_reply, n_max_len=69)
                 if is_ok:
-                    self.logit(None, f'Reply qualified on attempt {attempt}/{max_attempts}')
+                    self.logit(
+                        None, 
+                        f'Reply qualified on attempt {attempt}/{max_attempts}'
+                    )
                     break
                 else:
-                    self.logit(None, f'Attempt {attempt}/{max_attempts}: Reply not qualified: {reason}')
+                    self.logit(
+                        None, 
+                        f'Attempt {attempt}/{max_attempts}: '
+                        f'Reply not qualified: {reason}'
+                    )
                     if attempt < max_attempts:
                         # 修改 prompt，要求大模型根据错误原因进行改进
                         s_prompt = (
@@ -472,9 +485,18 @@ class XWool():
             return True
         return False
 
-    def proc_tw_url(self, tweet_url):
+    def proc_tw_url(self, tweet_url, is_reply=True, is_all_reply=False,
+                    is_like=True, is_retweet=False, is_follow=True):
+        """
+        is_reply: 是否回复
+        is_all_reply: 是否回复所有帖子
+        is_like: 是否点赞
+        is_retweet: 是否转发
+        is_follow: 是否关注
+        """
+        b_ret = False
         if not tweet_url:
-            return
+            return b_ret
 
         if tweet_url.startswith('https://x.com/'):
             name = tweet_url.split('com/')[-1].split('/')[0]
@@ -483,38 +505,64 @@ class XWool():
             self.logit(None, f'Try to Like x: {tweet_url}')
 
             # get tweet text
-            ele_tweet_text = tab.ele('@@tag()=div@@data-testid=tweetText', timeout=3)
+            ele_tweet_text = tab.ele(
+                '@@tag()=div@@data-testid=tweetText', timeout=3
+            )
             if not isinstance(ele_tweet_text, NoneElement):
                 s_tweet_text = ele_tweet_text.text.replace('\n', ' ')
                 self.logit(None, f'tweet_text: {s_tweet_text[:50]} ...')
             else:
                 self.logit(None, 'tweet_text is not found')
                 tab.close()
-                return
+                return b_ret
 
             s_tweet_type = self.get_tweet_type_by_keyword(s_tweet_text)
-            if s_tweet_type == 'other':
-                self.logit(None, 'other tweet, skip ...')
-                tab.close()
-                return
-            self.logit(None, f's_tweet_type: {s_tweet_type}')
+            if is_all_reply:
+                pass
+            else:                
+                if s_tweet_type == 'other':
+                    self.logit(None, 'other tweet, skip ...')
+                    tab.close()
+                    return b_ret
+                self.logit(None, f's_tweet_type: {s_tweet_type}')
 
             # reply
-            self.reply_tweet(s_tweet_type, s_tweet_text)
+            if is_reply:
+                self.reply_tweet(s_tweet_type, s_tweet_text)
 
             # like
-            if self.inst_x.x_like():
-                tab.wait(1)
-                self.status_append(
-                    s_op_type='like',
-                    s_url=tweet_url,
-                    s_msg='',
-                    s_status='OK',
-                )
+            if is_like:
+                if self.inst_x.x_like():
+                    tab.wait(1)
+                    self.status_append(
+                        s_op_type='like',
+                        s_url=tweet_url,
+                        s_msg='',
+                        s_status='OK',
+                    )
+                    b_ret = True
+
+            # retweet
+            if is_retweet:
+                if self.inst_x.x_retweet():
+                    tab.wait(1)
+                    self.status_append(
+                        s_op_type='retweet',
+                        s_url=tweet_url,
+                        s_msg='',
+                        s_status='OK',
+                    )
+                    b_ret = True
+
             tab.close()
 
             # follow
-            self.follow_user(name)
+            if is_follow:
+                is_success = self.follow_user(name)
+                if is_success:
+                    b_ret = True
+
+        return b_ret
 
     def click_display_post(self):
         tab = self.browser.latest_tab
@@ -542,9 +590,13 @@ class XWool():
         """
         lst_tabs = []
         tab = self.browser.latest_tab
-        ele_blk = tab.ele('@@tag()=div@@data-testid=ScrollSnap-List', timeout=3)
+        ele_blk = tab.ele(
+            '@@tag()=div@@data-testid=ScrollSnap-List', timeout=3
+        )
         if not isinstance(ele_blk, NoneElement):
-            ele_btns = ele_blk.eles('@@tag()=div@@role=presentation', timeout=3)
+            ele_btns = ele_blk.eles(
+                '@@tag()=div@@role=presentation', timeout=3
+            )
             for ele_btn in ele_btns:
                 self.logit(None, f'list_tabs: {ele_btn.text}')
                 if ele_btn.text in ['关注']:
@@ -554,9 +606,13 @@ class XWool():
 
     def select_tab(self, s_tab_name):
         tab = self.browser.latest_tab
-        ele_blk = tab.ele('@@tag()=div@@data-testid=ScrollSnap-List', timeout=3)
+        ele_blk = tab.ele(
+            '@@tag()=div@@data-testid=ScrollSnap-List', timeout=3
+        )
         if not isinstance(ele_blk, NoneElement):
-            ele_btns = ele_blk.eles('@@tag()=div@@role=presentation', timeout=3)
+            ele_btns = ele_blk.eles(
+                '@@tag()=div@@role=presentation', timeout=3
+            )
             for ele_btn in ele_btns:
                 # self.logit(None, f'list_tabs: {ele_btn.text}')
                 if ele_btn.text != s_tab_name:
@@ -569,12 +625,18 @@ class XWool():
                     return True
         return False
 
-    def interaction(self):
+    def interaction(self, is_reply=True, is_all_reply=False,
+                    is_like=True, is_retweet=False, is_follow=True,
+                    max_num_proc=-1):
+        b_ret = False
         self.click_display_post()
         tab = self.browser.latest_tab
 
         for i in range(1, 5):
-            ele_blks_top = tab.eles('@@tag()=div@@class=css-175oi2r@@data-testid=cellInnerDiv', timeout=3)
+            ele_blks_top = tab.eles(
+                '@@tag()=div@@class=css-175oi2r@@data-testid=cellInnerDiv',
+                timeout=3
+            )
             if len(ele_blks_top) > 0:
                 time.sleep(3)
                 break
@@ -588,28 +650,35 @@ class XWool():
             return
 
         num_blk = 0
+        n_proc_success = 0
         for ele_blk_top in ele_blks_top:
             num_blk += 1
             self.logit(None, f'num_blk={num_blk}/{n_blks_top}')
             try:
-                ele_blk = ele_blk_top.ele('@@tag()=article@@aria-labelledby:id', timeout=3)
+                ele_blk = ele_blk_top.ele(
+                    '@@tag()=article@@aria-labelledby:id', timeout=3
+                )
                 if isinstance(ele_blk, NoneElement):
                     continue
-            except Exception as e:
-                #self.logit(None, f'An error occurred: {e}')
-                self.logit(None, f'An error occurred, continue ...')
+            except Exception:
+                # self.logit(None, f'An error occurred: {e}')
+                self.logit(None, 'An error occurred, continue ...')
                 continue
 
             # xuser_name
-            ele_tweet_url = ele_blk.ele('@@tag()=a@@href:status@@dir=ltr', timeout=3)
+            ele_tweet_url = ele_blk.ele(
+                '@@tag()=a@@href:status@@dir=ltr', timeout=3
+            )
             if not isinstance(ele_tweet_url, NoneElement):
                 tweet_url = ele_tweet_url.attr('href')
                 self.logit(None, f'tweet_url: {tweet_url}')
                 if tweet_url in self.set_url_processed:
-                    self.logit(None, 'tweet_url is already processed, continue ...')
+                    self.logit(
+                        None, 'tweet_url is already processed, continue ...'
+                    )
                     continue
 
-                if '/ablenavy/' in tweet_url:
+                if self.i_xuser in tweet_url:
                     continue
 
                 if self.is_liked(ele_blk):
@@ -617,11 +686,65 @@ class XWool():
                     continue
 
                 self.set_url_processed.add(tweet_url)
-                self.proc_tw_url(tweet_url)
+                is_success = self.proc_tw_url(
+                    tweet_url, is_reply=is_reply, is_all_reply=is_all_reply,
+                    is_like=is_like, is_retweet=is_retweet, is_follow=is_follow
+                )
+                if is_success:
+                    b_ret = True
             else:
                 self.logit(None, 'tweet_url is not found')
 
             tab.wait(10)
+
+            n_proc_success += 1
+            if max_num_proc > 0 and n_proc_success >= max_num_proc:
+                break
+
+        self.logit(None, f'n_proc_success={n_proc_success}')
+
+        return b_ret
+
+    def proc_ad_user(self, x_user, x_nickname):
+        """
+        Like, Follow, Retweet, Comment
+        """
+        self.logit(None, f'proc_ad_user: {x_user} {x_nickname}')
+        b_ret = False
+
+        # Follow
+        user_url = f'https://x.com/{x_user}'
+        tab = self.browser.new_tab(user_url)
+        if self.is_followed(x_user):
+            self.logit(None, 'Already followed, skip ...')
+        else:
+            self.logit(None, f'Try to Follow x: {x_user}')
+            if self.inst_x.x_follow(x_user):
+                tab.wait(1)
+                self.status_append(
+                    s_op_type='follow',
+                    s_url=user_url,
+                    s_msg=f'{x_user}',
+                    s_status='OK',
+                )
+                b_ret = True
+            else:
+                self.logit(None, f'Follow x: {x_user} [Failed]')
+
+        # 生成一个 1-3 随机数
+        n_max_proc = random.randint(1, 3)
+        self.logit('proc_ad_user', f'interaction n_max_proc={n_max_proc}')
+        is_success = self.interaction(
+            is_reply=True, is_all_reply=True,
+            is_like=True, is_retweet=False, is_follow=True,
+            max_num_proc=n_max_proc
+        )
+        if is_success:
+            b_ret = True
+
+        tab.close()
+
+        return b_ret
 
     def water_by_url(self, tweet_url):
         """
@@ -639,7 +762,9 @@ class XWool():
             self.logit(None, 'Already replied, skip ...')
         else:
             # get tweet text
-            ele_tweet_text = tab.ele('@@tag()=div@@data-testid=tweetText', timeout=3)
+            ele_tweet_text = tab.ele(
+                '@@tag()=div@@data-testid=tweetText', timeout=3
+            )
             if not isinstance(ele_tweet_text, NoneElement):
                 s_tweet_text = ele_tweet_text.text.replace('\n', ' ')
                 self.logit(None, f'tweet_text: {s_tweet_text[:50]} ...')
@@ -692,13 +817,18 @@ class XWool():
         self.inst_x.status_load()
         self.inst_x.set_browser(self.browser)
 
+        idx_xuser = get_index_from_header(DEF_HEADER_ACCOUNT, 'x_username')
+        self.i_xuser = self.inst_x.dic_account[self.args.s_profile][idx_xuser]
+
         if self.args.no_auto_vpn:
             logger.info(f'{self.args.s_profile} Use Current VPN') # noqa
         else:
             if self.args.vpn is None:
                 idx_vpn = get_index_from_header(DEF_HEADER_ACCOUNT, 'proxy')
                 if self.args.s_profile in self.inst_x.dic_account:
-                    s_vpn = self.inst_x.dic_account[self.args.s_profile][idx_vpn]
+                    s_vpn = self.inst_x.dic_account[
+                        self.args.s_profile
+                    ][idx_vpn]
                 else:
                     logger.info(f'{self.args.s_profile} is not in self.inst_x.dic_account [ERROR]') # noqa
                     sys.exit(0)
@@ -709,13 +839,18 @@ class XWool():
                 return False
 
         if self.args.reset:
-            input('Remove the cookie, delete token from status.csv, Press Enter to continue ...')
+            input(
+                'Remove the cookie, delete token from status.csv, '
+                'Press Enter to continue ...'
+            )
 
         lst_extension_id = [
             (EXTENSION_ID_YESCAPTCHA, 'yescaptcha'),
             (EXTENSION_ID_CAPMONSTER, 'capmonster'),
         ]
-        self.inst_dp.check_extension(n_max_try=1, lst_extension_id=lst_extension_id)
+        self.inst_dp.check_extension(
+            n_max_try=1, lst_extension_id=lst_extension_id
+        )
 
         if self.inst_dp.init_capmonster() is False:
             return False
@@ -732,8 +867,24 @@ class XWool():
             self.logit(None, 'X Account is suspended, return ...')
             return True
 
+        if self.args.ad_user:
+            self.lst_ad_user = load_ad_user(self.file_ad_user)
+            # 打乱顺序，最多取n个
+            lst_random = copy.deepcopy(self.lst_ad_user)
+            random.shuffle(lst_random)
+            n_max_proc = 5
+            n_proc_success = 0
+            for x_user, x_nickname in lst_random:
+                if n_proc_success >= n_max_proc:
+                    break
+                is_success = self.proc_ad_user(x_user, x_nickname)
+                if is_success:
+                    n_proc_success += 1
+
         if self.args.water:
-            self.lst_advertise_url = load_advertising_urls(self.file_advertising)
+            self.lst_advertise_url = load_advertising_urls(
+                self.file_advertising
+            )
             # 打乱顺序，最多取n个
             lst_random = copy.deepcopy(self.lst_advertise_url)
             random.shuffle(lst_random)
@@ -745,7 +896,9 @@ class XWool():
                 self.logit(None, f'Run {i}/{n_max_run} times ...')
 
                 # 加载广告 URL
-                self.lst_advertise_url = load_advertising_urls(self.file_advertising)
+                self.lst_advertise_url = load_advertising_urls(
+                    self.file_advertising
+                )
 
                 lst_tabs = self.list_tabs()
                 # lst_tabs = ['X 推特华语区【蓝V互关】']
@@ -1024,7 +1177,13 @@ if __name__ == '__main__':
 
     parser.add_argument(
         '--water', required=False, action='store_true',
-        help='Water by url, like https://x.com/xuser/status/1896000000000000000'
+        help='Water by url, like '
+             'https://x.com/xuser/status/1896000000000000000'
+    )
+
+    parser.add_argument(
+        '--ad_user', required=False, action='store_true',
+        help='Water by ad_user file'
     )
 
     # 增加 --reset 参数，用于重置账号
@@ -1053,4 +1212,6 @@ python xwool.py --no_auto_vpn --force --manual_exit --water --profile=g02
 python xwool.py --manual_exit --water
 
 python xwool.py --auto_like --auto_appeal --manual_exit --water --profile=g22
+
+python xwool.py --no_auto_vpn --force --manual_exit --water --ad_user --profile=g07
 """

@@ -468,6 +468,46 @@ def load_advertising_urls(csv_file):
     return lst_ret
 
 
+def load_ad_user(csv_file):
+    """
+    加载 X 账号列表
+
+    文件格式：
+    x_user,x_nickname
+    ablenavy,iGarlic
+    hunterlarcuad
+
+    如果只有一个字段，x_nickname 赋值为 x_user
+
+    """
+    # csv_file = 'datas/status/xwool/advertising.csv'
+    lst_ad_user = []
+
+    if not os.path.exists(csv_file):
+        print(f'CSV file not found: {csv_file}')
+        return []
+    
+    try:
+        # 使用 load_file 函数加载 CSV 数据
+        dic_data = load_file(csv_file, idx_key=0)
+        
+        # 提取 URL（CSV 格式：date,project,url）
+        for key, fields in dic_data.items():
+            if len(fields) >= 2:
+                x_user = fields[0].strip()
+                x_nickname = fields[1].strip()
+            else:
+                x_user = fields[0].strip()
+                x_nickname = fields[0].strip()
+            lst_ad_user.append((x_user, x_nickname))
+
+    except Exception as e:
+        print(f'Failed to load ad_user: {str(e)}')
+        # 加载失败，使用空列表
+
+    return lst_ad_user
+
+
 if __name__ == "__main__":
     """
     """
