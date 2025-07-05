@@ -55,8 +55,8 @@ def auto_click(xy=None, n_click=1):
     # print("屏幕宽度:", screen_width)
     # print("屏幕高度:", screen_height)
 
-    if screen_width != DEF_SCREEN_WIDTH or screen_height != DEF_SCREEN_HEIGHT:
-        return False
+    # if screen_width != DEF_SCREEN_WIDTH or screen_height != DEF_SCREEN_HEIGHT:
+    #     return False
 
     # 鼠标移动速度
     move_speed_sec = 1

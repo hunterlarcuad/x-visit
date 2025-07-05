@@ -34,7 +34,9 @@ from conf import DEF_NUM_TRY
 from conf import DEF_DING_TOKEN
 from conf import DEF_PATH_DATA_STATUS
 
-from conf import DEF_HEADER_ACCOUNT
+from conf import DEF_WINDOW_LOCATION
+from conf import DEF_WINDOW_SIZE
+from conf import DEF_MINE_SAT_XY
 
 # from conf import TZ_OFFSET
 from conf import DEL_PROFILE_DIR
@@ -174,7 +176,7 @@ class ClsBotanix():
     def connect_wallet(self):
         n_tab = self.browser.tabs_count
 
-        n_try = 6
+        n_try = 16
         for i in range(1, n_try + 1):
             self.logit('connect_wallet', f'trying ... {i}/{n_try}')
 
@@ -332,6 +334,7 @@ class ClsBotanix():
             self.click_by_text('button', 'Skip')
             return False
 
+        b_goto_citadel = True
         n_try = 8
         for i in range(1, n_try + 1):
             self.logit('botanix_process', f'trying ... {i}/{n_try}')
@@ -342,10 +345,12 @@ class ClsBotanix():
             # castle_xy_in_canvas = [376, 439]
             # auto_click(castle_xy_in_canvas, n_click=2)
 
-            self.wait_button(wait_sec=10)
-            if self.click_by_text('button', 'The Citadel'):
-                self.logit(None, 'Click The Citadel on Bar')
-                tab.wait(2)
+            if b_goto_citadel:
+                self.wait_button(wait_sec=10)
+                if self.click_by_text('button', 'The Citadel'):
+                    self.logit(None, 'Click The Citadel on Bar')
+                    tab.wait(2)
+                    b_goto_citadel = False
 
             if self.click_by_text('button', 'Continue'):
                 self.logit(None, 'Welcome to Citadel, Click continue button')
@@ -356,15 +361,19 @@ class ClsBotanix():
                 tab.wait(2)
 
             # Mine SATs
-            checkin_xy_in_canvas = [1015, 260]
-            auto_click(checkin_xy_in_canvas, n_click=2)
+            # checkin_xy_in_canvas = [1015, 260]
+            auto_click(DEF_MINE_SAT_XY, n_click=2)
 
             s_dest_text = 'Mint NFT'
-            s_btn_text = self.wait_button(s_dest_text, wait_sec=10)
+            s_btn_text = self.wait_button(s_dest_text, wait_sec=2)
             if s_btn_text == s_dest_text:
+                s_msg = 'Input invite code. Press any key to exit! ⚠️' # noqa
+                input(s_msg)
+
                 tab.refresh()
                 tab.wait.doc_loaded()
                 tab.wait(3)
+                b_goto_citadel = True
                 continue
 
             if self.click_by_text('button', 'Mine SATs'):
@@ -402,13 +411,22 @@ class ClsBotanix():
 
         self.inst_okx.set_browser(self.browser)
 
+        tab = self.browser.latest_tab
         if self.args.set_window_size == 'max':
             # 判断窗口是否是最大化
-            tab = self.browser.latest_tab
             if tab.rect.window_state != 'maximized':
                 # 设置浏览器窗口最大化
                 tab.set.window.max()
                 self.logit(None, 'Set browser window to maximize')
+        if DEF_WINDOW_LOCATION:
+            x, y = DEF_WINDOW_LOCATION
+            tab.set.window.location(x, y)
+        if DEF_WINDOW_SIZE:
+            w, h = DEF_WINDOW_SIZE
+            tab.set.window.size(w, h)
+
+        # tab.rect.window_location
+        # tab.rect.window_size
 
         if self.inst_okx.init_okx(is_bulk=True) is False:
             return False

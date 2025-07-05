@@ -23,6 +23,12 @@ DEF_PATH_BROWSER = ''
 
 DEF_PATH_USER_DATA = 'chrome_profile'
 
+############################################################
+DEF_WINDOW_LOCATION = None
+DEF_WINDOW_SIZE = None
+DEF_MINE_SAT_XY = [768,435]
+############################################################
+
 DEF_NUM_TRY = 5
 
 # 每个账号每天最大重试次数
