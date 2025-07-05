@@ -1274,13 +1274,6 @@ class ClsLayer3():
         if self.connect_wallet() is False:
             return False
 
-        if self.args.set_window_size == 'max':
-            # 判断窗口是否是最大化
-            if tab.rect.window_state != 'maximized':
-                # 设置浏览器窗口最大化
-                tab.set.window.max()
-                self.logit(None, 'Set browser window to maximize')
-
         n_try = 8
         for i in range(1, n_try+1):
             self.logit('layer3_process', f'trying ... {i}/{n_try}')
@@ -1331,6 +1324,14 @@ class ClsLayer3():
         self.browser = self.inst_dp.get_browser(self.args.s_profile)
 
         self.inst_okx.set_browser(self.browser)
+
+        if self.args.set_window_size == 'max':
+            # 判断窗口是否是最大化
+            tab = self.browser.latest_tab
+            if tab.rect.window_state != 'maximized':
+                # 设置浏览器窗口最大化
+                tab.set.window.max()
+                self.logit(None, 'Set browser window to maximize')
 
         if self.inst_okx.init_okx(is_bulk=True) is False:
             return False
