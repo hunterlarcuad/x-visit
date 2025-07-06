@@ -32,11 +32,16 @@ from conf import DEF_DEBUG
 from conf import DEF_PATH_USER_DATA
 from conf import DEF_NUM_TRY
 from conf import DEF_DING_TOKEN
+from conf import DEF_PATH_DATA_ACCOUNT
 from conf import DEF_PATH_DATA_STATUS
 
 from conf import DEF_WINDOW_LOCATION
 from conf import DEF_WINDOW_SIZE
 from conf import DEF_MINE_SAT_XY
+
+from conf import EXTENSION_ID_OKX
+from conf import EXTENSION_ID_CAPMONSTER
+from conf import EXTENSION_ID_YESCAPTCHA
 
 # from conf import TZ_OFFSET
 from conf import DEL_PROFILE_DIR
@@ -88,6 +93,10 @@ class ClsBotanix():
         self.IDX_UPDATE = 6
         self.FIELD_NUM = self.IDX_UPDATE + 1
 
+        # invitecode
+        self.file_invitecode = f'{DEF_PATH_DATA_ACCOUNT}/botanix_invitecode.csv'  # noqa
+        self.dic_invitecode = self.get_invitecode(self.file_invitecode)
+
     def set_args(self, args):
         self.args = args
         self.is_update = False
@@ -95,6 +104,28 @@ class ClsBotanix():
     def __del__(self):
         pass
         # self.status_save()
+
+    def get_invitecode(self, file_invitecode):
+        """
+        account,invitecode
+        g01,1234567890
+        g02,1234567890
+        """
+        if not os.path.exists(file_invitecode):
+            return {}
+        with open(file_invitecode, 'r', encoding='utf-8') as f:
+            dic_invitecode = {}
+            lines = f.readlines()
+            for i, line in enumerate(lines):
+                s_line = line.strip()
+                if not s_line:
+                    continue
+                # 跳过第一行如果是标题行
+                if i == 0 and s_line.lower().startswith('account,'):
+                    continue
+                s_account, s_invitecode = s_line.split(',')
+                dic_invitecode[s_account] = s_invitecode
+            return dic_invitecode
 
     def get_status_file(self):
         filename = 'botanix'
@@ -334,6 +365,8 @@ class ClsBotanix():
             self.click_by_text('button', 'Skip')
             return False
 
+        self.dic_invitecode = self.get_invitecode(self.file_invitecode)
+
         b_goto_citadel = True
         n_try = 8
         for i in range(1, n_try + 1):
@@ -360,9 +393,15 @@ class ClsBotanix():
                 self.logit(None, 'Accept and Continue, click ...')
                 tab.wait(2)
 
+            if self.click_by_text('button', 'Mint and Continue'):
+                self.logit(None, 'Mint and Continue, click ...')
+                tab.wait(2)
+
             # Mine SATs
             # checkin_xy_in_canvas = [1015, 260]
             auto_click(DEF_MINE_SAT_XY, n_click=2)
+
+            # pdb.set_trace()
 
             s_dest_text = 'Mint NFT'
             s_btn_text = self.wait_button(s_dest_text, wait_sec=2)
@@ -371,10 +410,34 @@ class ClsBotanix():
                 if self.click_by_text('button', 'Mint NFT'):
                     self.logit(None, 'Click Mint NFT button')
                     tab.wait(2)
-                if self.inst_dp.get_tag_info('label', 'Enter Referral Code') is False:
+                # if self.inst_dp.get_tag_info('label', 'Enter Referral Code') is False:
+                #    continue
+                lst_path = [
+                    '@@tag()=label@@text()=Enter Referral Code',
+                ]
+                ele_label = self.inst_dp.get_ele_btn(tab, lst_path)
+                if ele_label is NoneElement:
                     continue
 
-                s_msg = 'Input invite code. Press any key to exit! ⚠️' # noqa
+                ele_input = ele_label.ele('@@tag()=input', timeout=2)
+                if not isinstance(ele_input, NoneElement):
+                    if self.args.s_profile in self.dic_invitecode:
+                        s_invitecode = self.dic_invitecode[self.args.s_profile]
+                    else:
+                        s_invitecode = ''
+                        self.logit(None, f'{self.args.s_profile} is not in invitecode')  # noqa
+                        return False
+
+                    ele_input.input(s_invitecode)
+                    tab.wait(2)
+
+                    if self.click_by_text('button', 'Continue'):
+                        self.logit(
+                            None, 'Enter invite code, Click continue button')
+                        tab.wait(5)
+                        continue
+
+                s_msg = 'Input invite code. Press any key to exit! ⚠️'  # noqa
                 input(s_msg)
 
                 tab.refresh()
@@ -432,8 +495,30 @@ class ClsBotanix():
             w, h = DEF_WINDOW_SIZE
             tab.set.window.size(w, h)
 
+        if self.args.initialize:
+            input('Get window location and size. Press Enter to continue ...')
+            x, y = tab.rect.window_location
+            w, h = tab.rect.window_size
+            self.logit(None, f'Window location: {x}, {y}')
+            self.logit(None, f'Window size: {w}, {h}')
+
         # tab.rect.window_location
         # tab.rect.window_size
+
+        lst_extension_id = [
+            (EXTENSION_ID_OKX, 'okx'),
+            (EXTENSION_ID_YESCAPTCHA, 'yescaptcha'),
+            (EXTENSION_ID_CAPMONSTER, 'capmonster'),
+        ]
+        self.inst_dp.check_extension(
+            n_max_try=1, lst_extension_id=lst_extension_id
+        )
+
+        if self.inst_dp.init_capmonster() is False:
+            return False
+
+        if self.inst_dp.init_yescaptcha() is False:
+            return False
 
         if self.inst_okx.init_okx(is_bulk=True) is False:
             return False
@@ -756,6 +841,10 @@ if __name__ == '__main__':
     parser.add_argument(
         '--set_window_size', required=False, default='normal',
         help='[默认为 normal] 窗口大小，normal 为正常，max 为最大化'
+    )
+    parser.add_argument(
+        '--initialize', required=False, action='store_true',
+        help='Initialize botanix'
     )
 
     args = parser.parse_args()

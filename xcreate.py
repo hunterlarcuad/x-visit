@@ -40,6 +40,8 @@ from conf import DEF_PATH_USER_DATA
 from conf import DEF_NUM_TRY
 from conf import DEF_DING_TOKEN
 from conf import DEF_PATH_DATA_STATUS
+from conf import EXTENSION_ID_CAPMONSTER
+from conf import EXTENSION_ID_YESCAPTCHA
 
 from conf import DEF_PATH_DATA_ACCOUNT
 from conf import DEF_HEADER_ACCOUNT
@@ -273,7 +275,13 @@ class XCreate():
             if self.inst_dp.set_vpn(s_vpn) is False:
                 return False
 
-        self.inst_dp.check_extension(n_max_try=1)
+        lst_extension_id = [
+            (EXTENSION_ID_YESCAPTCHA, 'yescaptcha'),
+            (EXTENSION_ID_CAPMONSTER, 'capmonster'),
+        ]
+        self.inst_dp.check_extension(
+            n_max_try=1, lst_extension_id=lst_extension_id
+        )
 
         if self.inst_dp.init_capmonster() is False:
             return False
