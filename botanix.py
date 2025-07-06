@@ -367,6 +367,13 @@ class ClsBotanix():
             s_dest_text = 'Mint NFT'
             s_btn_text = self.wait_button(s_dest_text, wait_sec=2)
             if s_btn_text == s_dest_text:
+
+                if self.click_by_text('button', 'Mint NFT'):
+                    self.logit(None, 'Click Mint NFT button')
+                    tab.wait(2)
+                if self.inst_dp.get_tag_info('label', 'Enter Referral Code') is False:
+                    continue
+
                 s_msg = 'Input invite code. Press any key to exit! ⚠️' # noqa
                 input(s_msg)
 
