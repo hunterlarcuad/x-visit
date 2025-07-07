@@ -446,6 +446,13 @@ class ClsBotanix():
                 b_goto_citadel = True
                 continue
 
+            if self.inst_dp.get_tag_info('p', 'CAPTCHA failed') is True:
+                tab.refresh()
+                tab.wait.doc_loaded()
+                tab.wait(3)
+                b_goto_citadel = True
+                continue
+
             if self.click_by_text('button', 'Mine SATs'):
                 self.logit(None, 'Click Mine SATs button')
                 tab.wait(2)
