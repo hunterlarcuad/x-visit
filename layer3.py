@@ -32,6 +32,9 @@ from conf import DEF_NUM_TRY
 from conf import DEF_DING_TOKEN
 from conf import DEF_PATH_DATA_STATUS
 
+from conf import DEF_WINDOW_LOCATION
+from conf import DEF_WINDOW_SIZE
+
 from conf import DEF_HEADER_ACCOUNT
 
 # from conf import TZ_OFFSET
@@ -1325,13 +1328,19 @@ class ClsLayer3():
 
         self.inst_okx.set_browser(self.browser)
 
+        tab = self.browser.latest_tab
         if self.args.set_window_size == 'max':
             # 判断窗口是否是最大化
-            tab = self.browser.latest_tab
             if tab.rect.window_state != 'maximized':
                 # 设置浏览器窗口最大化
                 tab.set.window.max()
                 self.logit(None, 'Set browser window to maximize')
+        if DEF_WINDOW_LOCATION:
+            x, y = DEF_WINDOW_LOCATION
+            tab.set.window.location(x, y)
+        if DEF_WINDOW_SIZE:
+            w, h = DEF_WINDOW_SIZE
+            tab.set.window.size(w, h)
 
         if self.inst_okx.init_okx(is_bulk=True) is False:
             return False
