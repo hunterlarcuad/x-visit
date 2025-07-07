@@ -1211,7 +1211,10 @@ python xwool.py --no_auto_vpn --force --manual_exit --water --profile=g02
 
 python xwool.py --manual_exit --water
 
+python xwool.py --auto_like --auto_appeal --manual_exit --profile=g22
 python xwool.py --auto_like --auto_appeal --manual_exit --water --profile=g22
 
 python xwool.py --no_auto_vpn --force --manual_exit --water --ad_user --profile=g07
+
+python xwool.py --auto_like --manual_exit --water --ad_user --profile=g07
 """

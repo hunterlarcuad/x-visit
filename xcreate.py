@@ -46,6 +46,9 @@ from conf import EXTENSION_ID_YESCAPTCHA
 from conf import DEF_PATH_DATA_ACCOUNT
 from conf import DEF_HEADER_ACCOUNT
 
+from conf import EXTENSION_ID_CAPMONSTER
+from conf import EXTENSION_ID_YESCAPTCHA
+
 from conf import TZ_OFFSET
 
 from conf import FILENAME_LOG

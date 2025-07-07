@@ -24,12 +24,17 @@ from fun_okx import OkxUtils
 from fun_x import XUtils
 from fun_dp import DpUtils
 
+from xcreate import set_email
+
 from conf import DEF_USE_HEADLESS
 from conf import DEF_DEBUG
 from conf import DEF_PATH_USER_DATA
 from conf import DEF_NUM_TRY
 from conf import DEF_DING_TOKEN
 from conf import DEF_PATH_DATA_STATUS
+
+from conf import EXTENSION_ID_CAPMONSTER
+from conf import EXTENSION_ID_YESCAPTCHA
 
 from conf import DEF_HEADER_ACCOUNT
 
@@ -45,6 +50,7 @@ from conf import logger
 
 
 class ClsDrops():
+
     def __init__(self) -> None:
         self.args = None
 
@@ -66,7 +72,7 @@ class ClsDrops():
         self.inst_dp.plugin_okx = True
 
         # output
-        self.DEF_HEADER_STATUS = 'account,status,update_time' # noqa
+        self.DEF_HEADER_STATUS = 'account,status,update_time'  # noqa
         self.IDX_STATUS = 1
         self.IDX_UPDATE = 2
         self.FIELD_NUM = self.IDX_UPDATE + 1
@@ -90,19 +96,15 @@ class ClsDrops():
         if self.file_status is None:
             self.get_status_file()
 
-        self.dic_status = load_file(
-            file_in=self.file_status,
-            idx_key=0,
-            header=self.DEF_HEADER_STATUS
-        )
+        self.dic_status = load_file(file_in=self.file_status,
+                                    idx_key=0,
+                                    header=self.DEF_HEADER_STATUS)
 
     def status_save(self):
-        save2file(
-            file_ot=self.file_status,
-            dic_status=self.dic_status,
-            idx_key=0,
-            header=self.DEF_HEADER_STATUS
-        )
+        save2file(file_ot=self.file_status,
+                  dic_status=self.dic_status,
+                  idx_key=0,
+                  header=self.DEF_HEADER_STATUS)
 
     def close(self):
         # 在有头浏览器模式 Debug 时，不退出浏览器，用于调试
@@ -112,7 +114,7 @@ class ClsDrops():
             if self.browser:
                 try:
                     self.browser.quit()
-                except Exception as e: # noqa
+                except Exception as e:  # noqa
                     # logger.info(f'[Close] Error: {e}')
                     pass
 
@@ -139,7 +141,7 @@ class ClsDrops():
             return False
 
         claimed_date = self.dic_status[s_profile][idx_status]
-        date_now = format_ts(time.time(), style=1, tz_offset=TZ_OFFSET) # noqa
+        date_now = format_ts(time.time(), style=1, tz_offset=TZ_OFFSET)  # noqa
         if date_now != claimed_date:
             return False
         else:
@@ -178,7 +180,7 @@ class ClsDrops():
         if len(lst_pre) == self.FIELD_NUM:
             try:
                 s_val = int(lst_pre[idx_status])
-            except: # noqa
+            except:  # noqa
                 pass
 
         return s_val
@@ -193,50 +195,57 @@ class ClsDrops():
         self.update_status(idx_status, claim_date)
 
     def set_lang(self):
-        for i in range(1, DEF_NUM_TRY+1):
+        for i in range(1, DEF_NUM_TRY + 1):
             self.logit('set_lang', f'trying ... {i}/{DEF_NUM_TRY}')
             tab = self.browser.latest_tab
             ele_btn = tab.ele('.nav-item nav-language other-wrap', timeout=2)
             if not isinstance(ele_btn, NoneElement):
-                self.logit(None, 'Click language setting button ...') # noqa
+                self.logit(None, 'Click language setting button ...')  # noqa
                 if ele_btn.states.is_clickable:
                     ele_btn.click()
                     tab.wait(2)
                 else:
-                    self.logit(None, 'language setting button is not clickable ...') # noqa
+                    self.logit(
+                        None,
+                        'language setting button is not clickable ...')  # noqa
 
             ele_blk = tab.ele('.oxnv-dialog-container', timeout=2)
             if not isinstance(ele_blk, NoneElement):
-                ele_btn = ele_blk.ele('@@tag()=a@@id=language_zh_CN', timeout=2) # noqa
+                ele_btn = ele_blk.ele('@@tag()=a@@id=language_zh_CN',
+                                      timeout=2)  # noqa
                 if not isinstance(ele_btn, NoneElement):
                     if 'item selected' == ele_btn.attr('class'):
                         ele_close = tab.ele('#okdDialogCloseBtn', timeout=1)
                         if not isinstance(ele_close, NoneElement):
                             ele_close.click(by_js=True)
                     else:
-                        self.logit(None, 'Click language setting button ...') # noqa
+                        self.logit(None,
+                                   'Click language setting button ...')  # noqa
                         ele_btn.click(by_js=True)
                         tab.wait(1)
                     return True
-            self.logit(None, 'Language elements not found [ERROR]') # noqa
+            self.logit(None, 'Language elements not found [ERROR]')  # noqa
             tab.wait(1)
 
-            if i > DEF_NUM_TRY/2:
+            if i > DEF_NUM_TRY / 2:
                 tab.set.window.max()
-                self.logit(None, 'set.window.max') # noqa
+                self.logit(None, 'set.window.max')  # noqa
 
-        self.logit(None, 'Fail to set language [ERROR]') # noqa
+        self.logit(None, 'Fail to set language [ERROR]')  # noqa
         return False
 
     def connect_wallet(self):
-        for i in range(1, DEF_NUM_TRY+1):
+        for i in range(1, DEF_NUM_TRY + 1):
             tab = self.browser.latest_tab
-            ele_btn = tab.ele('.nav-item nav-address', timeout=2) # noqa
+            ele_btn = tab.ele('.nav-item nav-address', timeout=2)  # noqa
             if not isinstance(ele_btn, NoneElement):
                 s_info = ele_btn.text
-                self.logit(None, f'Connect Wallet Button Text: {s_info}') # noqa
+                self.logit(None,
+                           f'Connect Wallet Button Text: {s_info}')  # noqa
                 if s_info == '连接钱包':
-                    ele_btn = tab.ele('@@tag()=div@@class:connect-wallet-button', timeout=2) # noqa
+                    ele_btn = tab.ele(
+                        '@@tag()=div@@class:connect-wallet-button',
+                        timeout=2)  # noqa
                     if not isinstance(ele_btn, NoneElement):
                         ele_btn.wait.enabled(timeout=5)
                         ele_btn.wait.clickable(timeout=5)
@@ -250,7 +259,8 @@ class ClsDrops():
                     '@@tag()=div@@class:Connect_title',  # pc
                     '@@tag()=div@@class:wallet-dialog-title-block'  # mobile
                 ]
-                ele_btn = self.inst_dp.get_ele_btn(self.browser.latest_tab, lst_path) # noqa
+                ele_btn = self.inst_dp.get_ele_btn(self.browser.latest_tab,
+                                                   lst_path)  # noqa
                 if ele_btn is not NoneElement:
                     ele_btn.wait.clickable(timeout=5).click(by_js=True)
                     tab.wait(2)
@@ -260,11 +270,12 @@ class ClsDrops():
                     '@@tag()=button@@class:wallet-btn',  # pc
                     '@@tag()=button@@class:wallet-plain-button'  # mobile
                 ]
-                ele_btn = self.inst_dp.get_ele_btn(self.browser.latest_tab, lst_path) # noqa
+                ele_btn = self.inst_dp.get_ele_btn(self.browser.latest_tab,
+                                                   lst_path)  # noqa
                 if ele_btn is not NoneElement:
                     n_tab = self.browser.tabs_count
                     ele_btn.wait.clickable(timeout=5).click(by_js=True)
-                    self.inst_okx.wait_popup(n_tab+1, 10)
+                    self.inst_okx.wait_popup(n_tab + 1, 10)
                     tab.wait(2)
                     self.inst_okx.okx_connect()
                     self.inst_okx.wait_popup(n_tab, 10)
@@ -277,7 +288,8 @@ class ClsDrops():
     def okx_verify_click(self):
         # geetest_text_tips
         tab = self.browser.latest_tab
-        ele_btn = tab.ele('@@tag()=div@@class:geetest_text_tips', timeout=1) # noqa
+        ele_btn = tab.ele('@@tag()=div@@class:geetest_text_tips',
+                          timeout=1)  # noqa
         if not isinstance(ele_btn, NoneElement):
             s_text = ele_btn.text
             self.logit(None, f'Verify Manual: {s_text}')
@@ -286,11 +298,11 @@ class ClsDrops():
 
     def connect_x(self):
         n_tab = self.browser.tabs_count
-        for i in range(1, DEF_NUM_TRY+1):
+        for i in range(1, DEF_NUM_TRY + 1):
             self.logit('connect_x', f'trying ... {i}/{DEF_NUM_TRY}')
             if self.okx_verify_click():
 
-                s_msg = f'[{self.args.s_profile}] OKX Graphic captcha challenge [TODO]' # noqa
+                s_msg = f'[{self.args.s_profile}] OKX Graphic captcha challenge [TODO]'  # noqa
                 ding_msg(s_msg, DEF_DING_TOKEN, msgtype='text')
 
                 b_manual = True
@@ -299,32 +311,37 @@ class ClsDrops():
                 while i < max_wait_sec:
                     i += 1
                     if self.okx_verify_click() is False:
-                        self.logit(None, 'OKX Graphic captcha challenge is success') # noqa
+                        self.logit(
+                            None,
+                            'OKX Graphic captcha challenge is success')  # noqa
                         b_manual = False
-                        s_msg = f'[{self.args.s_profile}] OKX Graphic captcha challenge [Success]' # noqa
+                        s_msg = f'[{self.args.s_profile}] OKX Graphic captcha challenge [Success]'  # noqa
                         ding_msg(s_msg, DEF_DING_TOKEN, msgtype='text')
                         break
                     self.browser.wait(1)
 
                 if b_manual:
-                    s_msg = 'Manual captcha challenge. Press any key to continue! ⚠️' # noqa
+                    s_msg = 'Manual captcha challenge. Press any key to continue! ⚠️'  # noqa
                     input(s_msg)
 
             tab = self.browser.latest_tab
-            ele_btn = tab.ele('@@tag()=button@@class:btn-outline-primary', timeout=1) # noqa
+            ele_btn = tab.ele('@@tag()=button@@class:btn-outline-primary',
+                              timeout=1)  # noqa
             if not isinstance(ele_btn, NoneElement):
                 s_text = ele_btn.text.replace('\n', ' ')
                 self.logit(None, f'connect_x Button Status: {s_text}')
                 if s_text in ['连接中 加载中']:
                     # 连接账号
                     # 请注意钱包地址限定绑定一个 X 账号，完成任务后不可解除绑定
-                    ele_btn = tab.ele('@@tag()=button@@data-testid=okd-dialog-confirm-btn', timeout=1) # noqa
+                    ele_btn = tab.ele(
+                        '@@tag()=button@@data-testid=okd-dialog-confirm-btn',
+                        timeout=1)  # noqa
                     if not isinstance(ele_btn, NoneElement):
                         s_text = ele_btn.text
                         self.logit(None, f'connect_x Button Status: {s_text}')
                         ele_btn.wait.clickable(timeout=5).click(by_js=True)
                         # Popup X window
-                        self.inst_okx.wait_popup(n_tab+1, 30)
+                        self.inst_okx.wait_popup(n_tab + 1, 30)
                     else:
                         tab.wait(10)
                 elif s_text in ['连接', 'Cancel']:
@@ -332,7 +349,7 @@ class ClsDrops():
                     try:
                         ele_btn.wait.clickable(timeout=5).click(by_js=True)
                         self.logit(None, 'connect_x Button Clicked ...')
-                        self.inst_okx.wait_popup(n_tab+1, 20)
+                        self.inst_okx.wait_popup(n_tab + 1, 20)
 
                         tab.wait(2)
                         if self.inst_okx.okx_confirm():
@@ -340,7 +357,7 @@ class ClsDrops():
                             self.inst_okx.wait_popup(n_tab, 15)
                             tab.wait(3)
                             continue
-                    except: # noqa
+                    except:  # noqa
                         continue
                 elif s_text in ['断开连接', '已连接']:
                     self.logit(None, 'connect_x success')
@@ -363,7 +380,7 @@ class ClsDrops():
         return False
 
     def get_task_result(self):
-        for i in range(1, DEF_NUM_TRY+1):
+        for i in range(1, DEF_NUM_TRY + 1):
             self.logit('get_task_result', f'trying ... {i}/{DEF_NUM_TRY}')
             ele_btn = self.get_verify_btn()
             if ele_btn is not NoneElement:
@@ -381,7 +398,7 @@ class ClsDrops():
         tab = self.browser.latest_tab
         n_tab = self.browser.tabs_count
         ele_btn.wait.clickable(timeout=5).click(by_js=True)
-        if self.inst_okx.wait_popup(n_tab+1, 10) is False:
+        if self.inst_okx.wait_popup(n_tab + 1, 10) is False:
             return False
 
         # Change to popup window
@@ -389,27 +406,27 @@ class ClsDrops():
         if tab.url.find('x.com/intent/follow') >= 0:
             name = tab.url.split('=')[-1]
             self.logit(None, f'Try to Follow x: {name}')
-            if self.inst_x.x_follow(name):
-                tab.wait(1)
+            # if self.inst_x.x_follow(name):
+            #     tab.wait(1)
         elif tab.url.find('x.com/intent/retweet') >= 0:
             # https://x.com/intent/retweet?tweet_id=1912443347928773118
             # tweet_id = tab.url.split('=')[-1]
             self.logit(None, f'Try to retweet x: {tab.url}')
-            if self.inst_x.x_retweet():
-                tab.wait(1)
+            # if self.inst_x.x_retweet():
+            #     tab.wait(1)
         elif tab.url.find('x.com/intent/like') >= 0:
             # https://x.com/intent/like?tweet_id=1912443347928773118
             self.logit(None, f'Try to retweet x: {tab.url}')
-            if self.inst_x.x_like():
-                tab.wait(1)
+            # if self.inst_x.x_like():
+            #     tab.wait(1)
         else:
             self.logit(None, 'Manual task.')
-            s_msg = 'Manual task, Press any key to exit! ⚠️' # noqa
+            s_msg = 'Manual task, Press any key to exit! ⚠️'  # noqa
             input(s_msg)
         tab.close()
 
     def complete_tasks(self):
-        for i in range(1, DEF_NUM_TRY+1):
+        for i in range(1, DEF_NUM_TRY + 1):
             self.logit('complete_tasks', f'trying ... {i}/{DEF_NUM_TRY}')
 
             tab = self.browser.latest_tab
@@ -441,26 +458,31 @@ class ClsDrops():
 
             tab = self.browser.latest_tab
             # 完成 X 社媒任务
-            ele_blks = tab.eles('@@tag()=div@@class:index_wrap__OR3MB', timeout=2) # noqa
+            ele_blks = tab.eles('@@tag()=div@@class:index_wrap__OR3MB',
+                                timeout=2)  # noqa
             if not ele_blks:
                 tab.wait(1)
                 continue
             for ele_blk in ele_blks:
                 # process each task
                 # Task title
-                ele_btn = ele_blk.ele('@@tag()=div@@class:index_title', timeout=2) # noqa
+                ele_btn = ele_blk.ele('@@tag()=div@@class:index_title',
+                                      timeout=2)  # noqa
                 if not isinstance(ele_btn, NoneElement):
                     s_text = ele_btn.text
                     self.logit(None, f'Task title: {s_text}')
 
                 # Task status
-                ele_btn = ele_blk.ele('@@tag()=i@@class:icon iconfont okx-defi-nft-selected', timeout=1) # noqa
+                ele_btn = ele_blk.ele(
+                    '@@tag()=i@@class:icon iconfont okx-defi-nft-selected',
+                    timeout=1)  # noqa
                 if not isinstance(ele_btn, NoneElement):
                     self.logit(None, 'Task status: sucess')
                     continue
 
                 # Task action & verify
-                ele_btns = ele_blk.eles('@@tag()=button@@class:nft-btn', timeout=1) # noqa
+                ele_btns = ele_blk.eles('@@tag()=button@@class:nft-btn',
+                                        timeout=1)  # noqa
                 if len(ele_btns) == 2:
                     # Task action
                     if self.process_btn(ele_btns[0]) is False:
@@ -468,8 +490,11 @@ class ClsDrops():
 
                     # Task verify
                     ele_btn_2 = ele_btns[1]
-                    ele_btn_2.wait.clickable(timeout=5).click(by_js=True)
-                    tab.wait(2)
+                    try:
+                        ele_btn_2.wait.clickable(timeout=5).click(by_js=True)
+                        tab.wait(2)
+                    except:
+                        pass
                 if not isinstance(ele_btn, NoneElement):
                     self.logit(None, 'Task status: sucess')
                     continue
@@ -481,14 +506,15 @@ class ClsDrops():
 
     def get_verify_btn(self):
         tab = self.browser.latest_tab
-        ele_blk = tab.ele('@@tag()=div@@class:index_inner-right', timeout=1) # noqa
+        ele_blk = tab.ele('@@tag()=div@@class:index_inner-right',
+                          timeout=1)  # noqa
         if not isinstance(ele_blk, NoneElement):
             lst_path = [
                 '@@tag()=button@@class:nft nft-btn btn-md btn-fill-highlight index_button',  # pc # noqa
                 '@@tag()=button@@class:nft nft-btn btn-md btn-fill-highlight mobile index_button-sub__X3Dbw',  # mobile # noqa
-                '@@tag()=button@@class:nft nft-btn btn-md btn-outline-primary btn-disabled', # task completed # noqa
-                '@@tag()=div@@class=index_wrap__NS7Tv', # task completed # noqa
-                '@@tag()=div@@class:index_text__', # 恭喜中签！ # noqa
+                '@@tag()=button@@class:nft nft-btn btn-md btn-outline-primary btn-disabled',  # task completed # noqa
+                '@@tag()=div@@class=index_wrap__NS7Tv',  # task completed # noqa
+                '@@tag()=div@@class:index_text__',  # 恭喜中签！ # noqa
             ]
             ele_btn = self.inst_dp.get_ele_btn(ele_blk, lst_path)
         else:
@@ -496,7 +522,7 @@ class ClsDrops():
         return ele_btn
 
     def task_verify(self):
-        for i in range(1, DEF_NUM_TRY+1):
+        for i in range(1, DEF_NUM_TRY + 1):
             self.logit('task_verify', f'trying ... {i}/{DEF_NUM_TRY}')
             ele_btn = self.get_verify_btn()
             if ele_btn is not NoneElement:
@@ -525,7 +551,7 @@ class ClsDrops():
         if self.connect_wallet() is False:
             return False
 
-        for i in range(1, DEF_NUM_TRY+1):
+        for i in range(1, DEF_NUM_TRY + 1):
             self.logit('drops_process', f'trying ... {i}/{DEF_NUM_TRY}')
 
             # Query Task Result
@@ -542,6 +568,10 @@ class ClsDrops():
 
     def drops_run(self):
         self.browser = self.inst_dp.get_browser(self.args.s_profile)
+
+        if self.args.reset:
+            input('Remove the cookie, delete token from status.csv, '
+                  'Press Enter to continue ...')
 
         self.inst_okx.set_browser(self.browser)
 
@@ -569,9 +599,7 @@ class ClsDrops():
                 s_text = self.get_task_result()
 
                 lst_result = [
-                    '等待中签结果',
-                    '未中签，请关注后续活动',
-                    '本次活动已结束申购。很遗憾你未能参与，欢迎参与其他活动！',
+                    '等待中签结果', '未中签，请关注后续活动', '本次活动已结束申购。很遗憾你未能参与，欢迎参与其他活动！',
                     '恭喜中签！'
                 ]
                 for s_rst in lst_result:
@@ -589,14 +617,27 @@ class ClsDrops():
         if self.inst_dp.set_vpn(s_vpn) is False:
             return False
 
+        lst_extension_id = [
+            (EXTENSION_ID_YESCAPTCHA, 'yescaptcha'),
+            (EXTENSION_ID_CAPMONSTER, 'capmonster'),
+        ]
+        self.inst_dp.check_extension(n_max_try=1,
+                                     lst_extension_id=lst_extension_id)
+
         if self.inst_dp.init_capmonster() is False:
             return False
 
         if self.inst_dp.init_yescaptcha() is False:
             return False
 
-        self.inst_x.twitter_run()
-        x_status = self.inst_x.dic_status[self.args.s_profile][self.inst_x.IDX_STATUS] # noqa
+        if self.args.create:
+            self.inst_x.update_create(self.inst_x.IDX_C_PROXY, self.args.vpn)
+            self.inst_x.twitter_create()
+        else:
+            self.inst_x.twitter_run()
+
+        x_status = self.inst_x.dic_status[self.args.s_profile][
+            self.inst_x.IDX_STATUS]  # noqa
         if x_status != self.inst_x.DEF_STATUS_OK:
             self.logit('drops_run', f'x_status is {x_status}')
             return False
@@ -604,7 +645,7 @@ class ClsDrops():
         self.drops_process()
 
         if self.args.manual_exit:
-            s_msg = 'Manual Exit. Press any key to exit! ⚠️' # noqa
+            s_msg = 'Manual Exit. Press any key to exit! ⚠️'  # noqa
             input(s_msg)
 
         self.logit('drops_run', 'Finished!')
@@ -665,6 +706,9 @@ def main(args):
         logger.info(f'Directory {DEF_PATH_USER_DATA} is deleted') # noqa
 
     inst_drops = ClsDrops()
+
+    set_email(args, update_email=True)
+
     inst_drops.set_args(args)
 
     args.s_profile = 'ALL'
@@ -835,6 +879,35 @@ if __name__ == '__main__':
         '--manual_exit', required=False, action='store_true',
         help='Close chrome manual'
     )
+    parser.add_argument(
+        '--create', required=False, action='store_true',
+        help='Create'
+    )
+    parser.add_argument(
+        '--vpn', required=False, default=None,
+        help='[Optional] Set vpn, default is None'
+    )
+    parser.add_argument(
+        '--no_auto_vpn', required=False, action='store_true',
+        help='Ignore Clash Verge API'
+    )
+    parser.add_argument(
+        '--vpn_list', required=False, action='store_true',
+        help='Get vpn list from config file'
+    )
+    parser.add_argument(
+        '--name', required=False, default='',
+        help='[Optional] can be generated by default'
+    )
+    parser.add_argument(
+        '--password', required=False, default='',
+        help='[Optional] can be generated by default'
+    )
+    parser.add_argument(
+        '--email', required=False, default='',
+        help='Required [1. userabc@gmail.com; 2. @gmail.com]'
+    )
+
     # 添加 --headless 参数
     parser.add_argument(
         '--headless',
@@ -856,6 +929,11 @@ if __name__ == '__main__':
     parser.add_argument(
         '--get_task_status', required=False, action='store_true',
         help='Check task result'
+    )
+    # 增加 --reset 参数，用于重置账号
+    parser.add_argument(
+        '--reset', required=False, action='store_true',
+        help='Reset account status'
     )
 
     args = parser.parse_args()
@@ -901,4 +979,9 @@ python okx_drops.py --get_task_status --url=https://web3.okx.com/zh-hans/drops/e
 
 python okx_drops.py --auto_like --url=https://web3.okx.com/zh-hans/drops/event/chillonic
 python okx_drops.py --get_task_status --url=https://web3.okx.com/zh-hans/drops/event/chillonic
+
+python okx_drops.py --auto_like --url=https://web3.okx.com/zh-hans/drops/event/flythekite
+python okx_drops.py --get_task_status --url=https://web3.okx.com/zh-hans/drops/event/flythekite
+
+python okx_drops.py --auto_like --url=https://web3.okx.com/drops/event/elympics
 """
