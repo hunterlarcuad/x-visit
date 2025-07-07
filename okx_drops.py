@@ -198,8 +198,14 @@ class ClsDrops():
         for i in range(1, DEF_NUM_TRY + 1):
             self.logit('set_lang', f'trying ... {i}/{DEF_NUM_TRY}')
             tab = self.browser.latest_tab
-            ele_btn = tab.ele('.nav-item nav-language other-wrap', timeout=2)
-            if not isinstance(ele_btn, NoneElement):
+            lst_path = [
+                '.nav-item nav-language other-wrap',
+                '.nav-r-pan-i web3-menu-btn icon okx-header-footer-personal-setting'
+            ]
+            ele_btn = self.inst_dp.get_ele_btn(tab, lst_path)
+            # ele_btn = tab.ele('.nav-item nav-language other-wrap', timeout=2)
+            # if not isinstance(ele_btn, NoneElement):
+            if ele_btn is not NoneElement:
                 self.logit(None, 'Click language setting button ...')  # noqa
                 if ele_btn.states.is_clickable:
                     ele_btn.click()
@@ -209,21 +215,47 @@ class ClsDrops():
                         None,
                         'language setting button is not clickable ...')  # noqa
 
-            ele_blk = tab.ele('.oxnv-dialog-container', timeout=2)
-            if not isinstance(ele_blk, NoneElement):
-                ele_btn = ele_blk.ele('@@tag()=a@@id=language_zh_CN',
-                                      timeout=2)  # noqa
-                if not isinstance(ele_btn, NoneElement):
-                    if 'item selected' == ele_btn.attr('class'):
-                        ele_close = tab.ele('#okdDialogCloseBtn', timeout=1)
-                        if not isinstance(ele_close, NoneElement):
-                            ele_close.click(by_js=True)
-                    else:
-                        self.logit(None,
-                                   'Click language setting button ...')  # noqa
-                        ele_btn.click(by_js=True)
-                        tab.wait(1)
-                    return True
+            lst_path = [
+                '.oxnv-dialog-container',
+                '.nav-r-fun-mn nav-r-container nav-fun-show'
+            ]
+
+            ele_blk = self.inst_dp.get_ele_btn(tab, lst_path)
+            # ele_blk = tab.ele('.oxnv-dialog-container', timeout=2)
+            # if not isinstance(ele_blk, NoneElement):
+            if ele_blk is not NoneElement:
+
+                lst_path = [
+                    '@@tag()=a@@id=language_zh_CN',
+                    '@@tag()=span@@class=nav-r-item-name@@text()=语言'
+                ]
+
+                ele_btn = self.inst_dp.get_ele_btn(ele_blk, lst_path)
+
+                # ele_btn = ele_blk.ele('@@tag()=a@@id=language_zh_CN',
+                #                       timeout=2)  # noqa
+                # if not isinstance(ele_btn, NoneElement):
+                if ele_btn is not NoneElement:
+                    ele_btn.click(by_js=True)
+                    tab.wait(2)
+
+                    ele_blk = tab.ele('.nav-r-pan-option-list', timeout=2)
+                    if not isinstance(ele_blk, NoneElement):
+
+                        ele_btn = tab.ele('@@tag()=div@@class:nav-r-pan-option-item@@text()=简体中文', timeout=2)
+
+                        # if 'item selected' == ele_btn.attr('class'):
+                        if 'nav-r-selec-item' in ele_btn.attr('class'):
+                            pass
+                            # ele_close = tab.ele('#okdDialogCloseBtn', timeout=1)
+                            # if not isinstance(ele_close, NoneElement):
+                            #     ele_close.click(by_js=True)
+                        else:
+                            self.logit(None,
+                                    'Click language setting button ...')  # noqa
+                            ele_btn.click(by_js=True)
+                            tab.wait(1)
+                        return True
             self.logit(None, 'Language elements not found [ERROR]')  # noqa
             tab.wait(1)
 
@@ -630,17 +662,20 @@ class ClsDrops():
         if self.inst_dp.init_yescaptcha() is False:
             return False
 
-        if self.args.create:
-            self.inst_x.update_create(self.inst_x.IDX_C_PROXY, self.args.vpn)
-            self.inst_x.twitter_create()
+        if args.no_x:
+            pass
         else:
-            self.inst_x.twitter_run()
+            if self.args.create:
+                self.inst_x.update_create(self.inst_x.IDX_C_PROXY, self.args.vpn)
+                self.inst_x.twitter_create()
+            else:
+                self.inst_x.twitter_run()
 
-        x_status = self.inst_x.dic_status[self.args.s_profile][
-            self.inst_x.IDX_STATUS]  # noqa
-        if x_status != self.inst_x.DEF_STATUS_OK:
-            self.logit('drops_run', f'x_status is {x_status}')
-            return False
+            x_status = self.inst_x.dic_status[self.args.s_profile][
+                self.inst_x.IDX_STATUS]  # noqa
+            if x_status != self.inst_x.DEF_STATUS_OK:
+                self.logit('drops_run', f'x_status is {x_status}')
+                return False
 
         self.drops_process()
 
@@ -715,8 +750,22 @@ def main(args):
     inst_drops.inst_okx.set_args(args)
     inst_drops.inst_okx.purse_load(args.decrypt_pwd)
 
+    # 检查 profile 参数冲突
+    if args.profile and (args.profile_begin is not None or args.profile_end is not None):
+        logger.info('参数 --profile 与 --profile_begin/--profile_end 不能同时使用！')
+        sys.exit(1)
+
     if len(args.profile) > 0:
         items = args.profile.split(',')
+    elif args.profile_begin is not None and args.profile_end is not None:
+        # 生成 profile_begin 到 profile_end 的 profile 列表
+        prefix = re.match(r'^[a-zA-Z]+', args.profile_begin).group()
+        start_num = int(re.search(r'\d+', args.profile_begin).group())
+        end_num = int(re.search(r'\d+', args.profile_end).group())
+        num_width = len(re.search(r'\d+', args.profile_begin).group())
+        items = [f"{prefix}{str(i).zfill(num_width)}" for i in range(
+            start_num, end_num + 1)]
+        logger.info(f'Profile list: {items}')
     else:
         # 从配置文件里获取钱包名称列表
         items = list(inst_drops.inst_okx.dic_purse.keys())
@@ -860,8 +909,21 @@ if __name__ == '__main__':
         help='按指定的 profile 执行，多个用英文逗号分隔'
     )
     parser.add_argument(
+        '--profile_begin', required=False, default=None,
+        help='按指定的 profile 开始后缀(包含) eg: g01'
+    )
+    parser.add_argument(
+        '--profile_end', required=False, default=None,
+        help='按指定的 profile 结束后缀(包含) eg: g05'
+    )
+    parser.add_argument(
         '--decrypt_pwd', required=False, default='',
         help='decrypt password'
+    )
+    # 不使用 X
+    parser.add_argument(
+        '--no_x', required=False, action='store_true',
+        help='Not use X account'
     )
     parser.add_argument(
         '--auto_like', required=False, action='store_true',
