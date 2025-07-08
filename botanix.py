@@ -447,6 +447,15 @@ class ClsBotanix():
                 continue
 
             if self.inst_dp.get_tag_info('p', 'CAPTCHA failed') is True:
+                self.logit(None, 'CAPTCHA failed, retry ...')
+                tab.refresh()
+                tab.wait.doc_loaded()
+                tab.wait(3)
+                b_goto_citadel = True
+                continue
+
+            if self.inst_dp.get_tag_info('p', 'Predict the Block') is True:
+                self.logit(None, 'Predict the Block, Exit ...')
                 tab.refresh()
                 tab.wait.doc_loaded()
                 tab.wait(3)

@@ -1205,6 +1205,8 @@ if __name__ == '__main__':
 """
 # noqa
 python xwool.py --no_auto_vpn --force --profile=g01
+python xwool.py --no_auto_vpn --force --ad_user --profile=g01
+
 python xwool.py --no_auto_vpn --force --manual_exit --profile=g01
 
 python xwool.py --no_auto_vpn --force --manual_exit --water --profile=g02
