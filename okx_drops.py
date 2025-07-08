@@ -429,7 +429,10 @@ class ClsDrops():
         self.logit(None, f'Button text: {s_text}')
         tab = self.browser.latest_tab
         n_tab = self.browser.tabs_count
-        ele_btn.wait.clickable(timeout=5).click(by_js=True)
+        try:
+            ele_btn.wait.clickable(timeout=5).click(by_js=True)
+        except:
+            pass
         if self.inst_okx.wait_popup(n_tab + 1, 10) is False:
             return False
 
@@ -560,7 +563,11 @@ class ClsDrops():
             if ele_btn is not NoneElement:
                 s_text = ele_btn.text
                 self.logit(None, f'Click Verify Button [{s_text}]')
-                ele_btn.wait.clickable(timeout=5).click(by_js=True)
+                try:
+                    ele_btn.wait.clickable(timeout=5).click(by_js=True)
+                except:
+                    self.logit(None, 'Fail to Click Verify Button')
+                    continue
                 self.browser.wait(3)
                 return True
             self.browser.wait(2)
