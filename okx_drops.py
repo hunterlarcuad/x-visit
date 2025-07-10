@@ -651,10 +651,13 @@ class ClsDrops():
         self.inst_x.status_load()
         self.inst_x.set_browser(self.browser)
 
-        idx_vpn = get_index_from_header(DEF_HEADER_ACCOUNT, 'proxy')
-        s_vpn = self.inst_x.dic_account[self.args.s_profile][idx_vpn]
-        if self.inst_dp.set_vpn(s_vpn) is False:
-            return False
+        if self.args.no_auto_vpn:
+            logger.info(f'{self.args.s_profile} Use Current VPN') # noqa
+        else:
+            idx_vpn = get_index_from_header(DEF_HEADER_ACCOUNT, 'proxy')
+            s_vpn = self.inst_x.dic_account[self.args.s_profile][idx_vpn]
+            if self.inst_dp.set_vpn(s_vpn) is False:
+                return False
 
         lst_extension_id = [
             (EXTENSION_ID_YESCAPTCHA, 'yescaptcha'),
