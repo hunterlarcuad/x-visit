@@ -506,6 +506,7 @@ class XWool():
 
             if self.inst_x.x_is_replied():
                 self.logit(None, 'Already replied, skip ...')
+                tab.close()
                 return b_ret
 
             # get tweet text
