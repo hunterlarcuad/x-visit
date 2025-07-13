@@ -281,8 +281,12 @@ class ClsDrops():
                     if not isinstance(ele_btn, NoneElement):
                         ele_btn.wait.enabled(timeout=5)
                         ele_btn.wait.clickable(timeout=5)
-                        ele_btn.click(by_js=True)
-                        tab.wait(5)
+                        try:
+                            ele_btn.click(by_js=True)
+                            tab.wait(5)
+                        except:
+                            self.logit(None,
+                                    'Connect Wallet Fail to click button')
                 else:
                     return True
 
@@ -306,11 +310,15 @@ class ClsDrops():
                                                    lst_path)  # noqa
                 if ele_btn is not NoneElement:
                     n_tab = self.browser.tabs_count
-                    ele_btn.wait.clickable(timeout=5).click(by_js=True)
-                    self.inst_okx.wait_popup(n_tab + 1, 10)
-                    tab.wait(2)
-                    self.inst_okx.okx_connect()
-                    self.inst_okx.wait_popup(n_tab, 10)
+                    try:
+                        ele_btn.wait.clickable(timeout=5).click(by_js=True)
+                        self.inst_okx.wait_popup(n_tab + 1, 10)
+                        tab.wait(2)
+                        self.inst_okx.okx_connect()
+                        self.inst_okx.wait_popup(n_tab, 10)
+                    except:
+                        self.logit(None,
+                                'Connect Wallet Fail to click button')
 
             self.logit('connect_wallet', f'trying ... {i}/{DEF_NUM_TRY}')
             tab.wait(2)
