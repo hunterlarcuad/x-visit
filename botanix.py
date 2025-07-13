@@ -480,8 +480,12 @@ class ClsBotanix():
 
                 return True
 
-            ele_info = tab.ele('@@tag()=div@@class=mt-4', timeout=2)
-            if not isinstance(ele_info, NoneElement):
+            lst_path = [
+                '@@tag()=div@@class=mt-4',
+                '@@tag()=div@@class=mt-4 flex flex-col items-center',
+            ]
+            ele_info = self.inst_dp.get_ele_btn(tab, lst_path)
+            if ele_info is not NoneElement:
                 s_info = ele_info.text
                 self.logit(None, 'Info: {}'.format(s_info))
                 if len(s_info.split(':')) == 3:
