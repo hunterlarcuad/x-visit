@@ -474,6 +474,7 @@ class ClsBotanix():
                 self.update_status(self.IDX_SATS_TODAY, s_points)
                 self.update_date(self.IDX_SATS_DATE)
                 self.update_total_points()
+                self.is_update = True
                 tab.wait(3)
 
                 return True
@@ -490,6 +491,7 @@ class ClsBotanix():
                     self.update_status(self.IDX_SATS_TODAY, '1')
                     self.update_date(self.IDX_SATS_DATE)
                     self.update_total_points()
+                    self.is_update = True
                     return True
 
             s_btn_text = self.wait_button('Not Whitelisted', wait_sec=2)
