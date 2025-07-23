@@ -401,8 +401,6 @@ class ClsBotanix():
             # checkin_xy_in_canvas = [1015, 260]
             auto_click(DEF_MINE_SAT_XY, n_click=2)
 
-            # pdb.set_trace()
-
             s_dest_text = 'Mint NFT'
             s_btn_text = self.wait_button(s_dest_text, wait_sec=2)
             if s_btn_text == s_dest_text:
@@ -476,19 +474,33 @@ class ClsBotanix():
                 self.update_status(self.IDX_SATS_TODAY, s_points)
                 self.update_date(self.IDX_SATS_DATE)
                 self.update_total_points()
+                self.is_update = True
                 tab.wait(3)
 
                 return True
 
-            ele_info = tab.ele('@@tag()=div@@class=mt-4', timeout=2)
-            if not isinstance(ele_info, NoneElement):
+            lst_path = [
+                '@@tag()=div@@class=mt-4',
+                '@@tag()=div@@class=mt-4 flex flex-col items-center',
+            ]
+            ele_info = self.inst_dp.get_ele_btn(tab, lst_path)
+            if ele_info is not NoneElement:
                 s_info = ele_info.text
                 self.logit(None, 'Info: {}'.format(s_info))
                 if len(s_info.split(':')) == 3:
                     self.update_status(self.IDX_SATS_TODAY, '1')
                     self.update_date(self.IDX_SATS_DATE)
                     self.update_total_points()
+                    self.is_update = True
                     return True
+
+            s_btn_text = self.wait_button('Not Whitelisted', wait_sec=2)
+            if s_btn_text:
+                self.logit(None, 'Info: {}'.format(s_btn_text))
+                self.update_status(self.IDX_SATS_TODAY, s_btn_text)
+                self.update_date(self.IDX_SATS_DATE)
+                self.update_total_points()
+                return True
 
         return False
 

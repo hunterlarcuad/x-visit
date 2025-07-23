@@ -507,6 +507,11 @@ class XWool():
             tab = self.browser.new_tab(tweet_url)
             self.logit(None, f'Try to Like x: {tweet_url}')
 
+            if self.inst_x.x_is_replied():
+                self.logit(None, 'Already replied, skip ...')
+                tab.close()
+                return b_ret
+
             # get tweet text
             ele_tweet_text = tab.ele(
                 '@@tag()=div@@data-testid=tweetText', timeout=3
