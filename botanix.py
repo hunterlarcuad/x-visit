@@ -885,8 +885,8 @@ if __name__ == '__main__':
 
     if args.loop_interval <= 0:
         main(args)
-    elif len(args.profile) > 0:
-        main(args)
+    # elif len(args.profile) > 0:
+    #     main(args)
     else:
         while True:
             main(args)
