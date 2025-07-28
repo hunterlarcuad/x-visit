@@ -15,6 +15,7 @@ import time
 import pdb
 
 from conf import DEF_LLM_ZHIPUAI
+from conf import DEF_MODEL_ZHIPUAI
 
 from zhipuai import ZhipuAI
 
@@ -107,7 +108,7 @@ def gene_by_llm(s_prompt):
     """
     # s_model = "glm-4-air"
     # s_model = "glm-4-plus"
-    s_model = "glm-4.1v-thinking-flashx"
+    s_model = DEF_MODEL_ZHIPUAI
     client = get_glm_client()
     response = client.chat.asyncCompletions.create(
         model=s_model,  # 请填写您要调用的模型名称
