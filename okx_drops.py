@@ -1076,4 +1076,10 @@ python okx_drops.py --get_task_status --url=https://web3.okx.com/zh-hans/drops/e
 
 python okx_drops.py --auto_like --url=https://web3.okx.com/drops/event/elympics
 python okx_drops.py --get_task_status --url=https://web3.okx.com/drops/event/elympics
+
+python okx_drops.py --auto_like --url=https://web3.okx.com/drops/event/fomoney
+python okx_drops.py --get_task_status --url=https://web3.okx.com/drops/event/fomoney --profile_begin=g01 --profile_end=g30
+
+python okx_drops.py --auto_like --url=https://web3.okx.com/drops/event/gaib
+python okx_drops.py --get_task_status --url=https://web3.okx.com/drops/event/gaib
 """
