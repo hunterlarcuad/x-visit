@@ -760,7 +760,6 @@ class XWool():
         self.logit(None, f'proc_ad_user: {x_user} {x_nickname}')
         b_ret = False
 
-        pdb.set_trace()
         if self.i_xuser == x_user:
             self.logit(None, 'Self user, skip ...')
             return True
