@@ -486,22 +486,28 @@ class XWool():
                 "# 【帖子内容如下】\n"
                 f"{s_cont}"
             )
-            s_reply = gene_by_llm(s_prompt)
-            if not s_reply:
-                self.logit(None, 's_reply from llm is empty, skip ...')
+            try:
+                s_reply = gene_by_llm(s_prompt)
+                if not s_reply:
+                    self.logit(None, 's_reply from llm is empty, skip ...')
+                    return False
+            except Exception as e:
+                self.logit(None, f'Error calling gene_by_llm: {e}')
                 return False
-            # 如果有多个空格，只保留1个空格
-            s_reply = re.sub(r'\s+', ' ', s_reply)
-            # 去掉前后的空格
-            s_reply = s_reply.strip()
-            # 去掉换行符
-            s_reply = s_reply.replace('\n', '')
-            # 去掉 <|begin_of_box|> 和 <|end_of_box|> 标签
-            s_reply = re.sub(r'<\|begin_of_box\|>|<\|end_of_box\|>', '', s_reply) # noqa
 
             # 尝试生成合格的回复，最多尝试次数
             max_attempts = 8
             for attempt in range(1, max_attempts + 1):
+
+                # 如果有多个空格，只保留1个空格
+                s_reply = re.sub(r'\s+', ' ', s_reply)
+                # 去掉前后的空格
+                s_reply = s_reply.strip()
+                # 去掉换行符
+                s_reply = s_reply.replace('\n', '')
+                # 去掉 <|begin_of_box|> 和 <|end_of_box|> 标签
+                s_reply = re.sub(r'<\|begin_of_box\|>|<\|end_of_box\|>', '', s_reply) # noqa
+
                 self.logit(None, f'[To Verify]reply_by_llm: {s_reply}')
                 # 验证回复内容是否合格
                 is_ok, reason = self.is_reply_ok(s_reply, n_max_len=69)
@@ -526,7 +532,14 @@ class XWool():
                             f"{reason}\n"
                             f"# 【回复内容】{s_reply}"
                         )
-                        s_reply = gene_by_llm(s_prompt)
+                        try:
+                            s_reply = gene_by_llm(s_prompt)
+                            if not s_reply:
+                                self.logit(None, 's_reply from llm is empty, skip ...') # noqa
+                                return False
+                        except Exception as e:
+                            self.logit(None, f'Error calling gene_by_llm: {e}')
+                            return False
                     else:
                         self.logit(None, 'All attempts failed, skip ...')
                         return False
