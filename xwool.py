@@ -68,6 +68,10 @@ DEF_STATUS_OK = 'OK'
 DEF_STATUS_SUSPEND = 'SUSPEND'
 DEF_STATUS_APPEALED = 'APPEALED'
 
+# Interaction Result
+DEF_INTERACTION_OK = 'OK'
+DEF_INTERACTION_IGNORE = 'IGNORE'
+
 DEF_OKX = False
 
 
@@ -105,7 +109,11 @@ class XWool():
         ]
         self.DEF_HEADER_STATUS = ','.join(self.lst_header_status)
 
-        self.set_url_processed = set([])
+        self.set_url_followed = set([])
+        self.set_url_liked = set([])
+        self.set_url_replied = set([])
+        self.set_url_retweeted = set([])
+
         self.lst_advertise_url = []
 
     def set_args(self, args):
@@ -122,6 +130,8 @@ class XWool():
             f'{DEF_PATH_DATA_STATUS}/xwool/advertising.csv'
         )
         self.file_ad_user = f'{DEF_PATH_DATA_STATUS}/xwool/ad_user.csv'
+
+        self.load_processed_url()
 
     def __del__(self):
         pass
@@ -158,13 +168,47 @@ class XWool():
     def status_append(self, s_op_type, s_url, s_msg, s_status):
         update_ts = time.time()
         update_time = format_ts(update_ts, 2, TZ_OFFSET)
-        s_content = f'{update_time},{s_op_type},{s_status},{s_url},{s_msg}'
+        s_content = f'{update_time},{s_op_type},{s_status},{s_url},{s_msg}' # noqa
         self.append2file(
             file_ot=self.file_status,
             s_content=s_content,
             header=self.DEF_HEADER_STATUS
         )
         self.is_update = True
+
+    def load_processed_url(self):
+        if os.path.exists(self.file_status):
+            with open(self.file_status, 'r') as fp:
+                for line in fp:
+                    s_line = line.strip()
+                    if s_line:
+                        fields = s_line.split(',')
+                        if len(fields) < 4:
+                            continue
+                        if fields[2] not in [DEF_INTERACTION_OK, DEF_INTERACTION_IGNORE]: # noqa
+                            continue
+                        s_url = fields[3]
+                        if 'follow' == fields[1]:
+                            if s_url in self.set_url_followed:
+                                continue
+                            self.set_url_followed.add(s_url)
+                        elif 'like' == fields[1]:
+                            if s_url in self.set_url_liked:
+                                continue
+                            self.set_url_liked.add(s_url)
+                        elif 'reply' == fields[1]:
+                            if s_url in self.set_url_replied:
+                                continue
+                            self.set_url_replied.add(s_url)
+                        elif 'retweet' == fields[1]:
+                            if s_url in self.set_url_retweeted:
+                                continue
+                            self.set_url_retweeted.add(s_url)
+
+        self.logit(None, f'load_followed_url: {len(self.set_url_followed)}') # noqa
+        self.logit(None, f'load_liked_url: {len(self.set_url_liked)}') # noqa
+        self.logit(None, f'load_replied_url: {len(self.set_url_replied)}') # noqa
+        self.logit(None, f'load_retweeted_url: {len(self.set_url_retweeted)}') # noqa
 
     def close(self):
         # 在有头浏览器模式 Debug 时，不退出浏览器，用于调试
@@ -284,7 +328,7 @@ class XWool():
 
     def follow_user(self, name):
         b_ret = False
-        user_url = f'https://x.com/{name}'
+        user_url = f'https://x.com/{name}' # noqa
         tab = self.browser.new_tab(user_url)
         if self.is_followed(name):
             self.logit(None, 'Already followed, skip ...')
@@ -296,7 +340,7 @@ class XWool():
                     s_op_type='follow',
                     s_url=user_url,
                     s_msg=f'{name}',
-                    s_status='OK',
+                    s_status=DEF_INTERACTION_OK,
                 )
                 b_ret = True
             else:
@@ -308,55 +352,55 @@ class XWool():
     def is_reply_ok(self, s_reply, n_max_len=60):
         """
         检查回复内容是否合格
-        
+
         检查规则：
         1. 如果 @ # $ 出现次数超过 1 次，则认为回复不合格
         2. 如果回复长度超过 n_max_len 字，则认为回复不合格
         3. 如果非中文字符串(英文、数字、符号，符号只考虑 @ # $ 三个)与中文之间没有空格，则认为回复不合格
-        
+
         Args:
             s_reply: 回复内容
             n_max_len: 最大长度限制，默认60字
-            
+
         Returns:
             tuple: (bool, str) - (是否合格, 不合格原因)
                    True表示合格，False表示不合格
         """
         errors = []
-        
+
         # 检查长度
         if len(s_reply) > n_max_len:
             # errors.append(f'长度超限({len(s_reply)}>{n_max_len})')
             errors.append(f'长度超限({len(s_reply)}>{n_max_len}) [回答太长了，字数减少一半]')
-        
+
         # 检查特殊字符出现次数
         special_chars = ['@', '#', '$']
         for char in special_chars:
             count = s_reply.count(char)
             if count > 1:
                 errors.append(f'"{char}"出现{count}次')
-        
+
         # 检查非中文字符(英文、数字、符号，符号只考虑 @ # $ 三个)与中文之间是否有空格
         # 查找中文字符后紧跟非中文字符的情况(英文、数字、@ # $ 符号)
         pattern1 = r'[\u4e00-\u9fff][a-zA-Z0-9@#$]'
         # 查找非中文字符后紧跟中文字符的情况
         pattern2 = r'[a-zA-Z0-9@#$][\u4e00-\u9fff]'
-        
+
         match1 = re.search(pattern1, s_reply)
         match2 = re.search(pattern2, s_reply)
-        
+
         if match1 or match2:
             problem_text = match1.group() if match1 else match2.group()
             errors.append(f'中英文之间缺少空格，问题片段: "... {problem_text} ..."')
-        
+
         # 如果有错误，返回 False 和拼接的错误信息
         if errors:
             error_msg = '; '.join(errors)
             self.logit(None, f'Reply not qualified: {error_msg}')
             return False, error_msg
-        
-        return True, 'OK'
-    
+
+        return True, DEF_INTERACTION_OK
+
     def reply_tweet(self, s_tweet_type, s_tweet_text):
         s_reply = ''
         if s_tweet_type == 'follow':
@@ -429,13 +473,13 @@ class XWool():
                 is_ok, reason = self.is_reply_ok(s_reply, n_max_len=69)
                 if is_ok:
                     self.logit(
-                        None, 
+                        None,
                         f'Reply qualified on attempt {attempt}/{max_attempts}'
                     )
                     break
                 else:
                     self.logit(
-                        None, 
+                        None,
                         f'Attempt {attempt}/{max_attempts}: '
                         f'Reply not qualified: {reason}'
                     )
@@ -480,7 +524,7 @@ class XWool():
                 s_op_type='reply',
                 s_url=self.browser.latest_tab.url,
                 s_msg=f'[Reply] {s_msg}',
-                s_status='OK',
+                s_status=DEF_INTERACTION_OK,
             )
             return True
         return False
@@ -504,36 +548,46 @@ class XWool():
             tab = self.browser.new_tab(tweet_url)
             self.logit(None, f'Try to Like x: {tweet_url}')
 
-            if self.inst_x.x_is_replied():
-                self.logit(None, 'Already replied, skip ...')
-                tab.close()
-                return b_ret
-
-            # get tweet text
-            ele_tweet_text = tab.ele(
-                '@@tag()=div@@data-testid=tweetText', timeout=3
-            )
-            if not isinstance(ele_tweet_text, NoneElement):
-                s_tweet_text = ele_tweet_text.text.replace('\n', ' ')
-                self.logit(None, f'tweet_text: {s_tweet_text[:50]} ...')
+            if tweet_url in self.set_url_replied:
+                self.logit(None, 'Already replied before, skip ...')
             else:
-                self.logit(None, 'tweet_text is not found')
-                tab.close()
-                return b_ret
+                if self.inst_x.x_is_replied():
+                    self.logit(None, 'Already replied, skip ...')
+                    self.set_url_replied.add(tweet_url)
+                else:
+                    # get tweet text
+                    ele_tweet_text = tab.ele(
+                        '@@tag()=div@@data-testid=tweetText', timeout=3
+                    )
+                    if not isinstance(ele_tweet_text, NoneElement):
+                        s_tweet_text = ele_tweet_text.text.replace('\n', ' ')
+                        self.logit(None, f'tweet_text: {s_tweet_text[:50]} ...') # noqa
+                    else:
+                        self.logit(None, 'tweet_text is not found')
+                        tab.close()
+                        return b_ret
 
-            s_tweet_type = self.get_tweet_type_by_keyword(s_tweet_text)
-            if is_all_reply:
-                pass
-            else:                
-                if s_tweet_type == 'other':
-                    self.logit(None, 'other tweet, skip ...')
-                    tab.close()
-                    return b_ret
-                self.logit(None, f's_tweet_type: {s_tweet_type}')
+                    s_tweet_type = self.get_tweet_type_by_keyword(s_tweet_text)
+                    if is_all_reply:
+                        pass
+                    else:
+                        if s_tweet_type == 'other':
+                            self.logit(None, 'other tweet, skip ...')
+                            tab.close()
 
-            # reply
-            if is_reply:
-                self.reply_tweet(s_tweet_type, s_tweet_text)
+                            self.status_append(
+                                s_op_type='reply',
+                                s_url=self.browser.latest_tab.url,
+                                s_msg='[NotReply] other tweet, ignore',
+                                s_status=DEF_INTERACTION_IGNORE,
+                            )
+
+                            return b_ret
+                        self.logit(None, f's_tweet_type: {s_tweet_type}')
+
+                    # reply
+                    if is_reply:
+                        self.reply_tweet(s_tweet_type, s_tweet_text)
 
             # like
             if is_like:
@@ -543,7 +597,7 @@ class XWool():
                         s_op_type='like',
                         s_url=tweet_url,
                         s_msg='',
-                        s_status='OK',
+                        s_status=DEF_INTERACTION_OK,
                     )
                     b_ret = True
 
@@ -555,7 +609,7 @@ class XWool():
                         s_op_type='retweet',
                         s_url=tweet_url,
                         s_msg='',
-                        s_status='OK',
+                        s_status=DEF_INTERACTION_OK,
                     )
                     b_ret = True
 
@@ -670,27 +724,13 @@ class XWool():
                 self.logit(None, 'An error occurred, continue ...')
                 continue
 
-            # xuser_name
             ele_tweet_url = ele_blk.ele(
                 '@@tag()=a@@href:status@@dir=ltr', timeout=3
             )
             if not isinstance(ele_tweet_url, NoneElement):
                 tweet_url = ele_tweet_url.attr('href')
                 self.logit(None, f'tweet_url: {tweet_url}')
-                if tweet_url in self.set_url_processed:
-                    self.logit(
-                        None, 'tweet_url is already processed, continue ...'
-                    )
-                    continue
 
-                if self.i_xuser in tweet_url:
-                    continue
-
-                if self.is_liked(ele_blk):
-                    self.logit(None, 'Already liked, continue ...')
-                    continue
-
-                self.set_url_processed.add(tweet_url)
                 is_success = self.proc_tw_url(
                     tweet_url, is_reply=is_reply, is_all_reply=is_all_reply,
                     is_like=is_like, is_retweet=is_retweet, is_follow=is_follow
@@ -717,8 +757,13 @@ class XWool():
         self.logit(None, f'proc_ad_user: {x_user} {x_nickname}')
         b_ret = False
 
+        pdb.set_trace()
+        if self.i_xuser == x_user:
+            self.logit(None, 'Self user, skip ...')
+            return True
+
         # Follow
-        user_url = f'https://x.com/{x_user}'
+        user_url = f'https://x.com/{x_user}' # noqa
         tab = self.browser.new_tab(user_url)
         if self.is_followed(x_user):
             self.logit(None, 'Already followed, skip ...')
@@ -730,7 +775,7 @@ class XWool():
                     s_op_type='follow',
                     s_url=user_url,
                     s_msg=f'{x_user}',
-                    s_status='OK',
+                    s_status=DEF_INTERACTION_OK,
                 )
                 b_ret = True
             else:
@@ -757,12 +802,12 @@ class XWool():
         """
         # Like
         tab = self.browser.new_tab(tweet_url)
-        self.logit(None, f'Try to Like x: {tweet_url}')
 
         # Follow
         # Retweet
         # Comment
 
+        self.logit(None, f'Try to Reply x: {tweet_url}')
         if self.inst_x.x_is_replied():
             self.logit(None, 'Already replied, skip ...')
         else:
@@ -786,37 +831,53 @@ class XWool():
             self.logit(None, f's_tweet_type: {s_tweet_type}')
 
             # reply
-            self.reply_tweet(s_tweet_type, s_tweet_text)
+            if self.reply_tweet(s_tweet_type, s_tweet_text) is True:
+                self.set_url_replied.add(tweet_url)
 
         # like
-        if self.inst_x.x_like():
-            tab.wait(1)
-            self.status_append(
-                s_op_type='like',
-                s_url=tweet_url,
-                s_msg='',
-                s_status='OK',
-            )
+        self.logit(None, f'Try to Like x: {tweet_url}')
+        if tweet_url in self.set_url_liked:
+            self.logit(None, 'Already liked before, skip ...')
+        else:
+            if self.inst_x.x_like():
+                tab.wait(1)
+                self.status_append(
+                    s_op_type='like',
+                    s_url=tweet_url,
+                    s_msg='',
+                    s_status=DEF_INTERACTION_OK,
+                )
+                self.set_url_liked.add(tweet_url)
 
         # retweet
-        if self.inst_x.x_retweet():
-            tab.wait(1)
-            self.status_append(
-                s_op_type='retweet',
-                s_url=tweet_url,
-                s_msg='',
-                s_status='OK',
-            )
+        self.logit(None, f'Try to Retweet x: {tweet_url}')
+        if tweet_url in self.set_url_retweeted:
+            self.logit(None, 'Already retweeted before, skip ...')
+        else:
+            if self.inst_x.x_retweet():
+                tab.wait(1)
+                self.status_append(
+                    s_op_type='retweet',
+                    s_url=tweet_url,
+                    s_msg='',
+                    s_status=DEF_INTERACTION_OK,
+                )
+                self.set_url_retweeted.add(tweet_url)
 
         tab.close()
 
         # follow
-        name = tweet_url.split('com/')[-1].split('/')[0]
-        self.follow_user(name)
+        self.logit(None, f'Try to Follow x: {tweet_url}')
+        if tweet_url in self.set_url_followed:
+            self.logit(None, 'Already followed before, skip ...')
+        else:
+            name = tweet_url.split('com/')[-1].split('/')[0]
+            if self.follow_user(name):
+                self.set_url_followed.add(tweet_url)
 
         return True
 
-    def xwool_run(self):        
+    def xwool_run(self):
         self.browser = self.inst_dp.get_browser(self.args.s_profile)
 
         self.inst_x.status_load()
