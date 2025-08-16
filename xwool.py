@@ -390,6 +390,17 @@ class XWool():
             if count > 1:
                 errors.append(f'"{char}"出现{count}次')
 
+        # 是否有换行符号
+        if '\n' in s_reply:
+            errors.append('出现换行符号')
+
+        # 开头是否有空格
+        if s_reply.startswith(' '):
+            errors.append('开头有空格')
+        # 末尾是否有空格
+        if s_reply.endswith(' '):
+            errors.append('末尾有空格')
+
         # 检查是否出现 <|begin_of_box|> 和 <|end_of_box|> 标签
         if '<|begin_of_box|>' in s_reply or '<|end_of_box|>' in s_reply:
             errors.append('出现 <|begin_of_box|> 和 <|end_of_box|> 标签')
