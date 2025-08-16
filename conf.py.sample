@@ -68,6 +68,7 @@ DEF_CLASH_API_SECRETKEY = 'set_your_secretkey'
 
 # GLM API Key
 DEF_LLM_ZHIPUAI = 'set_your_secretkey'
+DEF_MODEL_ZHIPUAI = 'glm-4-plus'
 ############################################################
 
 # 遇到异常发钉钉消息，如果没有，置空，则不发钉钉消息

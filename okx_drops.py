@@ -227,7 +227,8 @@ class ClsDrops():
 
                 lst_path = [
                     '@@tag()=a@@id=language_zh_CN',
-                    '@@tag()=span@@class=nav-r-item-name@@text()=语言'
+                    '@@tag()=span@@class=nav-r-item-name@@text()=语言',
+                    '@@tag()=span@@class=nav-r-item-name@@text()=Language'
                 ]
 
                 ele_btn = self.inst_dp.get_ele_btn(ele_blk, lst_path)
@@ -267,13 +268,17 @@ class ClsDrops():
         return False
 
     def connect_wallet(self):
-        for i in range(1, DEF_NUM_TRY + 1):
+        n_try = 8
+        for i in range(1, n_try + 1):
             tab = self.browser.latest_tab
             ele_btn = tab.ele('.nav-item nav-address', timeout=2)  # noqa
             if not isinstance(ele_btn, NoneElement):
                 s_info = ele_btn.text
                 self.logit(None,
                            f'Connect Wallet Button Text: {s_info}')  # noqa
+                if not s_info:
+                    tab.wait(3)
+                    continue
                 if s_info == '连接钱包':
                     ele_btn = tab.ele(
                         '@@tag()=div@@class:connect-wallet-button',
@@ -320,7 +325,7 @@ class ClsDrops():
                         self.logit(None,
                                 'Connect Wallet Fail to click button')
 
-            self.logit('connect_wallet', f'trying ... {i}/{DEF_NUM_TRY}')
+            self.logit('connect_wallet', f'trying ... {i}/{n_try}')
             tab.wait(2)
 
         return False
@@ -632,6 +637,10 @@ class ClsDrops():
             tab.wait.doc_loaded()
             tab.wait(3)
 
+            # set language
+            if self.set_lang() is False:
+                return False
+
             # Connect wallet
             if self.connect_wallet() is False:
                 return False
@@ -644,6 +653,8 @@ class ClsDrops():
             while i < max_wait_sec:
                 i += 1
                 s_text = self.get_task_result()
+                if not s_text:
+                    continue
 
                 lst_result = [
                     '等待中签结果', '未中签，请关注后续活动', '本次活动已结束申购。很遗憾你未能参与，欢迎参与其他活动！',
@@ -1064,4 +1075,11 @@ python okx_drops.py --auto_like --url=https://web3.okx.com/zh-hans/drops/event/f
 python okx_drops.py --get_task_status --url=https://web3.okx.com/zh-hans/drops/event/flythekite
 
 python okx_drops.py --auto_like --url=https://web3.okx.com/drops/event/elympics
+python okx_drops.py --get_task_status --url=https://web3.okx.com/drops/event/elympics
+
+python okx_drops.py --auto_like --url=https://web3.okx.com/drops/event/fomoney
+python okx_drops.py --get_task_status --url=https://web3.okx.com/drops/event/fomoney --profile_begin=g01 --profile_end=g30
+
+python okx_drops.py --auto_like --url=https://web3.okx.com/drops/event/gaib
+python okx_drops.py --get_task_status --url=https://web3.okx.com/drops/event/gaib
 """

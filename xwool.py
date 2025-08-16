@@ -309,6 +309,9 @@ class XWool():
             'Openledger': 'Openledger',
             # 'Recall': 'Recall',
             'Kaito': 'Kaito',
+            'ENERGY': 'ENERGY',
+            'Kaito': 'Kaito',
+            'shout': 'shout',
         }
         for s_keyword, s_type in dic_keywords.items():
             # 不区分大小写

@@ -401,8 +401,6 @@ class ClsBotanix():
             # checkin_xy_in_canvas = [1015, 260]
             auto_click(DEF_MINE_SAT_XY, n_click=2)
 
-            # pdb.set_trace()
-
             s_dest_text = 'Mint NFT'
             s_btn_text = self.wait_button(s_dest_text, wait_sec=2)
             if s_btn_text == s_dest_text:
@@ -476,6 +474,7 @@ class ClsBotanix():
                 self.update_status(self.IDX_SATS_TODAY, s_points)
                 self.update_date(self.IDX_SATS_DATE)
                 self.update_total_points()
+                self.is_update = True
                 tab.wait(3)
 
                 return True
@@ -492,7 +491,16 @@ class ClsBotanix():
                     self.update_status(self.IDX_SATS_TODAY, '1')
                     self.update_date(self.IDX_SATS_DATE)
                     self.update_total_points()
+                    self.is_update = True
                     return True
+
+            s_btn_text = self.wait_button('Not Whitelisted', wait_sec=2)
+            if s_btn_text:
+                self.logit(None, 'Info: {}'.format(s_btn_text))
+                self.update_status(self.IDX_SATS_TODAY, s_btn_text)
+                self.update_date(self.IDX_SATS_DATE)
+                self.update_total_points()
+                return True
 
         return False
 
@@ -877,8 +885,8 @@ if __name__ == '__main__':
 
     if args.loop_interval <= 0:
         main(args)
-    elif len(args.profile) > 0:
-        main(args)
+    # elif len(args.profile) > 0:
+    #     main(args)
     else:
         while True:
             main(args)

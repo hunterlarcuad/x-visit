@@ -15,6 +15,7 @@ import time
 import pdb
 
 from conf import DEF_LLM_ZHIPUAI
+from conf import DEF_MODEL_ZHIPUAI
 
 from zhipuai import ZhipuAI
 
@@ -106,7 +107,8 @@ def gene_by_llm(s_prompt):
         string: generated content by llm
     """
     # s_model = "glm-4-air"
-    s_model = "glm-4-plus"
+    # s_model = "glm-4-plus"
+    s_model = DEF_MODEL_ZHIPUAI
     client = get_glm_client()
     response = client.chat.asyncCompletions.create(
         model=s_model,  # 请填写您要调用的模型名称
@@ -166,7 +168,8 @@ if __name__ == "__main__":
     """
     """
     s_in = "I don't know why my account can't like or post, and I haven't logged in for a while. Can you help lift the ban?"
-    gene_repeal_msg(s_in)
+    s_out = gene_repeal_msg(s_in)
+    print(s_out)
     # test()
     # get_rsp_by_id('73461743384968928-8844185384718838052')
 
