@@ -10,8 +10,6 @@ import math
 import re # noqa
 from datetime import datetime # noqa
 
-from DrissionPage import ChromiumOptions
-from DrissionPage import Chromium
 from DrissionPage._elements.none_element import NoneElement
 
 from fun_utils import ding_msg
@@ -193,39 +191,66 @@ class Giveaway():
         self.update_status(idx_status, claim_date)
 
     def set_lang(self):
-        for i in range(1, DEF_NUM_TRY+1):
+        for i in range(1, DEF_NUM_TRY + 1):
             self.logit('set_lang', f'trying ... {i}/{DEF_NUM_TRY}')
             tab = self.browser.latest_tab
-            ele_btn = tab.ele('.nav-item nav-language other-wrap', timeout=2)
-            if not isinstance(ele_btn, NoneElement):
-                self.logit(None, 'Click language setting button ...') # noqa
+            lst_path = [
+                '.nav-item nav-language other-wrap',
+                '.nav-r-pan-i web3-menu-btn icon okx-header-footer-personal-setting'
+            ]
+            ele_btn = self.inst_dp.get_ele_btn(tab, lst_path)
+            if ele_btn is not NoneElement:
+                self.logit(None, 'Click language setting button ...')  # noqa
                 if ele_btn.states.is_clickable:
                     ele_btn.click()
                     tab.wait(2)
                 else:
-                    self.logit(None, 'language setting button is not clickable ...') # noqa
+                    self.logit(None,
+                              'language setting button is not clickable ...')  # noqa
 
-            ele_blk = tab.ele('.oxnv-dialog-container', timeout=2)
-            if not isinstance(ele_blk, NoneElement):
-                ele_btn = ele_blk.ele('@@tag()=a@@id=language_zh_CN', timeout=2) # noqa
-                if not isinstance(ele_btn, NoneElement):
-                    if 'item selected' == ele_btn.attr('class'):
-                        ele_close = tab.ele('#okdDialogCloseBtn', timeout=1)
-                        if not isinstance(ele_close, NoneElement):
-                            ele_close.click(by_js=True)
-                    else:
-                        self.logit(None, 'Click language setting button ...') # noqa
-                        ele_btn.click(by_js=True)
-                        tab.wait(1)
-                    return True
-            self.logit(None, 'Language elements not found [ERROR]') # noqa
+            lst_path = [
+                '.oxnv-dialog-container',
+                '.nav-r-fun-mn nav-r-container nav-fun-show'
+            ]
+
+            ele_blk = self.inst_dp.get_ele_btn(tab, lst_path)
+            if ele_blk is not NoneElement:
+
+                lst_path = [
+                    '@@tag()=a@@id=language_zh_CN',
+                    '@@tag()=span@@class=nav-r-item-name@@text()=语言',
+                    '@@tag()=span@@class=nav-r-item-name@@text()=Language'
+                ]
+
+                ele_btn = self.inst_dp.get_ele_btn(ele_blk, lst_path)
+
+                if ele_btn is not NoneElement:
+                    ele_btn.click(by_js=True)
+                    tab.wait(2)
+
+                    ele_blk = tab.ele('.nav-r-pan-option-list', timeout=2)
+                    if not isinstance(ele_blk, NoneElement):
+
+                        ele_btn = tab.ele(
+                            '@@tag()=div@@class:nav-r-pan-option-item@@text()=简体中文',
+                            timeout=2)
+
+                        if 'nav-r-selec-item' in ele_btn.attr('class'):
+                            pass
+                        else:
+                            self.logit(None,
+                                      'Click language setting button ...')  # noqa
+                            ele_btn.click(by_js=True)
+                            tab.wait(1)
+                        return True
+            self.logit(None, 'Language elements not found [ERROR]')  # noqa
             tab.wait(1)
 
-            if i > DEF_NUM_TRY/2:
+            if i > DEF_NUM_TRY / 2:
                 tab.set.window.max()
-                self.logit(None, 'set.window.max') # noqa
+                self.logit(None, 'set.window.max')  # noqa
 
-        self.logit(None, 'Fail to set language [ERROR]') # noqa
+        self.logit(None, 'Fail to set language [ERROR]')  # noqa
         return False
 
     def connect_wallet(self):
@@ -502,10 +527,28 @@ class Giveaway():
         self.inst_x.status_load()
         self.inst_x.set_browser(self.browser)
 
-        idx_vpn = get_index_from_header(DEF_HEADER_ACCOUNT, 'proxy')
-        s_vpn = self.inst_x.dic_account[self.args.s_profile][idx_vpn]
-        if self.inst_dp.set_vpn(s_vpn) is False:
-            return False
+        # VPN 设置逻辑
+        if self.args.no_auto_vpn:
+            # 如果设置了 no_auto_vpn，跳过自动 VPN 设置
+            self.logit('giveaway_run',
+                      'Skip auto VPN setup due to --no_auto_vpn flag')
+        else:
+            # 优先使用命令行指定的 VPN
+            if self.args.vpn:
+                s_vpn = self.args.vpn
+                self.logit('giveaway_run', f'Using command line VPN: {s_vpn}')
+            else:
+                # 使用配置文件中的 VPN
+                idx_vpn = get_index_from_header(DEF_HEADER_ACCOUNT, 'proxy')
+                s_vpn = self.inst_x.dic_account[self.args.s_profile][idx_vpn]
+                self.logit('giveaway_run', f'Using config VPN: {s_vpn}')
+
+            if s_vpn and s_vpn.strip():
+                if self.inst_dp.set_vpn(s_vpn) is False:
+                    return False
+            else:
+                self.logit('giveaway_run',
+                          'No VPN configured, skipping VPN setup')
 
         if self.inst_dp.init_capmonster() is False:
             return False
@@ -565,6 +608,8 @@ def show_msg(args):
     print('########################################')
     print('The program is running')
     print(f'headless={args.headless}')
+    print(f'vpn={args.vpn}')
+    print(f'no_auto_vpn={args.no_auto_vpn}')
     print('Location of the running result file:')
     print(f'{FILE_STATUS}')
     print('The running process is in the log file:')
@@ -753,6 +798,14 @@ if __name__ == '__main__':
         '--manual_exit', required=False, action='store_true',
         help='Close chrome manual'
     )
+    parser.add_argument(
+        '--vpn', required=False, default=None,
+        help='Set vpn, default is None'
+    )
+    parser.add_argument(
+        '--no_auto_vpn', required=False, action='store_true',
+        help='Ignore Clash Verge API'
+    )
     # 添加 --headless 参数
     parser.add_argument(
         '--headless',
@@ -803,6 +856,11 @@ python okx_giveaway.py --auto_like --auto_appeal --force --profile=g05
 python okx_giveaway.py --auto_like --auto_appeal --force --profile=t33
 
 python okx_giveaway.py --auto_like --auto_appeal --force --url=https://web3.okx.com/zh-hans/giveaway/lnfi --profile=g03
+
+# VPN 相关示例
+python okx_giveaway.py --vpn=us1 --auto_like --auto_appeal --profile=g05
+python okx_giveaway.py --no_auto_vpn --auto_like --auto_appeal --profile=g05
+python okx_giveaway.py --vpn=jp1 --no_auto_vpn --auto_like --auto_appeal --profile=g05
 
 python okx_giveaway.py --get_task_status --headless --url=https://web3.okx.com/zh-hans/giveaway/lnfi
 python okx_giveaway.py --get_task_status --url=https://web3.okx.com/zh-hans/giveaway/lnfi
