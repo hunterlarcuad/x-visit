@@ -100,7 +100,7 @@ def gene_repeal_msg(s_in):
     return None
 
 
-def gene_by_llm(s_prompt):
+def gene_by_llm_once(s_prompt):
     """
     Return:
         None: Fail to generate msg by llm
@@ -135,6 +135,22 @@ def gene_by_llm(s_prompt):
         time.sleep(2)
         get_cnt += 1
 
+    return None
+
+
+def gene_by_llm(s_prompt, max_retry=3):
+    """
+    Return:
+        None: Fail to generate msg by llm
+        string: generated content by llm
+    """
+    n_try = 0
+    while n_try < max_retry:
+        n_try += 1
+        s_cont = gene_by_llm_once(s_prompt)
+        if not s_cont:
+            continue
+        return s_cont
     return None
 
 
