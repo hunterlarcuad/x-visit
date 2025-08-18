@@ -985,6 +985,14 @@ class XWool():
                 'Press Enter to continue ...'
             )
 
+        num_visit_pre = self.inst_x.get_pre_num_visit()
+        s_status = self.inst_x.get_x_status()
+        if num_visit_pre >= 5 and s_status == self.inst_x.DEF_STATUS_EXCEED_ATTEMPT:
+            self.logit('twitter_run', 'Too many wrong visits, return ...')
+            # s_msg = f'[{self.args.s_profile}]发生了错误。你已超过允许尝试次数，请稍后再试。' # noqa
+            # ding_msg(s_msg, DEF_DING_TOKEN, msgtype='text')
+            return True
+
         lst_extension_id = [
             (EXTENSION_ID_YESCAPTCHA, 'yescaptcha'),
             (EXTENSION_ID_CAPMONSTER, 'capmonster'),

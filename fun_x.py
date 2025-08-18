@@ -261,7 +261,7 @@ class XUtils():
 
         return s_val
 
-    def get_status_by_idx(self, idx_status, s_profile=None):
+    def get_status_by_idx(self, idx_status, s_profile=None, val_type='str'):
         if s_profile is None:
             s_profile = self.args.s_profile
 
@@ -269,7 +269,10 @@ class XUtils():
         lst_pre = self.dic_status.get(s_profile, [])
         if len(lst_pre) == self.FIELD_NUM:
             try:
-                s_val = int(lst_pre[idx_status])
+                if val_type == 'str':
+                    s_val = lst_pre[idx_status]
+                else:
+                    s_val = int(lst_pre[idx_status])
             except: # noqa
                 pass
 
@@ -278,7 +281,7 @@ class XUtils():
     def get_pre_num_visit(self, s_profile=None):
         num_visit_pre = 0
 
-        s_val = self.get_status_by_idx(self.IDX_NUM_VISIT, s_profile)
+        s_val = self.get_status_by_idx(self.IDX_NUM_VISIT, s_profile, 'int')
 
         try:
             num_visit_pre = int(s_val)
@@ -289,7 +292,7 @@ class XUtils():
 
     def update_num_visit(self, s_profile=None):
         date_now = format_ts(time.time(), style=1, tz_offset=TZ_OFFSET)
-        s_update = self.get_status_by_idx(-1, s_profile)
+        s_update = self.get_status_by_idx(-1, s_profile, 'str')
         if len(s_update) > 10:
             date_update = s_update[:10]
         else:
@@ -609,6 +612,9 @@ class XUtils():
                 return True
             else:
                 tab.set.cookies.clear()
+                return False
+
+            if self.x_is_wrong():
                 return False
 
         return False
@@ -976,6 +982,28 @@ class XUtils():
                     return True
         return False
 
+    def x_is_wrong(self):
+        """
+        发生了错误。
+        你已超过允许尝试次数，请稍后再试。
+
+        Something went wrong.
+        You have exceeded the number of allowed attempts. Please try again later.
+        """
+        tab = self.browser.latest_tab
+        ele_div = tab.ele('@@tag()=div@@class=PageHeader Edge', timeout=2)
+        if not isinstance(ele_div, NoneElement):
+            s_info = ele_div.text
+            self.logit(None, f'{s_info}') # noqa
+            if s_info in ['发生了错误。', 'Something went wrong.']:
+                ele_div_next = ele_div.next(timeout=2)
+                s_error_text = ele_div_next.text
+                self.logit('x_is_wrong', f'{s_error_text}') # noqa
+                self.update_status(self.IDX_STATUS, self.DEF_STATUS_EXCEED_ATTEMPT) # noqa
+                self.update_num_visit()
+                return True
+        return False
+
     def x_locked(self):
         tab = self.browser.latest_tab
         ele_input = tab.ele('@@tag()=div@@class=PageHeader Edge', timeout=2)
@@ -1063,6 +1091,14 @@ class XUtils():
     def twitter_run(self):
         # if self.set_vpn() is False:
         #     return False
+
+        num_visit_pre = self.get_pre_num_visit()
+        s_status = self.get_x_status()
+        if num_visit_pre >= 5 and s_status == self.DEF_STATUS_EXCEED_ATTEMPT:
+            self.logit('twitter_run', 'Too many wrong visits, return ...')
+            s_msg = f'[{self.args.s_profile}]发生了错误。你已超过允许尝试次数，请稍后再试。' # noqa
+            ding_msg(s_msg, DEF_DING_TOKEN, msgtype='text')
+            return False
 
         self.update_num_visit()
 
