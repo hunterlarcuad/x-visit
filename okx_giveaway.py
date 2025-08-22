@@ -453,6 +453,7 @@ class Giveaway():
         # Connect wallet
         if self.connect_wallet() is False:
             return False
+        return False
 
         for i in range(1, DEF_NUM_TRY+1):
             self.logit('giveaway_process', f'trying ... {i}/{DEF_NUM_TRY}')
