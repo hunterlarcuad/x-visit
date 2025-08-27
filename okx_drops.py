@@ -1082,4 +1082,7 @@ python okx_drops.py --get_task_status --url=https://web3.okx.com/drops/event/fom
 
 python okx_drops.py --auto_like --url=https://web3.okx.com/drops/event/gaib
 python okx_drops.py --get_task_status --url=https://web3.okx.com/drops/event/gaib
+
+python okx_drops.py --auto_like --url=https://web3.okx.com/drops/event/shrimpers
+python okx_drops.py --get_task_status --url=https://web3.okx.com/drops/event/shrimpers
 """
