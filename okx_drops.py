@@ -30,7 +30,7 @@ from conf import DEF_USE_HEADLESS
 from conf import DEF_DEBUG
 from conf import DEF_PATH_USER_DATA
 from conf import DEF_NUM_TRY
-from conf import DEF_DING_TOKEN
+# from conf import DEF_DING_TOKEN
 from conf import DEF_PATH_DATA_STATUS
 
 from conf import EXTENSION_ID_CAPMONSTER
@@ -47,6 +47,9 @@ from conf import logger
 """
 2025.04.18
 """
+
+# ATTENTION 钉钉群 - 小鼠
+DEF_DING_TOKEN = '8a4fb3579f1b0b28cc42144394d8ceb24c946cde6706328b9f15e2c2ea504b2f'
 
 
 class ClsDrops():
@@ -672,6 +675,19 @@ class ClsDrops():
 
         if self.args.no_auto_vpn:
             logger.info(f'{self.args.s_profile} Use Current VPN') # noqa
+        elif self.args.vpn_manual:
+            # 获取当前账号的VPN配置
+            idx_vpn = get_index_from_header(DEF_HEADER_ACCOUNT, 'proxy')
+            current_vpn = ''
+            if self.args.s_profile in self.inst_x.dic_account:
+                current_vpn = self.inst_x.dic_account[
+                    self.args.s_profile
+                ][idx_vpn]
+
+                s_msg = f'[{self.args.s_profile}] Please select vpn ({current_vpn}), Press Enter to continue ...' # noqa
+                ding_msg(s_msg, DEF_DING_TOKEN, msgtype='text')
+                logger.info(s_msg)
+                input(s_msg)
         else:
             idx_vpn = get_index_from_header(DEF_HEADER_ACCOUNT, 'proxy')
             s_vpn = self.inst_x.dic_account[self.args.s_profile][idx_vpn]
@@ -812,11 +828,11 @@ def main(args):
             return False
 
         b_ret = True
-        date_now = format_ts(time.time(), style=1, tz_offset=TZ_OFFSET)
+        # date_now = format_ts(time.time(), style=1, tz_offset=TZ_OFFSET)
 
         if lst_status:
-            if date_now != lst_status[inst_drops.IDX_UPDATE][:10]:
-                b_ret = b_ret and False
+            # if date_now != lst_status[inst_drops.IDX_UPDATE][:10]:
+            #     b_ret = b_ret and False
 
             for idx_status in [inst_drops.IDX_STATUS]:
                 if lst_status[idx_status] in ['等待中签结果']:
@@ -977,6 +993,11 @@ if __name__ == '__main__':
     parser.add_argument(
         '--vpn', required=False, default=None,
         help='[Optional] Set vpn, default is None'
+    )
+    # 手动设置 VPN，默认为 False
+    parser.add_argument(
+        '--vpn_manual', required=False, action='store_true',
+        help='Set vpn manually, default is False'
     )
     parser.add_argument(
         '--no_auto_vpn', required=False, action='store_true',

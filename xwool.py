@@ -963,6 +963,19 @@ class XWool():
 
         if self.args.no_auto_vpn:
             logger.info(f'{self.args.s_profile} Use Current VPN') # noqa
+        elif self.args.vpn_manual:
+            # 获取当前账号的VPN配置
+            idx_vpn = get_index_from_header(DEF_HEADER_ACCOUNT, 'proxy')
+            current_vpn = ''
+            if self.args.s_profile in self.inst_x.dic_account:
+                current_vpn = self.inst_x.dic_account[
+                    self.args.s_profile
+                ][idx_vpn]
+
+                s_msg = f'[{self.args.s_profile}] Please select vpn ({current_vpn}), Press Enter to continue ...' # noqa
+                ding_msg(s_msg, DEF_DING_TOKEN, msgtype='text')
+                logger.info(s_msg)
+                input(s_msg)
         else:
             if self.args.vpn is None:
                 idx_vpn = get_index_from_header(DEF_HEADER_ACCOUNT, 'proxy')
@@ -987,7 +1000,7 @@ class XWool():
 
         num_visit_pre = self.inst_x.get_pre_num_visit()
         s_status = self.inst_x.get_x_status()
-        if num_visit_pre >= 5 and s_status == self.inst_x.DEF_STATUS_EXCEED_ATTEMPT:
+        if num_visit_pre >= 5 and s_status == self.inst_x.DEF_STATUS_EXCEED_ATTEMPT: # noqa
             self.logit('twitter_run', 'Too many wrong visits, return ...')
             # s_msg = f'[{self.args.s_profile}]发生了错误。你已超过允许尝试次数，请稍后再试。' # noqa
             # ding_msg(s_msg, DEF_DING_TOKEN, msgtype='text')
@@ -1296,6 +1309,11 @@ if __name__ == '__main__':
     parser.add_argument(
         '--no_auto_vpn', required=False, action='store_true',
         help='Ignore Clash Verge API'
+    )
+    # 手动设置 VPN，默认为 False
+    parser.add_argument(
+        '--vpn_manual', required=False, action='store_true',
+        help='Set vpn manually, default is False'
     )
     parser.add_argument(
         '--name', required=False, default='',
