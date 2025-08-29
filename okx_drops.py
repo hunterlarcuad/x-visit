@@ -676,18 +676,7 @@ class ClsDrops():
         if self.args.no_auto_vpn:
             logger.info(f'{self.args.s_profile} Use Current VPN') # noqa
         elif self.args.vpn_manual:
-            # 获取当前账号的VPN配置
-            idx_vpn = get_index_from_header(DEF_HEADER_ACCOUNT, 'proxy')
-            current_vpn = ''
-            if self.args.s_profile in self.inst_x.dic_account:
-                current_vpn = self.inst_x.dic_account[
-                    self.args.s_profile
-                ][idx_vpn]
-
-                s_msg = f'[{self.args.s_profile}] Please select vpn ({current_vpn}), Press Enter to continue ...' # noqa
-                ding_msg(s_msg, DEF_DING_TOKEN, msgtype='text')
-                logger.info(s_msg)
-                input(s_msg)
+            pass
         else:
             idx_vpn = get_index_from_header(DEF_HEADER_ACCOUNT, 'proxy')
             s_vpn = self.inst_x.dic_account[self.args.s_profile][idx_vpn]
@@ -891,6 +880,8 @@ def main(args):
                 inst_drops.inst_x.set_args(args)
                 inst_drops.inst_okx.set_args(args)
 
+                inst_drops.inst_x.set_vpn_manual(s_profile, DEF_DING_TOKEN)
+
                 if s_profile in inst_drops.dic_status:
                     lst_status = inst_drops.dic_status[s_profile]
                 else:
@@ -919,10 +910,14 @@ def main(args):
 
         if len(profiles) > 0:
             sleep_time = random.randint(args.sleep_sec_min, args.sleep_sec_max)
+            next_time = datetime.now().timestamp() + sleep_time
+            next_time_str = format_ts(next_time, 2, TZ_OFFSET)
             if sleep_time > 60:
-                logger.info('sleep {} minutes ...'.format(int(sleep_time/60)))
+                logger.info('sleep {} minutes ... next execution at {}'.format(
+                    int(sleep_time/60), next_time_str))
             else:
-                logger.info('sleep {} seconds ...'.format(int(sleep_time)))
+                logger.info('sleep {} seconds ... next execution at {}'.format(
+                    int(sleep_time), next_time_str))
             time.sleep(sleep_time)
 
     send_msg(inst_drops, lst_success)
@@ -1059,7 +1054,10 @@ if __name__ == '__main__':
             if args.get_task_status:
                 break
 
-            logger.info('#####***** Loop sleep {} seconds ...'.format(args.loop_interval)) # noqa
+            next_time = datetime.now().timestamp() + args.loop_interval
+            next_time_str = format_ts(next_time, 2, TZ_OFFSET)
+            logger.info('#####***** Loop sleep {} seconds ... next execution at {}'.format(
+                args.loop_interval, next_time_str)) # noqa
             time.sleep(args.loop_interval)
 
 """

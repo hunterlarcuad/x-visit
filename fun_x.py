@@ -2046,6 +2046,19 @@ class XUtils():
 
         return False
 
+    def set_vpn_manual(self, s_profile, ding_token):
+        if self.args.vpn_manual:
+            # 获取当前账号的VPN配置
+            idx_vpn = get_index_from_header(DEF_HEADER_ACCOUNT, 'proxy')
+            current_vpn = ''
+            if s_profile in self.dic_account:
+                current_vpn = self.dic_account[s_profile][idx_vpn]
+
+                s_msg = f'[{s_profile}] Please select vpn ({current_vpn}), Press Enter to continue ...' # noqa
+                ding_msg(s_msg, ding_token, msgtype='text')
+                logger.info(s_msg)
+                input(s_msg)
+
 
 if __name__ == '__main__':
     """
