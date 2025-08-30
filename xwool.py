@@ -826,7 +826,7 @@ class XWool():
 
         if self.i_xuser == x_user:
             self.logit(None, 'Self user, skip ...')
-            return True
+            return False
 
         if x_user in self.set_user_followed:
             self.logit(None, 'Already followed before, skip ...')
@@ -851,8 +851,8 @@ class XWool():
                 else:
                     self.logit(None, f'Follow x: {x_user} [Failed]')
 
-        # 生成一个 1-3 随机数
-        n_max_proc = random.randint(1, 3)
+        # 生成一个 1-2 随机数
+        n_max_proc = random.randint(1, 2)
         self.logit('proc_ad_user', f'interaction n_max_proc={n_max_proc}')
         is_success = self.interaction(
             is_reply=True, is_all_reply=True,
@@ -874,7 +874,7 @@ class XWool():
         if tweet_url in self.set_url_ignored:
             self.logit(None, 'Already ignored before, skip ...')
             return False
-            
+
         # Like
         tab = self.browser.new_tab(tweet_url)
 
@@ -964,18 +964,7 @@ class XWool():
         if self.args.no_auto_vpn:
             logger.info(f'{self.args.s_profile} Use Current VPN') # noqa
         elif self.args.vpn_manual:
-            # 获取当前账号的VPN配置
-            idx_vpn = get_index_from_header(DEF_HEADER_ACCOUNT, 'proxy')
-            current_vpn = ''
-            if self.args.s_profile in self.inst_x.dic_account:
-                current_vpn = self.inst_x.dic_account[
-                    self.args.s_profile
-                ][idx_vpn]
-
-                s_msg = f'[{self.args.s_profile}] Please select vpn ({current_vpn}), Press Enter to continue ...' # noqa
-                ding_msg(s_msg, DEF_DING_TOKEN, msgtype='text')
-                logger.info(s_msg)
-                input(s_msg)
+            pass
         else:
             if self.args.vpn is None:
                 idx_vpn = get_index_from_header(DEF_HEADER_ACCOUNT, 'proxy')
@@ -1031,6 +1020,7 @@ class XWool():
 
         if self.args.ad_user:
             self.lst_ad_user = load_ad_user(self.file_ad_user)
+            self.logit(None, f'len(self.lst_ad_user)={len(self.lst_ad_user)}')
             # 打乱顺序，最多取n个
             lst_random = copy.deepcopy(self.lst_ad_user)
             random.shuffle(lst_random)
@@ -1053,7 +1043,7 @@ class XWool():
             for s_url in lst_random[:5]:
                 self.water_by_url(s_url)
         else:
-            n_max_run = 10
+            n_max_run = self.args.max_interactions
             for i in range(1, n_max_run+1):
                 self.logit(None, f'Run {i}/{n_max_run} times ...')
 
@@ -1222,6 +1212,8 @@ def main(args):
                 x_wool.inst_dp.set_args(args)
                 x_wool.inst_x.set_args(args)
 
+                x_wool.inst_x.set_vpn_manual(s_profile, DEF_DING_TOKEN)
+
                 if s_profile in x_wool.inst_x.dic_status:
                     lst_status = x_wool.inst_x.dic_status[s_profile]
                 else:
@@ -1357,6 +1349,11 @@ if __name__ == '__main__':
     parser.add_argument(
         '--reset', required=False, action='store_true',
         help='Reset account status'
+    )
+
+    parser.add_argument(
+        '--max_interactions', required=False, default=10, type=int,
+        help='[默认为 10] 最大互动次数，控制每个账号的互动轮数'
     )
 
     args = parser.parse_args()

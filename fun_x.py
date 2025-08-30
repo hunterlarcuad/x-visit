@@ -28,6 +28,7 @@ from fun_gmail import get_verify_code_from_gmail
 from fun_glm import gene_repeal_msg
 
 from proxy_api import set_proxy
+from proxy_api import get_country_info
 
 from fun_dp import DpUtils
 
@@ -421,6 +422,8 @@ class XUtils():
             self.logit(None, f'Wait to load popup x window ... {i}/{max_wait_sec}') # noqa
 
             self.wrong_retry()
+            if self.confirm_error():
+                return False
 
         return False
 
@@ -978,6 +981,7 @@ class XUtils():
                 if not isinstance(ele_btn, NoneElement):
                     if ele_btn.wait.clickable(timeout=30) is not False:
                         ele_btn.click(by_js=True)
+                        tab.refresh()
                     tab.wait(1)
                     return True
         return False
@@ -1154,6 +1158,8 @@ class XUtils():
     def x_follow(self, name):
         for i in range(1, DEF_NUM_TRY+1):
             self.logit('x_follow', f'try_i={i}/{DEF_NUM_TRY}')
+            self.check_need_login()
+
             tab = self.browser.latest_tab
             ele_btn = tab.ele('@@tag()=button@@data-testid=confirmationSheetCancel', timeout=2) # noqa
             if not isinstance(ele_btn, NoneElement):
@@ -1254,6 +1260,7 @@ class XUtils():
             self.logit('x_like', f'try_i={i}/{DEF_NUM_TRY}')
             tab = self.browser.latest_tab
             tab.wait.doc_loaded()
+            self.check_need_login()
 
             # Cancel
             ele_btn = tab.ele('@@tag()=button@@data-testid=confirmationSheetCancel', timeout=2) # noqa
@@ -1326,6 +1333,7 @@ class XUtils():
             self.logit('x_reply', f'try_i={i}/{max_try}')
             tab = self.browser.latest_tab
             tab.wait.doc_loaded()
+            self.check_need_login()
 
             # Cancel
             ele_btn = tab.ele('@@tag()=button@@data-testid=confirmationSheetCancel', timeout=2) # noqa
@@ -1478,6 +1486,8 @@ class XUtils():
             self.logit(None, f'Wait to load popup x window ... {i}/{max_wait_sec}') # noqa
 
             self.wrong_retry()
+            if self.confirm_error():
+                return False
 
         self.logit(None, 'Fail to load popup x window ...') # noqa
         return False
@@ -2058,6 +2068,31 @@ class XUtils():
                 ding_msg(s_msg, ding_token, msgtype='text')
                 logger.info(s_msg)
                 input(s_msg)
+                self.check_vpn_location(ding_token)
+
+    def check_vpn_location(self, ding_token):
+        success, result = get_country_info()
+        if success:
+            country_name, country_code, ip = result
+            self.logit(None, f'VPN Location: [{country_name}] [{country_code}] [{ip}]')
+        else:
+            self.logit(None, f'Failed to get VPN location: {result}')
+            s_msg = f'Failed to get VPN location: {result}'
+            ding_msg(s_msg, ding_token, msgtype='text')
+            input('Press check the vpn status ...')
+
+    def check_need_login(self):
+        """
+        Check if the account needs to be logged in
+        """
+        s_path = '@@tag()=span@@class:css-1jxf684@@text()=Log in'
+        s_text = self.get_text(s_path, 'Log in')
+        if s_text is None:
+            return False
+
+        self.logit(None, 'Need to login ...')
+        self.twitter_run()
+        return True
 
 
 if __name__ == '__main__':
