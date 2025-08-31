@@ -1,0 +1,3452 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .spin {
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+    
+    /* 固定提示条样式 */
+    .fixed-alerts {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 1050;
+        pointer-events: none;
+    }
+    
+    .fixed-alerts .alert {
+        pointer-events: auto;
+        margin: 10px;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+    }
+    
+    /* 为固定提示条留出空间 */
+    .main-content {
+        margin-bottom: 80px;
+    }
+</style>
+
+<!-- 固定提示条区域 -->
+<div class="fixed-alerts">
+    <!-- 配置加载提示 -->
+    <div id="config-loading-alert" class="alert alert-info alert-dismissible fade" style="display: none;">
+        <i class="bi bi-info-circle"></i>
+        <span id="config-loading-text"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    
+    <!-- 自动保存状态提示 -->
+    <div id="auto-save-alert" class="alert alert-success alert-dismissible fade" style="display: none;">
+        <i class="bi bi-check-circle"></i>
+        <span id="auto-save-text">配置已自动保存</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+</div>
+
+<!-- 主要内容区域 -->
+<div class="main-content">
+    <!-- 配置管理部分 -->
+    <div id="config-section" class="section">
+        <div class="config-section">
+            <h3><i class="bi bi-gear"></i> 参数配置</h3>
+            
+            <form id="config-form">
+                <div class="row">
+                    <!-- 左侧参数 -->
+                    <div class="col-12 col-lg-8">
+                        <h5>核心参数</h5>
+                        
+                        <div class="mb-3">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <label for="profile" class="form-label mb-0">Profile (账号)</label>
+                                <i class="bi bi-info-circle text-muted" 
+                                   style="cursor: help; font-size: 14px;" 
+                                   data-bs-toggle="tooltip" 
+                                   data-bs-placement="top" 
+                                   title="从datas/account/x_account.csv加载的账号列表，支持多选，多个账号用逗号连接"></i>
+                                <button type="button" class="btn btn-sm btn-outline-danger" 
+                                        onclick="clearProfileSelection()" title="清空选择">
+                                    清空
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="selectAllProfiles()">
+                                    <i class="bi bi-check-all"></i> 全选
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="deselectAllProfiles()">
+                                    <i class="bi bi-x-circle"></i> 取消全选
+                                </button>
+                            </div>
+                            <select class="form-select" id="profile" name="profile" multiple>
+                                <option value="">请选择账号...</option>
+                            </select>
+
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="d-flex align-items-center">
+                                <label for="max_interactions" class="form-label me-2 mb-0">最大互动次数</label>
+                                <i class="bi bi-info-circle text-muted me-2" 
+                                   style="cursor: help; font-size: 14px;" 
+                                   data-bs-toggle="tooltip" 
+                                   data-bs-placement="top" 
+                                   title="控制每个账号的互动轮数"></i>
+                                <select class="form-select" id="max_interactions" name="max_interactions" style="width: 80px;">
+                                    <option value="1">1</option>
+                                    <option value="2">2</option>
+                                    <option value="3">3</option>
+                                    <option value="5">5</option>
+                                    <option value="10" selected>10</option>
+                                    <option value="15">15</option>
+                                    <option value="20">20</option>
+                                    <option value="30">30</option>
+                                    <option value="50">50</option>
+                                    <option value="100">100</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-2">
+                            <div class="d-flex flex-wrap gap-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="headless" name="headless">
+                                    <label class="form-check-label" for="headless">
+                                        无头模式
+                                    </label>
+                                </div>
+                                
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="force" name="force">
+                                    <label class="form-check-label" for="force">
+                                        强制运行
+                                    </label>
+                                </div>
+                                
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="water" name="water">
+                                    <label class="form-check-label" for="water">
+                                        灌水模式
+                                    </label>
+                                </div>
+                                
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="ad_user" name="ad_user">
+                                    <label class="form-check-label" for="ad_user">
+                                        追星模式
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <h5 class="mt-4">VPN参数</h5>
+                        <div class="mb-2">
+                            <div class="d-flex flex-wrap gap-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="vpn_auto" name="vpn_auto">
+                                    <label class="form-check-label" for="vpn_auto">
+                                        自动切换VPN
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="no_auto_vpn" name="no_auto_vpn">
+                                    <label class="form-check-label" for="no_auto_vpn">
+                                        跳过VPN设置
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="vpn_manual" name="vpn_manual">
+                                    <label class="form-check-label" for="vpn_manual">
+                                        手动设置VPN
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <h5 class="mt-4">循环控制</h5>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="loop_interval" class="form-label">循环间隔 (秒)</label>
+                                    <input type="number" class="form-control" id="loop_interval" name="loop_interval" value="60">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="sleep_sec_min" class="form-label">最小休眠时间 (秒)</label>
+                                    <input type="number" class="form-control" id="sleep_sec_min" name="sleep_sec_min" value="3">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="sleep_sec_max" class="form-label">最大休眠时间 (秒)</label>
+                                    <input type="number" class="form-control" id="sleep_sec_max" name="sleep_sec_max" value="10">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 右侧代理信息 -->
+                    <div class="col-12 col-lg-4">
+                        <h5>代理信息</h5>
+                        
+                        <!-- Proxy信息显示区域 -->
+                        <div id="proxy-info" class="mb-3" style="display: none;">
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle"></i>
+                                <strong>账号使用的代理:</strong> <span id="proxy-value"></span>
+                            </div>
+                        </div>
+                        
+                        <!-- 当前代理信息显示区域 -->
+                        <div id="current-proxy-info" class="mb-3" style="display: none;">
+                            <div class="alert alert-warning">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <i class="bi bi-globe"></i>
+                                        <strong>当前代理信息:</strong>
+                                        <div class="mt-1">
+                                            <span class="badge bg-primary me-2">国家: <span id="current-country"></span></span>
+                                            <span class="badge bg-secondary me-2">代码: <span id="current-country-code"></span></span>
+                                            <span class="badge bg-info">IP: <span id="current-ip"></span></span>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-outline-warning" onclick="getCurrentProxyInfo()">
+                                        <i class="bi bi-arrow-clockwise"></i> 刷新
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <h5>其他选项</h5>
+                        <div class="d-flex flex-wrap gap-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="auto_like" name="auto_like">
+                                <label class="form-check-label" for="auto_like">
+                                    自动点赞
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="auto_appeal" name="auto_appeal">
+                                <label class="form-check-label" for="auto_appeal">
+                                    自动申诉
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="manual_exit" name="manual_exit">
+                                <label class="form-check-label" for="manual_exit">
+                                    手动退出
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="create" name="create">
+                                <label class="form-check-label" for="create">
+                                    创建模式
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="reset" name="reset">
+                                <label class="form-check-label" for="reset">
+                                    重置账号
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="d-flex flex-wrap gap-2 justify-content-center">
+                            <button type="button" class="btn btn-info" onclick="toggleCommand()">
+                                <i class="bi bi-terminal"></i> 显示命令
+                            </button>
+                            <button type="button" class="btn btn-success" onclick="startScript()">
+                                <i class="bi bi-play"></i> 启动脚本
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+            
+            <!-- 执行命令显示区域 -->
+            <div id="command-section" class="config-section" style="display: none;">
+                <h4><i class="bi bi-terminal"></i> 执行命令</h4>
+                <div class="alert alert-info">
+                    <strong>完整命令:</strong>
+                    <div id="command-display" class="command-display">
+                        请先配置参数，然后点击"显示命令"按钮
+                    </div>
+                </div>
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>注意:</strong> 此命令将在后台执行，您可以在"运行日志"页面查看执行结果。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 控制面板部分 -->
+    <div id="control-section" class="section" style="display: none;">
+        <div class="config-section">
+            <h3><i class="bi bi-play-circle"></i> 控制面板</h3>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">脚本状态</h5>
+                            <p class="card-text">
+                                <span class="badge bg-secondary" id="control-status">停止</span>
+                            </p>
+                            <div class="d-flex flex-wrap gap-2">
+                                <button type="button" class="btn btn-success" onclick="startScript()">
+                                    <i class="bi bi-play"></i> 启动
+                                </button>
+                                <button type="button" class="btn btn-danger" onclick="stopScript()">
+                                    <i class="bi bi-stop"></i> 停止
+                                </button>
+                                <button type="button" class="btn btn-warning" id="cleanup-btn" onclick="cleanupProcesses()" disabled>
+                                    <i class="bi bi-trash"></i> 清理进程 (<span id="chromium-count">0</span>)
+                                </button>
+                            </div>
+                            
+                            <!-- 运行时长显示区域 -->
+                            <div id="runtime-section" class="mt-2" style="display: none;">
+                                <div class="alert alert-info py-2">
+                                    <i class="bi bi-clock"></i> 
+                                    <strong>运行时长:</strong> 
+                                    <span id="runtime-display" class="fw-bold"></span>
+                                </div>
+                            </div>
+                            
+                            <!-- 当前运行信息显示区域 -->
+                            <div id="running-info-section" class="mt-3" style="display: none;">
+                                <div class="alert alert-success">
+                                    <h6 class="alert-heading">
+                                        <i class="bi bi-play-circle"></i> 当前运行信息
+                                    </h6>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <p class="mb-1"><strong>运行账号:</strong> <span id="running-account"></span></p>
+                                            <p class="mb-1"><strong>启动时间:</strong> <span id="start-time"></span></p>
+                                            <p class="mb-1"><strong>进程ID:</strong> <span id="process-pid"></span></p>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2">
+                                        <p class="mb-1"><strong>完整命令:</strong></p>
+                                        <code id="full-command" class="small d-block"></code>
+                                    </div>
+                                    <div class="mt-2">
+                                        <p class="mb-1"><strong>参数说明:</strong></p>
+                                        <div id="parameters-list" class="small"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 等待输入提示 -->
+                            <div id="waiting-input-alert" class="alert alert-info mt-3" style="display: none;">
+                                <i class="bi bi-info-circle"></i>
+                                <strong>脚本正在等待输入</strong>
+                                <p class="mb-0 mt-2">脚本已启动并正在等待用户输入。请查看下方的输入区域或日志页面获取详细信息。</p>
+                                <button type="button" class="btn btn-sm btn-outline-info mt-2" onclick="checkInputStatus()">
+                                    <i class="bi bi-arrow-clockwise"></i> 重新检查状态
+                                </button>
+                            </div>
+                            
+                            <!-- 脚本输入区域 -->
+                            <div id="script-input-section" class="mt-3" style="display: none;">
+                                <div class="alert alert-warning">
+                                    <strong>脚本等待输入:</strong>
+                                    <div class="input-group mt-2">
+                                        <input type="text" class="form-control" id="script-input" placeholder="请输入内容...">
+                                        <button class="btn btn-primary" onclick="sendInput()">
+                                            <i class="bi bi-arrow-right"></i> 继续
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="bi bi-play-circle"></i> Run.log (脚本运行日志)
+                            </h5>
+                            <div class="log-container" id="control-run-log-container" style="height: 400px; overflow-y: auto; background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 10px; font-family: monospace; font-size: 12px;">
+                                <div class="text-muted">等待run.log输出...</div>
+                            </div>
+                            <div class="mt-2">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="refreshControlRunLog()">
+                                    <i class="bi bi-arrow-clockwise"></i> 刷新日志
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearControlRunLog()">
+                                    <i class="bi bi-trash"></i> 清空日志
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 日志部分 -->
+    <div id="logs-section" class="section" style="display: none;">
+        <div class="config-section">
+            <h3><i class="bi bi-terminal"></i> 运行日志</h3>
+            
+            <div class="mb-3">
+                <div class="row">
+                    <div class="col-12 col-md-6">
+                        <div class="d-flex flex-wrap gap-2 mb-2 mb-md-0">
+                            <button type="button" class="btn btn-secondary" onclick="refreshAllLogs()">
+                                <i class="bi bi-arrow-clockwise"></i> 刷新日志
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="clearAllLogs()">
+                                <i class="bi bi-trash"></i> 清空日志
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <div class="d-flex flex-wrap align-items-center justify-content-start justify-content-md-end gap-2">
+                            <label for="refresh-interval" class="form-label mb-0">刷新间隔:</label>
+                            <select class="form-select" id="refresh-interval" style="width: auto; min-width: 100px;">
+                                <option value="3000">3秒</option>
+                                <option value="5000">5秒</option>
+                                <option value="10000">10秒</option>
+                                <option value="30000">30秒</option>
+                                <option value="0" selected>不刷新</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 日志页面等待输入提示 -->
+            <div id="logs-waiting-input-alert" class="alert alert-info mb-3" style="display: none;">
+                <i class="bi bi-info-circle"></i>
+                <strong>脚本正在等待输入</strong>
+                <p class="mb-0 mt-2">脚本已启动并正在等待用户输入。请切换到"控制面板"页面进行输入操作。</p>
+            </div>
+            
+            <!-- Server.log 区域 -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-server"></i> Server.log (Flask应用日志)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="log-container" id="server-log-container" style="height: 300px; overflow-y: auto; background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 10px; font-family: monospace; font-size: 12px;">
+                        <div class="text-muted">等待server.log输出...</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Run.log 区域 -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-play-circle"></i> Run.log (脚本运行日志)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="log-container" id="run-log-container" style="height: 300px; overflow-y: auto; background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 10px; font-family: monospace; font-size: 12px;">
+                        <div class="text-muted">等待run.log输出...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 账号状态部分 -->
+    <div id="status-section" class="section" style="display: none;">
+        <div class="config-section">
+            <h3><i class="bi bi-person-check"></i> 账号状态</h3>
+            
+            <!-- 筛选和操作区域 -->
+            <div class="row mb-3">
+                <div class="col-12 col-md-6">
+                    <div class="d-flex flex-wrap gap-2">
+                        <input type="text" class="form-control" id="status-filter" placeholder="搜索账号或代理..." style="min-width: 200px;">
+                        <select class="form-select" id="status-filter-select" style="min-width: 120px;">
+                            <option value="">全部状态</option>
+                            <option value="OK">正常</option>
+                            <option value="ERROR">错误</option>
+                            <option value="PENDING">待处理</option>
+                        </select>
+                        <button type="button" class="btn btn-primary" onclick="refreshAccountStatus()">
+                            <i class="bi bi-arrow-clockwise"></i> 刷新
+                        </button>
+                    </div>
+                </div>
+                                    <div class="col-12 col-md-6">
+                        <div class="d-flex flex-wrap gap-2 justify-content-start justify-content-md-end">
+                            <button type="button" class="btn btn-info" onclick="showSelectedCommand()">
+                                <i class="bi bi-terminal"></i> 显示命令
+                            </button>
+                            <button type="button" class="btn btn-success" onclick="startSelectedAccounts()">
+                                <i class="bi bi-play"></i> 启动选中账号
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="selectAllAccounts()">
+                                <i class="bi bi-check-all"></i> 全选
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="deselectAllAccounts()">
+                                <i class="bi bi-x-circle"></i> 取消全选
+                            </button>
+                        </div>
+                    </div>
+            </div>
+            
+            <!-- 账号状态表格 -->
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th width="50">
+                                <input type="checkbox" id="select-all-checkbox" onchange="toggleSelectAll()">
+                            </th>
+                            <th class="sortable" onclick="sortTable('account')" style="cursor: pointer;">
+                                账号 <i class="bi bi-arrow-down-up"></i>
+                            </th>
+                            <th class="sortable" onclick="sortTable('status')" style="cursor: pointer;">
+                                状态 <i class="bi bi-arrow-down-up"></i>
+                            </th>
+                            <th class="sortable" onclick="sortTable('update_time')" style="cursor: pointer;">
+                                更新时间 <i class="bi bi-arrow-down-up"></i>
+                            </th>
+                            <th class="sortable" onclick="sortTable('days_ago')" style="cursor: pointer;">
+                                更新天数 <i class="bi bi-arrow-down-up"></i>
+                            </th>
+                            <th class="sortable" onclick="sortTable('visit_date')" style="cursor: pointer;">
+                                访问日期 <i class="bi bi-arrow-down-up"></i>
+                            </th>
+                            <th class="sortable" onclick="sortTable('num_visit')" style="cursor: pointer;">
+                                访问次数 <i class="bi bi-arrow-down-up"></i>
+                            </th>
+                            <th class="sortable" onclick="sortTable('proxy')" style="cursor: pointer;">
+                                代理 <i class="bi bi-arrow-down-up"></i>
+                            </th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="status-table-body">
+                        <tr>
+                            <td colspan="9" class="text-center text-muted">
+                                <i class="bi bi-hourglass-split"></i> 加载中...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- 统计信息 -->
+            <div class="row mt-3">
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <strong>总账号数:</strong> <span id="total-accounts">0</span>
+                            </div>
+                            <div class="col-md-3">
+                                <strong>正常账号:</strong> <span id="ok-accounts">0</span>
+                            </div>
+                            <div class="col-md-3">
+                                <strong>选中账号:</strong> <span id="selected-accounts">0</span>
+                            </div>
+                            <div class="col-md-3">
+                                <strong>最近更新:</strong> <span id="last-update">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 账号管理部分 -->
+    <div id="accounts-section" class="section" style="display: none;">
+        <div class="config-section">
+            <h3><i class="bi bi-people"></i> 账号管理</h3>
+            
+            <!-- 搜索和操作区域 -->
+            <div class="row mb-3">
+                <div class="col-md-8">
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="accounts-search" placeholder="搜索账号、用户名或代理..." onkeyup="searchAccounts()">
+                        <button class="btn btn-outline-secondary" type="button" onclick="clearSearch()">
+                            <i class="bi bi-x-circle"></i> 清除
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-primary" onclick="showAddAccountModal()">
+                            <i class="bi bi-plus-circle"></i> 添加账号
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="refreshAccountsList()">
+                            <i class="bi bi-arrow-clockwise"></i> 刷新
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 搜索统计信息 -->
+            <div class="row mb-3" id="search-stats" style="display: none;">
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <i class="bi bi-search"></i> 搜索结果: <span id="search-results-count">0</span> 个账号
+                    </div>
+                </div>
+            </div>
+            
+                            <!-- 账号列表表格 -->
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>账号名</th>
+                                <th>用户名</th>
+                                <th>密码</th>
+                                <th>验证码</th>
+                                <th>代理</th>
+                                <th width="150">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="accounts-table-body">
+                            <tr>
+                                <td colspan="6" class="text-center text-muted">
+                                    <i class="bi bi-hourglass-split"></i> 加载中...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加账号模态框 -->
+<div class="modal fade" id="addAccountModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">添加新账号</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addAccountForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="newAccountName" class="form-label">账号名 *</label>
+                                <input type="text" class="form-control" id="newAccountName" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="newAccountUsername" class="form-label">用户名 *</label>
+                                <input type="text" class="form-control" id="newAccountUsername" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="newAccountPassword" class="form-label">密码</label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="newAccountPassword">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="toggleNewPassword()">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="newAccountVerifyCode" class="form-label">验证码</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="newAccountVerifyCode">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="toggleNewVerifyCode()">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="newAccountProxy" class="form-label">代理</label>
+                        <input type="text" class="form-control" id="newAccountProxy" placeholder="例如: gcp-g01-tw">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="addAccount()">添加账号</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑账号模态框 -->
+<div class="modal fade" id="editAccountModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">编辑账号</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editAccountForm">
+                    <input type="hidden" id="editAccountOriginal">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="editAccountName" class="form-label">账号名 *</label>
+                                <input type="text" class="form-control" id="editAccountName" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="editAccountUsername" class="form-label">用户名 *</label>
+                                <input type="text" class="form-control" id="editAccountUsername" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="editAccountPassword" class="form-label">密码</label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="editAccountPassword">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="toggleEditPassword()">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="editAccountVerifyCode" class="form-label">验证码</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="editAccountVerifyCode">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="toggleEditVerifyCode()">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editAccountProxy" class="form-label">代理</label>
+                        <input type="text" class="form-control" id="editAccountProxy" placeholder="例如: gcp-g01-tw">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="updateAccount()">保存更改</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 删除确认模态框 -->
+<div class="modal fade" id="deleteAccountModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">确认删除</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>确定要删除账号 <strong id="deleteAccountName"></strong> 吗？</p>
+                <p class="text-danger">此操作不可撤销！</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" onclick="confirmDeleteAccount()">确认删除</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 全局变量
+let currentConfig = {};
+let logInterval = null;
+
+// 全局变量
+let commandSectionVisible = false;
+let autoSaveTimer = null; // 自动保存定时器
+
+// 显示提示消息
+function showAlert(message, type = 'info') {
+    const alertId = 'alert-' + Date.now();
+    const alertHtml = `
+        <div id="${alertId}" class="alert alert-${type} alert-dismissible fade show" style="display: none;">
+            <i class="bi bi-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-triangle' : 'info-circle'}"></i>
+            <span>${message}</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    
+    // 添加到固定提示条区域
+    const fixedAlerts = document.querySelector('.fixed-alerts');
+    fixedAlerts.insertAdjacentHTML('beforeend', alertHtml);
+    
+    // 显示提示
+    const alert = document.getElementById(alertId);
+    alert.style.display = 'block';
+    alert.classList.add('show');
+    
+    // 3秒后自动隐藏
+    setTimeout(() => {
+        alert.classList.remove('show');
+        setTimeout(() => {
+            if (alert.parentNode) {
+                alert.parentNode.removeChild(alert);
+            }
+        }, 150);
+    }, 3000);
+}
+
+// 账号状态相关变量
+let accountStatusData = [];
+let filteredStatusData = [];
+let currentSortColumn = '';
+let currentSortDirection = 'asc'; // 'asc' 或 'desc'
+
+// 加载账号状态
+function loadAccountStatus() {
+    fetch('/api/account-status')
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            accountStatusData = data.status_data;
+            filteredStatusData = [...accountStatusData];
+            renderAccountStatusTable();
+            updateStatusStatistics();
+        } else {
+            showAlert('加载账号状态失败: ' + data.message, 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('加载账号状态失败: ' + error.message, 'danger');
+    });
+}
+
+// 渲染账号状态表格
+function renderAccountStatusTable() {
+    const tbody = document.getElementById('status-table-body');
+    tbody.innerHTML = '';
+    
+    if (filteredStatusData.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="9" class="text-center text-muted">
+                    <i class="bi bi-inbox"></i> 没有找到匹配的账号
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    filteredStatusData.forEach((account, index) => {
+        const row = document.createElement('tr');
+        const statusClass = account.status === 'OK' ? 'text-success' : 
+                          account.status === 'ERROR' ? 'text-danger' : 'text-warning';
+        
+        row.innerHTML = `
+            <td>
+                <input type="checkbox" class="account-checkbox" value="${account.account}" onchange="updateSelectedCount()">
+            </td>
+            <td><strong>${account.account}</strong></td>
+            <td><span class="${statusClass}">${account.status}</span></td>
+            <td>${account.update_time || '-'}</td>
+            <td><span class="text-muted">${account.days_ago}</span></td>
+            <td>${account.visit_date || '-'}</td>
+            <td>${account.num_visit || '0'}</td>
+            <td><span class="text-info">${account.proxy || '-'}</span></td>
+            <td>
+                <button type="button" class="btn btn-sm btn-success" onclick="startSingleAccount('${account.account}')">
+                    <i class="bi bi-play"></i> 启动
+                </button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+// 更新统计信息
+function updateStatusStatistics() {
+    const total = accountStatusData.length;
+    const okCount = accountStatusData.filter(a => a.status === 'OK').length;
+    const selectedCount = document.querySelectorAll('.account-checkbox:checked').length;
+    
+    // 找到最近更新的账号
+    let lastUpdate = '-';
+    if (accountStatusData.length > 0) {
+        const sorted = [...accountStatusData].sort((a, b) => {
+            if (!a.update_time || a.update_time === 'None') return 1;
+            if (!b.update_time || b.update_time === 'None') return -1;
+            return new Date(b.update_time) - new Date(a.update_time);
+        });
+        if (sorted[0].update_time && sorted[0].update_time !== 'None') {
+            lastUpdate = sorted[0].days_ago;
+        }
+    }
+    
+    document.getElementById('total-accounts').textContent = total;
+    document.getElementById('ok-accounts').textContent = okCount;
+    document.getElementById('selected-accounts').textContent = selectedCount;
+    document.getElementById('last-update').textContent = lastUpdate;
+}
+
+// 筛选账号
+function filterAccounts() {
+    const searchTerm = document.getElementById('status-filter').value.toLowerCase();
+    const statusFilter = document.getElementById('status-filter-select').value;
+    
+    filteredStatusData = accountStatusData.filter(account => {
+        const matchesSearch = account.account.toLowerCase().includes(searchTerm) ||
+                             (account.proxy && account.proxy.toLowerCase().includes(searchTerm));
+        const matchesStatus = !statusFilter || account.status === statusFilter;
+        return matchesSearch && matchesStatus;
+    });
+    
+    // 如果当前有排序，重新应用排序
+    if (currentSortColumn) {
+        sortTable(currentSortColumn);
+    } else {
+        renderAccountStatusTable();
+    }
+    
+    updateStatusStatistics();
+}
+
+// 刷新账号状态
+function refreshAccountStatus() {
+    loadAccountStatus();
+}
+
+// 检查脚本输入状态
+function checkInputStatus() {
+    fetch('/api/script/input-status')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const waitingForInput = data.waiting_for_input;
+                const lastLine = data.last_line;
+                const debugInfo = data.debug_info;
+                
+                // 只在状态变化时记录调试日志
+                if (window.lastInputStatus !== waitingForInput) {
+                    console.log('输入状态变化:', {
+                        from: window.lastInputStatus,
+                        to: waitingForInput,
+                        lastLine: lastLine
+                    });
+                    window.lastInputStatus = waitingForInput;
+                }
+                
+                const waitingAlert = document.getElementById('waiting-input-alert');
+                const inputSection = document.getElementById('script-input-section');
+                const logsWaitingAlert = document.getElementById('logs-waiting-input-alert');
+                
+                if (waitingForInput) {
+                    // 显示输入区域
+                    if (waitingAlert) waitingAlert.style.display = 'block';
+                    if (inputSection) inputSection.style.display = 'block';
+                    if (logsWaitingAlert) logsWaitingAlert.style.display = 'block';
+                } else {
+                    // 隐藏输入区域
+                    if (waitingAlert) waitingAlert.style.display = 'none';
+                    if (inputSection) inputSection.style.display = 'none';
+                    if (logsWaitingAlert) logsWaitingAlert.style.display = 'none';
+                }
+            } else {
+                console.error('检查输入状态失败:', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('检查输入状态失败:', error);
+        });
+}
+
+// 定期检查输入状态
+function startInputStatusCheck() {
+    // 立即检查一次
+    checkInputStatus();
+    
+    // 每5秒检查一次
+    setInterval(() => {
+        checkInputStatus();
+        // 如果当前在控制面板，同时刷新run.log
+        const controlSection = document.getElementById('control-section');
+        if (controlSection && controlSection.style.display !== 'none') {
+            refreshControlRunLog();
+        }
+    }, 5000);
+}
+
+// 启动单个账号
+function startSingleAccount(account) {
+    // 设置账号到配置表单
+    const profileSelect = document.getElementById('profile');
+    if (profileSelect) {
+        // 先清空所有选择
+        profileSelect.value = '';
+        // 如果是Bootstrap Select，需要更新
+        if ($('#profile').data('selectpicker')) {
+            $('#profile').selectpicker('val', []);
+        }
+        
+        // 然后设置新的账号
+        profileSelect.value = account;
+        // 如果是Bootstrap Select，需要更新
+        if ($('#profile').data('selectpicker')) {
+            $('#profile').selectpicker('val', [account]);
+            // 强制刷新以确保显示正确
+            $('#profile').selectpicker('refresh');
+        }
+        
+        // 触发change事件以更新代理信息
+        const event = new Event('change');
+        profileSelect.dispatchEvent(event);
+        
+        // 设置标记，防止loadAccounts重新初始化时覆盖
+        profileSelect.setAttribute('data-manually-set', 'true');
+        profileSelect.setAttribute('data-manual-account', account);
+    }
+    
+    // 切换到配置管理页面
+    showSection('config');
+    showAlert(`已选择账号: ${account}，请在配置管理页面启动`, 'info');
+}
+
+// 显示选中账号的命令
+function showSelectedCommand() {
+    const selectedAccounts = Array.from(document.querySelectorAll('.account-checkbox:checked'))
+        .map(cb => cb.value);
+    
+    if (selectedAccounts.length === 0) {
+        showAlert('请先选择要查看命令的账号', 'warning');
+        return;
+    }
+    
+    if (selectedAccounts.length === 1) {
+        // 单个账号，显示详细命令
+        const account = selectedAccounts[0];
+        showSingleAccountCommand(account);
+    } else {
+        // 多个账号，显示批量命令预览
+        showMultipleAccountsCommand(selectedAccounts);
+    }
+}
+
+// 显示单个账号的命令
+function showSingleAccountCommand(account) {
+    // 不跳转页面，直接在当前页面显示命令
+    
+    // 获取当前配置表单的值
+    getCurrentConfig().then(config => {
+        // 设置账号到配置中
+        config.profile = account;
+        
+        // 生成命令
+        const cmd = generateCommandFromConfig(config);
+        
+        // 在账号状态页面显示命令
+        showCommandInStatusPage(cmd, account);
+    });
+}
+
+// 获取当前配置
+function getCurrentConfig() {
+    const config = {};
+    
+    // 获取Profile值（从配置管理页面）
+    const profileSelect = document.getElementById('profile');
+    if (profileSelect && profileSelect.value) {
+        config.profile = profileSelect.value;
+    }
+    
+    // 获取其他配置项
+    const form = document.getElementById('config-form');
+    if (form) {
+        const formData = new FormData(form);
+        for (let [key, value] of formData.entries()) {
+            if (value !== '') {
+                config[key] = value;
+            }
+        }
+        
+        // 处理复选框
+        const checkboxes = form.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(checkbox => {
+            config[checkbox.name] = checkbox.checked;
+        });
+        
+        // 处理数字输入框
+        const numberInputs = form.querySelectorAll('input[type="number"]');
+        numberInputs.forEach(input => {
+            if (input.value !== '') {
+                config[input.name] = input.value;
+            }
+        });
+        
+        // 处理文本输入框
+        const textInputs = form.querySelectorAll('input[type="text"]');
+        textInputs.forEach(input => {
+            if (input.value !== '') {
+                config[input.name] = input.value;
+            }
+        });
+    }
+    
+    // 如果配置为空或只有profile，从auto_saved_config获取配置
+    if (Object.keys(config).length <= 1) {
+        console.log('配置管理页面未加载，从auto_saved_config获取配置');
+        return loadAutoSavedConfig();
+    }
+    
+    console.log('获取到的配置:', config);
+    return config;
+}
+
+// 从auto_saved_config加载配置
+function loadAutoSavedConfig() {
+    return fetch('/api/config/last-used')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.config) {
+                console.log('从last_used_config加载的配置:', data.config);
+                return data.config;
+            } else {
+                console.log('last_used_config加载失败，使用默认配置');
+                return getDefaultConfig();
+            }
+        })
+        .catch(error => {
+            console.error('加载last_used_config失败:', error);
+            return getDefaultConfig();
+        });
+}
+
+// 获取默认配置
+function getDefaultConfig() {
+    return {
+        headless: true,
+        force: false,
+        water: false,
+        ad_user: false,
+        vpn_auto: false,
+        no_auto_vpn: true,  // 默认跳过VPN设置
+        vpn_manual: false,
+        auto_like: false,
+        auto_appeal: false,
+        manual_exit: false,
+        create: false,
+        reset: false,
+        max_interactions: '10',
+        loop_count: '1',
+        loop_interval: '60',
+        sleep_sec_min: '3',
+        sleep_sec_max: '10'
+    };
+}
+
+// 从配置生成命令
+function generateCommandFromConfig(config) {
+    console.log('生成命令的配置:', config);
+    
+    let cmd = 'python xwool.py';
+    
+    // 添加参数
+    for (let [key, value] of Object.entries(config)) {
+        if (value !== null && value !== '' && value !== false) {
+            if (typeof value === 'boolean' && value === true) {
+                cmd += ` --${key}`;
+            } else {
+                cmd += ` --${key} ${value}`;
+            }
+        }
+    }
+    
+    console.log('生成的命令:', cmd);
+    return cmd;
+}
+
+// 在账号状态页面显示命令
+function showCommandInStatusPage(cmd, account) {
+    // 创建或获取命令显示区域
+    let commandDisplay = document.getElementById('status-command-display');
+    if (!commandDisplay) {
+        commandDisplay = document.createElement('div');
+        commandDisplay.id = 'status-command-display';
+        commandDisplay.className = 'mt-3 p-3 bg-light border rounded';
+        commandDisplay.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0"><i class="bi bi-terminal"></i> 执行命令</h6>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="closeStatusCommand()">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+            <div class="mb-2">
+                <small class="text-muted">账号: <strong>${account}</strong></small>
+            </div>
+            <div class="bg-dark text-light p-2 rounded font-monospace" style="font-size: 0.9em; word-break: break-all;">
+                ${cmd}
+            </div>
+            <div class="mt-2">
+                <button type="button" class="btn btn-sm btn-primary" onclick="copyStatusCommand()">
+                    <i class="bi bi-clipboard"></i> 复制命令
+                </button>
+                <button type="button" class="btn btn-sm btn-success" onclick="startStatusCommand('${account}')">
+                    <i class="bi bi-play"></i> 启动脚本
+                </button>
+            </div>
+        `;
+        
+        // 插入到账号状态表格后面
+        const statusSection = document.getElementById('status-section');
+        const table = statusSection.querySelector('.table-responsive');
+        table.parentNode.insertBefore(commandDisplay, table.nextSibling);
+    } else {
+        // 更新现有命令显示
+        commandDisplay.querySelector('.text-muted strong').textContent = account;
+        commandDisplay.querySelector('.font-monospace').textContent = cmd;
+        commandDisplay.style.display = 'block';
+    }
+    
+    // 滚动到命令显示区域
+    commandDisplay.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    
+    showAlert(`已生成账号 ${account} 的执行命令`, 'info');
+}
+
+// 关闭状态页面的命令显示
+function closeStatusCommand() {
+    const commandDisplay = document.getElementById('status-command-display');
+    if (commandDisplay) {
+        commandDisplay.style.display = 'none';
+    }
+}
+
+// 复制状态页面的命令
+function copyStatusCommand() {
+    const commandText = document.querySelector('#status-command-display .font-monospace').textContent;
+    navigator.clipboard.writeText(commandText).then(() => {
+        showAlert('命令已复制到剪贴板', 'success');
+    }).catch(() => {
+        showAlert('复制失败，请手动复制', 'warning');
+    });
+}
+
+// 启动状态页面的命令
+function startStatusCommand(account) {
+    // 跳转到配置管理页面并启动脚本
+    showSection('config');
+    
+    // 设置账号到配置表单
+    const profileSelect = document.getElementById('profile');
+    if (profileSelect) {
+        // 先清空所有选择
+        profileSelect.value = '';
+        // 如果是Bootstrap Select，需要更新
+        if ($('#profile').data('selectpicker')) {
+            $('#profile').selectpicker('val', []);
+        }
+        
+        // 然后设置新的账号
+        profileSelect.value = account;
+        // 如果是Bootstrap Select，需要更新
+        if ($('#profile').data('selectpicker')) {
+            $('#profile').selectpicker('val', [account]);
+            // 强制刷新以确保显示正确
+            $('#profile').selectpicker('refresh');
+        }
+        
+        // 触发change事件以更新代理信息
+        const event = new Event('change');
+        profileSelect.dispatchEvent(event);
+        
+        // 设置标记，防止loadAccounts重新初始化时覆盖
+        profileSelect.setAttribute('data-manually-set', 'true');
+        profileSelect.setAttribute('data-manual-account', account);
+    }
+    
+    // 启动脚本
+    setTimeout(() => {
+        startScript();
+    }, 200);
+}
+
+// ==================== 账号管理功能 ====================
+
+// 全局变量
+let accountsData = [];
+let accountToDelete = null;
+let filteredAccountsData = [];
+let isSearching = false;
+
+// 加载账号列表
+function loadAccountsList() {
+    fetch('/api/accounts/manage')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                accountsData = data.accounts;
+                renderAccountsTable();
+            } else {
+                showAlert('加载账号列表失败: ' + data.error, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('加载账号列表失败:', error);
+            showAlert('加载账号列表失败', 'error');
+        });
+}
+
+// 渲染账号表格
+function renderAccountsTable() {
+    const tbody = document.getElementById('accounts-table-body');
+    const dataToRender = isSearching ? filteredAccountsData : accountsData;
+    
+    if (dataToRender.length === 0) {
+        const message = isSearching ? '没有找到匹配的账号' : '暂无账号数据';
+        const icon = isSearching ? 'bi-search' : 'bi-inbox';
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center text-muted">
+                    <i class="bi ${icon}"></i> ${message}
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    tbody.innerHTML = dataToRender.map(account => `
+        <tr>
+            <td><strong>${account.account}</strong></td>
+            <td>${account.x_username || '-'}</td>
+            <td>
+                <span class="password-field" data-account="${account.account}" data-password="${account.x_pwd || ''}">***</span>
+                <button type="button" class="btn btn-sm btn-outline-secondary ms-1" onclick="togglePassword('${account.account}')">
+                    <i class="bi bi-eye"></i>
+                </button>
+            </td>
+            <td>
+                <span class="verifycode-field" data-account="${account.account}" data-verifycode="${account.x_verifycode || ''}">***</span>
+                <button type="button" class="btn btn-sm btn-outline-secondary ms-1" onclick="toggleVerifyCode('${account.account}')">
+                    <i class="bi bi-eye"></i>
+                </button>
+            </td>
+            <td>${account.proxy || '-'}</td>
+            <td>
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-outline-primary" onclick="editAccount('${account.account}')">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-danger" onclick="deleteAccount('${account.account}')">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+
+
+// 显示添加账号模态框
+function showAddAccountModal() {
+    document.getElementById('newAccountName').value = '';
+    document.getElementById('newAccountUsername').value = '';
+    document.getElementById('newAccountPassword').value = '';
+    document.getElementById('newAccountVerifyCode').value = '';
+    document.getElementById('newAccountProxy').value = '';
+    const modal = new bootstrap.Modal(document.getElementById('addAccountModal'));
+    modal.show();
+}
+
+// 添加账号
+function addAccount() {
+    const accountName = document.getElementById('newAccountName').value.trim();
+    const username = document.getElementById('newAccountUsername').value.trim();
+    const password = document.getElementById('newAccountPassword').value.trim();
+    const verifyCode = document.getElementById('newAccountVerifyCode').value.trim();
+    const proxy = document.getElementById('newAccountProxy').value.trim();
+    
+    if (!accountName) {
+        showAlert('请输入账号名', 'warning');
+        return;
+    }
+    
+    if (!username) {
+        showAlert('请输入用户名', 'warning');
+        return;
+    }
+    
+    fetch('/api/accounts/manage', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            account: accountName,
+            x_username: username,
+            x_pwd: password,
+            x_verifycode: verifyCode,
+            proxy: proxy
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert(data.message, 'success');
+            bootstrap.Modal.getInstance(document.getElementById('addAccountModal')).hide();
+            loadAccountsList();
+            loadAccounts(); // 刷新配置页面的账号下拉列表
+            
+            // 如果当前在搜索状态，重新执行搜索
+            if (isSearching) {
+                searchAccounts();
+            }
+        } else {
+            showAlert('添加账号失败: ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('添加账号失败:', error);
+        showAlert('添加账号失败', 'error');
+    });
+}
+
+// 编辑账号
+function editAccount(accountName) {
+    // 在搜索状态和正常状态中查找账号
+    const account = (isSearching ? filteredAccountsData : accountsData).find(acc => acc.account === accountName);
+    if (!account) {
+        showAlert('账号不存在', 'error');
+        return;
+    }
+    
+    document.getElementById('editAccountOriginal').value = accountName;
+    document.getElementById('editAccountName').value = account.account;
+    document.getElementById('editAccountUsername').value = account.x_username || '';
+    document.getElementById('editAccountPassword').value = account.x_pwd || '';
+    document.getElementById('editAccountVerifyCode').value = account.x_verifycode || '';
+    document.getElementById('editAccountProxy').value = account.proxy || '';
+    
+    // 重置密码和验证码字段的显示状态
+    const passwordInput = document.getElementById('editAccountPassword');
+    const verifycodeInput = document.getElementById('editAccountVerifyCode');
+    const passwordButton = passwordInput.parentElement.querySelector('button');
+    const verifycodeButton = verifycodeInput.parentElement.querySelector('button');
+    
+    // 设置密码字段为password类型
+    passwordInput.type = 'password';
+    passwordButton.querySelector('i').className = 'bi bi-eye';
+    passwordButton.classList.remove('btn-outline-warning');
+    passwordButton.classList.add('btn-outline-secondary');
+    
+    // 设置验证码字段为text类型（因为验证码通常不需要隐藏）
+    verifycodeInput.type = 'text';
+    verifycodeButton.querySelector('i').className = 'bi bi-eye';
+    verifycodeButton.classList.remove('btn-outline-warning');
+    verifycodeButton.classList.add('btn-outline-secondary');
+    
+    const modal = new bootstrap.Modal(document.getElementById('editAccountModal'));
+    modal.show();
+}
+
+// 更新账号
+function updateAccount() {
+    const originalAccount = document.getElementById('editAccountOriginal').value;
+    const newAccountName = document.getElementById('editAccountName').value.trim();
+    const username = document.getElementById('editAccountUsername').value.trim();
+    const password = document.getElementById('editAccountPassword').value.trim();
+    const verifyCode = document.getElementById('editAccountVerifyCode').value.trim();
+    const proxy = document.getElementById('editAccountProxy').value.trim();
+    
+    if (!newAccountName) {
+        showAlert('请输入账号名', 'warning');
+        return;
+    }
+    
+    if (!username) {
+        showAlert('请输入用户名', 'warning');
+        return;
+    }
+    
+    fetch(`/api/accounts/manage/${encodeURIComponent(originalAccount)}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            account: newAccountName,
+            x_username: username,
+            x_pwd: password,
+            x_verifycode: verifyCode,
+            proxy: proxy
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert(data.message, 'success');
+            bootstrap.Modal.getInstance(document.getElementById('editAccountModal')).hide();
+            loadAccountsList();
+            loadAccounts(); // 刷新配置页面的账号下拉列表
+            
+            // 如果当前在搜索状态，重新执行搜索
+            if (isSearching) {
+                searchAccounts();
+            }
+        } else {
+            showAlert('更新账号失败: ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('更新账号失败:', error);
+        showAlert('更新账号失败', 'error');
+    });
+}
+
+// 删除账号
+function deleteAccount(accountName) {
+    accountToDelete = accountName;
+    document.getElementById('deleteAccountName').textContent = accountName;
+    const modal = new bootstrap.Modal(document.getElementById('deleteAccountModal'));
+    modal.show();
+}
+
+// 确认删除账号
+function confirmDeleteAccount() {
+    if (!accountToDelete) {
+        showAlert('删除失败: 账号信息丢失', 'error');
+        return;
+    }
+    
+    fetch(`/api/accounts/manage/${encodeURIComponent(accountToDelete)}`, {
+        method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert(data.message, 'success');
+            bootstrap.Modal.getInstance(document.getElementById('deleteAccountModal')).hide();
+            loadAccountsList();
+            loadAccounts(); // 刷新配置页面的账号下拉列表
+            
+            // 如果当前在搜索状态，重新执行搜索
+            if (isSearching) {
+                searchAccounts();
+            }
+        } else {
+            showAlert('删除账号失败: ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('删除账号失败:', error);
+        showAlert('删除账号失败', 'error');
+    });
+}
+
+// 刷新账号列表
+function refreshAccountsList() {
+    loadAccountsList();
+}
+
+// 搜索账号
+function searchAccounts() {
+    const searchTerm = document.getElementById('accounts-search').value.trim().toLowerCase();
+    const searchStats = document.getElementById('search-stats');
+    const searchResultsCount = document.getElementById('search-results-count');
+    
+    if (searchTerm === '') {
+        // 清除搜索
+        isSearching = false;
+        filteredAccountsData = [];
+        searchStats.style.display = 'none';
+        renderAccountsTable();
+        return;
+    }
+    
+    // 执行搜索
+    isSearching = true;
+    filteredAccountsData = accountsData.filter(account => {
+        return (
+            account.account.toLowerCase().includes(searchTerm) ||
+            (account.x_username && account.x_username.toLowerCase().includes(searchTerm)) ||
+            (account.proxy && account.proxy.toLowerCase().includes(searchTerm))
+        );
+    });
+    
+    // 显示搜索结果统计
+    searchResultsCount.textContent = filteredAccountsData.length;
+    searchStats.style.display = 'block';
+    
+    // 重新渲染表格
+    renderAccountsTable();
+}
+
+// 清除搜索
+function clearSearch() {
+    document.getElementById('accounts-search').value = '';
+    isSearching = false;
+    filteredAccountsData = [];
+    document.getElementById('search-stats').style.display = 'none';
+    renderAccountsTable();
+}
+
+// 切换密码显示/隐藏
+function togglePassword(accountName) {
+    const passwordField = document.querySelector(`.password-field[data-account="${accountName}"]`);
+    const toggleButton = passwordField.nextElementSibling;
+    const icon = toggleButton.querySelector('i');
+    
+    if (passwordField.textContent === '***') {
+        // 显示密码
+        const password = passwordField.getAttribute('data-password');
+        passwordField.textContent = password || '-';
+        icon.className = 'bi bi-eye-slash';
+        toggleButton.classList.remove('btn-outline-secondary');
+        toggleButton.classList.add('btn-outline-warning');
+    } else {
+        // 隐藏密码
+        passwordField.textContent = '***';
+        icon.className = 'bi bi-eye';
+        toggleButton.classList.remove('btn-outline-warning');
+        toggleButton.classList.add('btn-outline-secondary');
+    }
+}
+
+// 切换验证码显示/隐藏
+function toggleVerifyCode(accountName) {
+    const verifycodeField = document.querySelector(`.verifycode-field[data-account="${accountName}"]`);
+    const toggleButton = verifycodeField.nextElementSibling;
+    const icon = toggleButton.querySelector('i');
+    
+    if (verifycodeField.textContent === '***') {
+        // 显示验证码
+        const verifycode = verifycodeField.getAttribute('data-verifycode');
+        verifycodeField.textContent = verifycode || '-';
+        icon.className = 'bi bi-eye-slash';
+        toggleButton.classList.remove('btn-outline-secondary');
+        toggleButton.classList.add('btn-outline-warning');
+    } else {
+        // 隐藏验证码
+        verifycodeField.textContent = '***';
+        icon.className = 'bi bi-eye';
+        toggleButton.classList.remove('btn-outline-warning');
+        toggleButton.classList.add('btn-outline-secondary');
+    }
+}
+
+// 切换新账号密码显示/隐藏
+function toggleNewPassword() {
+    const passwordInput = document.getElementById('newAccountPassword');
+    const toggleButton = passwordInput.parentElement.querySelector('button');
+    const icon = toggleButton.querySelector('i');
+    
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        icon.className = 'bi bi-eye-slash';
+        toggleButton.classList.remove('btn-outline-secondary');
+        toggleButton.classList.add('btn-outline-warning');
+    } else {
+        passwordInput.type = 'password';
+        icon.className = 'bi bi-eye';
+        toggleButton.classList.remove('btn-outline-warning');
+        toggleButton.classList.add('btn-outline-secondary');
+    }
+}
+
+// 切换新账号验证码显示/隐藏
+function toggleNewVerifyCode() {
+    const verifycodeInput = document.getElementById('newAccountVerifyCode');
+    const toggleButton = verifycodeInput.parentElement.querySelector('button');
+    const icon = toggleButton.querySelector('i');
+    
+    if (verifycodeInput.type === 'password') {
+        verifycodeInput.type = 'text';
+        icon.className = 'bi bi-eye-slash';
+        toggleButton.classList.remove('btn-outline-secondary');
+        toggleButton.classList.add('btn-outline-warning');
+    } else {
+        verifycodeInput.type = 'password';
+        icon.className = 'bi bi-eye';
+        toggleButton.classList.remove('btn-outline-warning');
+        toggleButton.classList.add('btn-outline-secondary');
+    }
+}
+
+// 切换编辑账号密码显示/隐藏
+function toggleEditPassword() {
+    const passwordInput = document.getElementById('editAccountPassword');
+    const toggleButton = passwordInput.parentElement.querySelector('button');
+    const icon = toggleButton.querySelector('i');
+    
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        icon.className = 'bi bi-eye-slash';
+        toggleButton.classList.remove('btn-outline-secondary');
+        toggleButton.classList.add('btn-outline-warning');
+    } else {
+        passwordInput.type = 'password';
+        icon.className = 'bi bi-eye';
+        toggleButton.classList.remove('btn-outline-warning');
+        toggleButton.classList.add('btn-outline-secondary');
+    }
+}
+
+// 切换编辑账号验证码显示/隐藏
+function toggleEditVerifyCode() {
+    const verifycodeInput = document.getElementById('editAccountVerifyCode');
+    const toggleButton = verifycodeInput.parentElement.querySelector('button');
+    const icon = toggleButton.querySelector('i');
+    
+    if (verifycodeInput.type === 'password') {
+        verifycodeInput.type = 'text';
+        icon.className = 'bi bi-eye-slash';
+        toggleButton.classList.remove('btn-outline-secondary');
+        toggleButton.classList.add('btn-outline-warning');
+    } else {
+        verifycodeInput.type = 'password';
+        icon.className = 'bi bi-eye';
+        toggleButton.classList.remove('btn-outline-warning');
+        toggleButton.classList.add('btn-outline-secondary');
+    }
+}
+
+// 显示多个账号的命令预览
+function showMultipleAccountsCommand(accounts) {
+    const accountsStr = accounts.join(',');
+    
+    // 获取当前配置表单的数据
+    const formData = new FormData(document.getElementById('config-form'));
+    const config = {};
+    
+    // 收集表单数据
+    for (let [key, value] of formData.entries()) {
+        if (value !== '') {
+            config[key] = value;
+        }
+    }
+    
+    // 处理复选框
+    const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+        config[checkbox.name] = checkbox.checked;
+    });
+    
+    // 处理VPN设置
+    if (config['vpn_auto']) {
+        delete config['no_auto_vpn'];
+        delete config['vpn_manual'];
+    } else if (config['no_auto_vpn']) {
+        delete config['vpn_auto'];
+        delete config['vpn_manual'];
+    } else if (config['vpn_manual']) {
+        delete config['vpn_auto'];
+        delete config['no_auto_vpn'];
+    }
+    
+    // 构建完整命令
+    let cmd = 'python xwool.py';
+    
+    // 添加参数
+    for (let [key, value] of Object.entries(config)) {
+        if (value !== null && value !== '' && value !== false) {
+            if (typeof value === 'boolean' && value === true) {
+                cmd += ` --${key}`;
+            } else {
+                cmd += ` --${key}`;
+                cmd += ` ${value}`;
+            }
+        }
+    }
+    
+    // 替换profile参数为多账号
+    cmd = cmd.replace(/--profile [^ ]+/, `--profile ${accountsStr}`);
+    
+    let commandPreview = '批量启动命令预览:\n\n';
+    commandPreview += `选中账号: ${accounts.join(', ')}\n\n`;
+    commandPreview += `启动命令:\n`;
+    commandPreview += `${cmd}\n\n`;
+    commandPreview += `说明: 多个账号用逗号分隔，系统会自动处理每个账号`;
+    
+    // 创建模态框显示命令
+    const modalHtml = `
+        <div class="modal fade" id="commandModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">批量命令预览</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <pre class="bg-dark text-light p-3 rounded">${commandPreview}</pre>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                        <button type="button" class="btn btn-primary" onclick="copyCommands()">复制命令</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // 移除旧的模态框
+    const oldModal = document.getElementById('commandModal');
+    if (oldModal) {
+        oldModal.remove();
+    }
+    
+    // 添加新的模态框
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // 显示模态框
+    const modal = new bootstrap.Modal(document.getElementById('commandModal'));
+    modal.show();
+}
+
+// 复制命令到剪贴板
+function copyCommands() {
+    const selectedAccounts = Array.from(document.querySelectorAll('.account-checkbox:checked'))
+        .map(cb => cb.value);
+    
+    const accountsStr = selectedAccounts.join(',');
+    
+    // 获取当前配置表单的数据
+    const formData = new FormData(document.getElementById('config-form'));
+    const config = {};
+    
+    // 收集表单数据
+    for (let [key, value] of formData.entries()) {
+        if (value !== '') {
+            config[key] = value;
+        }
+    }
+    
+    // 处理复选框
+    const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+        config[checkbox.name] = checkbox.checked;
+    });
+    
+    // 处理VPN设置
+    if (config['vpn_auto']) {
+        delete config['no_auto_vpn'];
+        delete config['vpn_manual'];
+    } else if (config['no_auto_vpn']) {
+        delete config['vpn_auto'];
+        delete config['vpn_manual'];
+    } else if (config['vpn_manual']) {
+        delete config['vpn_auto'];
+        delete config['no_auto_vpn'];
+    }
+    
+    // 构建完整命令
+    let cmd = 'python xwool.py';
+    
+    // 添加参数
+    for (let [key, value] of Object.entries(config)) {
+        if (value !== null && value !== '' && value !== false) {
+            if (typeof value === 'boolean' && value === true) {
+                cmd += ` --${key}`;
+            } else {
+                cmd += ` --${key}`;
+                cmd += ` ${value}`;
+            }
+        }
+    }
+    
+    // 替换profile参数为多账号
+    cmd = cmd.replace(/--profile [^ ]+/, `--profile ${accountsStr}`);
+    
+    navigator.clipboard.writeText(cmd).then(() => {
+        showAlert('命令已复制到剪贴板', 'success');
+    }).catch(() => {
+        showAlert('复制失败，请手动复制', 'warning');
+    });
+}
+
+// 启动选中的账号
+function startSelectedAccounts() {
+    const selectedAccounts = Array.from(document.querySelectorAll('.account-checkbox:checked'))
+        .map(cb => cb.value);
+    
+    if (selectedAccounts.length === 0) {
+        showAlert('请先选择要启动的账号', 'warning');
+        return;
+    }
+    
+    if (selectedAccounts.length === 1) {
+        // 单个账号，直接启动
+        startSingleAccountDirect(selectedAccounts[0]);
+    } else {
+        // 多个账号，直接启动
+        startMultipleAccountsDirect(selectedAccounts);
+    }
+}
+
+// 直接启动单个账号（不跳转页面）
+function startSingleAccountDirect(account) {
+    // 获取当前配置
+    getCurrentConfig().then(config => {
+        // 设置账号到配置中
+        config.profile = account;
+        
+        // 直接启动脚本
+        startScriptWithConfig(config, account);
+    });
+}
+
+// 直接启动多个账号（不跳转页面）
+function startMultipleAccountsDirect(accounts) {
+    // 获取当前配置
+    getCurrentConfig().then(config => {
+        // 设置多个账号到配置中
+        config.profile = accounts.join(',');
+        
+        // 直接启动脚本
+        startScriptWithConfig(config, accounts.join(', '));
+    });
+}
+
+// 使用配置启动脚本
+function startScriptWithConfig(config, accountInfo) {
+    // 调试信息
+    console.log('启动配置:', config);
+    
+    // 构建命令
+    let cmd = 'python xwool.py';
+    
+    // 添加参数
+    for (let [key, value] of Object.entries(config)) {
+        if (value !== null && value !== '' && value !== false) {
+            if (typeof value === 'boolean' && value === true) {
+                cmd += ` --${key}`;
+            } else {
+                cmd += ` --${key} ${value}`;
+            }
+        }
+    }
+    
+    console.log('生成的命令:', cmd);
+    
+    // 显示启动确认对话框
+    const confirmMessage = `确定要启动以下账号吗？\n\n账号: ${accountInfo}\n\n命令: ${cmd}`;
+    
+    if (confirm(confirmMessage)) {
+        // 发送启动请求
+        fetch('/api/script/start', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({config: config})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert(`已启动账号: ${accountInfo}`, 'success');
+                
+                // 显示启动信息
+                showStartInfoInStatusPage(cmd, accountInfo);
+                
+                // 更新状态
+                updateStatus();
+                updateRunningInfo();
+            } else {
+                showAlert(`启动失败: ${data.message}`, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('启动失败:', error);
+            showAlert('启动失败，请检查网络连接', 'error');
+        });
+    }
+}
+
+// 在账号状态页面显示启动信息
+function showStartInfoInStatusPage(cmd, accountInfo) {
+    // 创建或获取启动信息显示区域
+    let startInfoDisplay = document.getElementById('status-start-info-display');
+    if (!startInfoDisplay) {
+        startInfoDisplay = document.createElement('div');
+        startInfoDisplay.id = 'status-start-info-display';
+        startInfoDisplay.className = 'mt-3 p-3 bg-success bg-opacity-10 border border-success rounded';
+        startInfoDisplay.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0 text-success"><i class="bi bi-play-circle"></i> 脚本已启动</h6>
+                <button type="button" class="btn btn-sm btn-outline-success" onclick="closeStatusStartInfo()">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+            <div class="mb-2">
+                <small class="text-muted">账号: <strong>${accountInfo}</strong></small>
+            </div>
+            <div class="bg-dark text-light p-2 rounded font-monospace" style="font-size: 0.9em; word-break: break-all;">
+                ${cmd}
+            </div>
+            <div class="mt-2">
+                <small class="text-success">
+                    <i class="bi bi-info-circle"></i> 脚本正在后台运行，可以在"控制面板"查看运行状态
+                </small>
+            </div>
+        `;
+        
+        // 插入到账号状态表格后面
+        const statusSection = document.getElementById('status-section');
+        const table = statusSection.querySelector('.table-responsive');
+        table.parentNode.insertBefore(startInfoDisplay, table.nextSibling);
+    } else {
+        // 更新现有启动信息显示
+        startInfoDisplay.querySelector('.text-muted strong').textContent = accountInfo;
+        startInfoDisplay.querySelector('.font-monospace').textContent = cmd;
+        startInfoDisplay.style.display = 'block';
+    }
+    
+    // 滚动到启动信息显示区域
+    startInfoDisplay.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+// 关闭状态页面的启动信息显示
+function closeStatusStartInfo() {
+    const startInfoDisplay = document.getElementById('status-start-info-display');
+    if (startInfoDisplay) {
+        startInfoDisplay.style.display = 'none';
+    }
+}
+
+// 全选账号
+function selectAllAccounts() {
+    document.querySelectorAll('.account-checkbox').forEach(cb => {
+        cb.checked = true;
+    });
+    document.getElementById('select-all-checkbox').checked = true;
+    updateSelectedCount();
+}
+
+// 取消全选账号
+function deselectAllAccounts() {
+    document.querySelectorAll('.account-checkbox').forEach(cb => {
+        cb.checked = false;
+    });
+    document.getElementById('select-all-checkbox').checked = false;
+    updateSelectedCount();
+}
+
+// 切换全选
+function toggleSelectAll() {
+    const selectAllCheckbox = document.getElementById('select-all-checkbox');
+    const isChecked = selectAllCheckbox.checked;
+    
+    document.querySelectorAll('.account-checkbox').forEach(cb => {
+        cb.checked = isChecked;
+    });
+    
+    updateSelectedCount();
+}
+
+// 更新选中数量
+function updateSelectedCount() {
+    const selectedCount = document.querySelectorAll('.account-checkbox:checked').length;
+    const totalCount = document.querySelectorAll('.account-checkbox').length;
+    
+    document.getElementById('selected-accounts').textContent = selectedCount;
+    
+    // 更新全选复选框状态
+    const selectAllCheckbox = document.getElementById('select-all-checkbox');
+    if (selectedCount === 0) {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = false;
+    } else if (selectedCount === totalCount) {
+        selectAllCheckbox.checked = true;
+        selectAllCheckbox.indeterminate = false;
+    } else {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = true;
+    }
+}
+
+// 排序表格
+function sortTable(column) {
+    // 如果点击的是当前排序列，切换排序方向
+    if (currentSortColumn === column) {
+        currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+        // 如果是新列，设置为升序
+        currentSortColumn = column;
+        currentSortDirection = 'asc';
+    }
+    
+    // 更新表头图标
+    updateSortIcons();
+    
+    // 排序数据
+    filteredStatusData.sort((a, b) => {
+        let aValue = a[column];
+        let bValue = b[column];
+        
+        // 处理特殊字段的排序
+        switch (column) {
+            case 'num_visit':
+                // 数字排序
+                aValue = parseInt(aValue) || 0;
+                bValue = parseInt(bValue) || 0;
+                break;
+            case 'update_time':
+                // 时间排序
+                aValue = aValue && aValue !== 'None' ? new Date(aValue) : new Date(0);
+                bValue = bValue && bValue !== 'None' ? new Date(bValue) : new Date(0);
+                break;
+            case 'visit_date':
+                // 日期排序
+                aValue = aValue && aValue !== 'None' ? new Date(aValue) : new Date(0);
+                bValue = bValue && bValue !== 'None' ? new Date(bValue) : new Date(0);
+                break;
+            case 'days_ago':
+                // 天数排序（需要解析天数）
+                aValue = parseDaysAgo(aValue);
+                bValue = parseDaysAgo(bValue);
+                break;
+            default:
+                // 字符串排序
+                aValue = (aValue || '').toString().toLowerCase();
+                bValue = (bValue || '').toString().toLowerCase();
+        }
+        
+        // 比较值
+        if (aValue < bValue) {
+            return currentSortDirection === 'asc' ? -1 : 1;
+        } else if (aValue > bValue) {
+            return currentSortDirection === 'asc' ? 1 : -1;
+        } else {
+            return 0;
+        }
+    });
+    
+    // 重新渲染表格
+    renderAccountStatusTable();
+}
+
+// 解析天数字符串为数字
+function parseDaysAgo(daysAgoStr) {
+    if (!daysAgoStr || daysAgoStr === '未知' || daysAgoStr === '时间解析错误') {
+        return 999999; // 未知时间排在最后
+    }
+    
+    if (daysAgoStr === '今天') {
+        return 0;
+    }
+    
+    if (daysAgoStr.includes('天前')) {
+        return parseInt(daysAgoStr.replace('天前', ''));
+    }
+    
+    if (daysAgoStr.includes('周前')) {
+        return parseInt(daysAgoStr.replace('周前', '')) * 7;
+    }
+    
+    if (daysAgoStr.includes('个月前')) {
+        return parseInt(daysAgoStr.replace('个月前', '')) * 30;
+    }
+    
+    return 999999; // 其他情况排在最后
+}
+
+// 更新排序图标
+function updateSortIcons() {
+    // 重置所有图标
+    document.querySelectorAll('.sortable i').forEach(icon => {
+        icon.className = 'bi bi-arrow-down-up';
+    });
+    
+    // 设置当前排序列的图标
+    if (currentSortColumn) {
+        const currentHeader = document.querySelector(`th[onclick="sortTable('${currentSortColumn}')"]`);
+        if (currentHeader) {
+            const icon = currentHeader.querySelector('i');
+            if (icon) {
+                icon.className = currentSortDirection === 'asc' ? 'bi bi-arrow-up' : 'bi bi-arrow-down';
+            }
+        }
+    }
+}
+
+// 自动保存配置（带防抖）
+function autoSaveConfig() {
+    // 清除之前的定时器
+    if (autoSaveTimer) {
+        clearTimeout(autoSaveTimer);
+    }
+    
+    // 设置新的定时器，500ms后执行保存
+    autoSaveTimer = setTimeout(() => {
+        const formData = new FormData(document.getElementById('config-form'));
+        const config = {};
+        
+        // 收集表单数据
+        for (let [key, value] of formData.entries()) {
+            if (value !== '') {
+                config[key] = value;
+            }
+        }
+        
+        // 处理复选框
+        const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(checkbox => {
+            config[checkbox.name] = checkbox.checked;
+        });
+        
+        // 处理VPN设置
+        if (config['vpn_auto']) {
+            delete config['no_auto_vpn'];
+            delete config['vpn_manual'];
+        } else if (config['no_auto_vpn']) {
+            delete config['vpn_auto'];
+            delete config['vpn_manual'];
+        } else if (config['vpn_manual']) {
+            delete config['vpn_auto'];
+            delete config['no_auto_vpn'];
+        }
+        
+        // 保存配置
+        fetch('/api/config/save', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                name: 'auto_saved_config',
+                config: config
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log('配置已自动保存');
+                
+                // 同时更新最后使用的配置
+                return fetch('/api/config/update-last-used', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        config: config
+                    })
+                });
+            } else {
+                console.error('自动保存失败:', data.message);
+                throw new Error(data.message);
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log('最后使用配置已更新');
+                
+                // 显示保存成功提示
+                const alert = document.getElementById('auto-save-alert');
+                alert.style.display = 'block';
+                alert.classList.add('show');
+                
+                // 2秒后自动隐藏提示
+                setTimeout(() => {
+                    alert.classList.remove('show');
+                    setTimeout(() => {
+                        alert.style.display = 'none';
+                    }, 150);
+                }, 2000);
+            }
+        })
+        .catch(error => {
+            console.error('自动保存错误:', error);
+        });
+    }, 500);
+}
+
+// 加载最后使用的配置
+function loadLastUsedConfig() {
+    console.log('开始加载最后使用的配置...');
+    fetch('/api/config/last-used')
+    .then(response => response.json())
+    .then(data => {
+        console.log('获取最后使用配置响应:', data);
+        if (data.success && data.config && Object.keys(data.config).length > 0) {
+            console.log('配置数据:', data.config);
+            fillFormWithConfig(data.config);
+            
+            // 显示配置加载提示
+            const alert = document.getElementById('config-loading-alert');
+            const text = document.getElementById('config-loading-text');
+            text.textContent = '已自动加载上次使用的配置参数';
+            alert.style.display = 'block';
+            alert.classList.add('show');
+            
+            // 3秒后自动隐藏提示
+            setTimeout(() => {
+                alert.classList.remove('show');
+                setTimeout(() => {
+                    alert.style.display = 'none';
+                }, 150);
+            }, 3000);
+            
+            console.log('已加载最后使用的配置');
+        } else {
+            console.log('没有找到最后使用的配置或配置为空');
+        }
+    })
+    .catch(error => {
+        console.error('Error loading last used config:', error);
+    });
+}
+
+// 页面加载完成后初始化
+document.addEventListener('DOMContentLoaded', function() {
+    // 先加载账号，然后加载配置列表，最后加载最后使用的配置
+    loadAccounts().then(() => {
+        return loadConfigs();
+    }).then(() => {
+        // 账号和配置列表都加载完成后，延迟加载最后使用的配置
+        setTimeout(() => {
+            loadLastUsedConfig();
+            
+            // 测试配置加载功能
+            setTimeout(() => {
+                console.log('=== 测试配置加载功能 ===');
+                console.log('Profile字段值:', document.getElementById('profile').value);
+                console.log('Max interactions字段值:', document.getElementById('max_interactions').value);
+                console.log('Headless复选框状态:', document.getElementById('headless').checked);
+                console.log('Ad user复选框状态:', document.getElementById('ad_user').checked);
+                console.log('No auto VPN复选框状态:', document.getElementById('no_auto_vpn').checked);
+            }, 1000);
+        }, 500);
+    }).catch(error => {
+        console.error('初始化失败:', error);
+    });
+    
+    updateStatus();
+    updateRunningInfo(); // 初始化时获取运行信息
+    updateChromiumCount(); // 初始化时获取Chromium进程数量
+    startLogPolling();
+    startInputStatusCheck(); // 启动输入状态检查
+    
+    // 初始化Bootstrap tooltip
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    // 监听表单变化，自动更新命令显示
+    const form = document.getElementById('config-form');
+    form.addEventListener('change', function() {
+        if (commandSectionVisible) {
+            generateCommand();
+        }
+        
+        // 自动保存配置
+        autoSaveConfig();
+    });
+    
+    // 监听账号状态筛选
+    document.getElementById('status-filter').addEventListener('input', filterAccounts);
+    document.getElementById('status-filter-select').addEventListener('change', filterAccounts);
+    
+    // 监听VPN设置变化，确保互斥
+    const vpnAutoCheckbox = document.getElementById('vpn_auto');
+    
+    vpnAutoCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            // 取消其他VPN选项
+            document.getElementById('no_auto_vpn').checked = false;
+            document.getElementById('vpn_manual').checked = false;
+        }
+    });
+    
+    // 监听其他VPN选项，确保互斥
+    document.getElementById('no_auto_vpn').addEventListener('change', function() {
+        if (this.checked) {
+            document.getElementById('vpn_auto').checked = false;
+            document.getElementById('vpn_manual').checked = false;
+        }
+    });
+    
+    document.getElementById('vpn_manual').addEventListener('change', function() {
+        if (this.checked) {
+            document.getElementById('vpn_auto').checked = false;
+            document.getElementById('no_auto_vpn').checked = false;
+        }
+    });
+    
+    // 监听脚本输入框的回车键
+    document.getElementById('script-input').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            sendInput();
+        }
+    });
+    
+    // 监听刷新间隔变化
+    document.getElementById('refresh-interval').addEventListener('change', function() {
+        const interval = parseInt(this.value);
+        if (logInterval) {
+            clearInterval(logInterval);
+        }
+        if (interval > 0) {
+            logInterval = setInterval(() => {
+                refreshAllLogs();
+                updateStatus();
+                updateRunningInfo(); // 更新运行信息
+                updateChromiumCount(); // 更新Chromium进程数量
+                checkForInputPrompt(); // 检查是否需要输入
+            }, interval);
+        }
+    });
+});
+
+// 显示不同部分
+function showSection(sectionName) {
+    // 隐藏所有部分
+    document.querySelectorAll('.section').forEach(section => {
+        section.style.display = 'none';
+    });
+    
+    // 显示选中的部分
+    document.getElementById(sectionName + '-section').style.display = 'block';
+    
+    // 更新URL（但不触发hashchange事件）
+    const newHash = '#/' + sectionName;
+    if (window.location.hash !== newHash) {
+        window.history.replaceState(null, null, newHash);
+    }
+    
+    // 更新导航状态
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.classList.remove('active');
+    });
+    
+    // 根据sectionName找到对应的导航链接并激活
+    const navLinks = {
+        'config': '.nav-link[onclick*="config"]',
+        'control': '.nav-link[onclick*="control"]',
+        'logs': '.nav-link[onclick*="logs"]',
+        'status': '.nav-link[onclick*="status"]',
+        'accounts': '.nav-link[onclick*="accounts"]'
+    };
+    
+    const selector = navLinks[sectionName];
+    if (selector) {
+        const activeLink = document.querySelector(selector);
+        if (activeLink) {
+            activeLink.classList.add('active');
+        }
+    }
+    
+    // 如果是账号状态页面，加载数据
+    if (sectionName === 'status') {
+        loadAccountStatus();
+    }
+    
+    // 如果是账号管理页面，加载数据
+    if (sectionName === 'accounts') {
+        loadAccountsList();
+    }
+    
+    // 如果是控制面板，检查输入状态并加载run.log
+    if (sectionName === 'control') {
+        checkInputStatus();
+        refreshControlRunLog();
+        updateRunningInfo(); // 更新运行信息
+    }
+    
+    // 如果是日志页面，检查输入状态
+    if (sectionName === 'logs') {
+        checkInputStatus();
+    }
+}
+
+// 保存配置
+function saveConfig() {
+    const formData = new FormData(document.getElementById('config-form'));
+    const config = {};
+    
+    // 收集表单数据
+    for (let [key, value] of formData.entries()) {
+        if (value !== '') {
+            config[key] = value;
+        }
+    }
+    
+    // 处理复选框
+    const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+        config[checkbox.name] = checkbox.checked;
+    });
+    
+    // 处理VPN设置
+    if (config['vpn_auto']) {
+        // 自动切换VPN - 需要用户手动输入VPN配置
+        // 这里可以添加提示或验证
+        // 移除其他VPN选项
+        delete config['no_auto_vpn'];
+        delete config['vpn_manual'];
+    } else if (config['no_auto_vpn']) {
+        // 跳过VPN设置
+        delete config['vpn_auto'];
+        delete config['vpn_manual'];
+    } else if (config['vpn_manual']) {
+        // 手动设置VPN
+        delete config['vpn_auto'];
+        delete config['no_auto_vpn'];
+    }
+    
+    const configName = prompt('请输入配置名称:', `config_${Date.now()}`);
+    if (!configName) return;
+    
+    fetch('/api/config/save', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            name: configName,
+            config: config
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('配置保存成功！', 'success');
+            loadConfigs();
+        } else {
+            showAlert('保存失败: ' + data.message, 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('保存失败: ' + error.message, 'danger');
+    });
+}
+
+// 显示/隐藏执行命令
+function toggleCommand() {
+    const commandSection = document.getElementById('command-section');
+    const toggleButton = document.querySelector('button[onclick="toggleCommand()"]');
+    
+    if (commandSectionVisible) {
+        // 隐藏命令区域
+        commandSection.style.display = 'none';
+        toggleButton.innerHTML = '<i class="bi bi-terminal"></i> 显示命令';
+        toggleButton.className = 'btn btn-info me-2';
+        commandSectionVisible = false;
+    } else {
+        // 显示命令区域
+        generateCommand();
+        commandSection.style.display = 'block';
+        toggleButton.innerHTML = '<i class="bi bi-eye-slash"></i> 隐藏命令';
+        toggleButton.className = 'btn btn-secondary me-2';
+        commandSectionVisible = true;
+    }
+}
+
+// 生成执行命令
+function generateCommand() {
+    const formData = new FormData(document.getElementById('config-form'));
+    const config = {};
+    
+    // 收集表单数据
+    for (let [key, value] of formData.entries()) {
+        if (value !== '') {
+            config[key] = value;
+        }
+    }
+    
+    // 处理复选框
+    const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+        config[checkbox.name] = checkbox.checked;
+    });
+    
+    // 特殊处理profile多选
+    const profileSelect = document.getElementById('profile');
+    if (profileSelect && profileSelect.multiple) {
+        const selectedProfiles = Array.from(profileSelect.selectedOptions).map(option => option.value);
+        if (selectedProfiles.length > 0) {
+            config['profile'] = selectedProfiles.join(',');
+        }
+    }
+    
+    // 处理VPN设置
+    if (config['vpn_auto']) {
+        // 自动切换VPN - 需要用户手动输入VPN配置
+        // 这里可以添加提示或验证
+        // 移除其他VPN选项
+        delete config['no_auto_vpn'];
+        delete config['vpn_manual'];
+    } else if (config['no_auto_vpn']) {
+        // 跳过VPN设置
+        delete config['vpn_auto'];
+        delete config['vpn_manual'];
+    } else if (config['vpn_manual']) {
+        // 手动设置VPN
+        delete config['vpn_auto'];
+        delete config['no_auto_vpn'];
+    }
+    
+    // 构建命令
+    let cmd = 'python xwool.py';
+    
+    // 添加参数
+    for (let [key, value] of Object.entries(config)) {
+        if (value !== null && value !== '' && value !== false) {
+            if (typeof value === 'boolean' && value === true) {
+                cmd += ` --${key}`;
+            } else {
+                cmd += ` --${key} ${value}`;
+            }
+        }
+    }
+    
+    // 显示命令
+    document.getElementById('command-display').textContent = cmd;
+}
+
+// 全局变量存储账号数据
+let accountDataMap = {};
+
+// 加载账号列表
+function loadAccounts() {
+    return fetch('/api/accounts')
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const select = document.getElementById('profile');
+            
+            // 先销毁现有的Bootstrap Select
+            try {
+                $('#profile').selectpicker('destroy');
+            } catch (e) {
+                console.log('Bootstrap Select销毁失败，可能未初始化:', e);
+            }
+            
+            // 清空选项
+            select.innerHTML = '<option value="">请选择账号...</option>';
+            
+            // 去重添加账号选项
+            const uniqueAccounts = [...new Set(data.accounts)];
+            uniqueAccounts.forEach(account => {
+                const option = document.createElement('option');
+                option.value = account;
+                option.textContent = account;
+                select.appendChild(option);
+            });
+            
+            // 保存账号数据到全局变量
+            accountDataMap = data.account_data || {};
+            
+            // 重新初始化Bootstrap Select
+            $('#profile').selectpicker({
+                liveSearch: true,
+                size: 10,
+                multiple: true,
+                noneSelectedText: '请选择账号...',
+                noneResultsText: '没有找到匹配的账号',
+                selectedTextFormat: 'count > 3'
+            });
+            
+            // 添加选择事件监听
+            select.addEventListener('change', function() {
+                // 获取所有选中的值并去重
+                const selectedValues = Array.from(this.selectedOptions).map(option => option.value);
+                const uniqueSelectedValues = [...new Set(selectedValues)];
+                showProxyInfo(uniqueSelectedValues);
+            });
+            
+            // 检查是否有手动设置的账号，如果有则恢复
+            const manuallySetAccount = select.getAttribute('data-manual-account');
+            if (manuallySetAccount && select.getAttribute('data-manually-set') === 'true') {
+                // 恢复手动设置的账号
+                $('#profile').selectpicker('val', [manuallySetAccount]);
+                $('#profile').selectpicker('refresh');
+                
+                // 触发change事件以更新代理信息
+                const event = new Event('change');
+                select.dispatchEvent(event);
+                
+                // 清除标记
+                select.removeAttribute('data-manually-set');
+                select.removeAttribute('data-manual-account');
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+}
+
+// 全选Profile
+function selectAllProfiles() {
+    const select = document.getElementById('profile');
+    const options = Array.from(select.options);
+    
+    // 排除空选项
+    const validOptions = options.filter(option => option.value !== '');
+    
+    // 检查是否已经全选
+    const alreadySelected = validOptions.every(option => option.selected);
+    if (alreadySelected) {
+        showAlert('已经全选了所有账号', 'info');
+        return;
+    }
+    
+    // 先取消所有选择
+    options.forEach(option => {
+        option.selected = false;
+    });
+    
+    // 然后设置所有有效选项为选中状态
+    validOptions.forEach(option => {
+        option.selected = true;
+    });
+    
+    // 如果使用Bootstrap Select，需要刷新并明确设置值
+    if ($('#profile').data('selectpicker')) {
+        const validValues = validOptions.map(option => option.value);
+        $('#profile').selectpicker('val', validValues);
+    }
+    
+    // 触发change事件以更新代理信息
+    const event = new Event('change');
+    select.dispatchEvent(event);
+    
+    showAlert(`已全选 ${validOptions.length} 个账号`, 'success');
+}
+
+// 取消全选Profile
+function deselectAllProfiles() {
+    const select = document.getElementById('profile');
+    const options = Array.from(select.options);
+    
+    // 检查是否已经全部取消选择
+    const alreadyDeselected = options.every(option => !option.selected);
+    if (alreadyDeselected) {
+        showAlert('已经取消全选了', 'info');
+        return;
+    }
+    
+    // 取消所有选项的选中状态
+    options.forEach(option => {
+        option.selected = false;
+    });
+    
+    // 如果使用Bootstrap Select，需要明确设置为空数组
+    if ($('#profile').data('selectpicker')) {
+        $('#profile').selectpicker('val', []);
+    }
+    
+    // 触发change事件以更新代理信息
+    const event = new Event('change');
+    select.dispatchEvent(event);
+    
+    showAlert('已取消全选', 'success');
+}
+
+// 清空Profile选择
+function clearProfileSelection() {
+    console.log('清空Profile选择被调用');
+    
+    const select = document.getElementById('profile');
+    if (!select) {
+        console.error('未找到profile选择框');
+        return;
+    }
+    
+    const options = Array.from(select.options);
+    console.log('当前选项数量:', options.length);
+    
+    // 取消所有选项的选中状态
+    options.forEach(option => {
+        option.selected = false;
+    });
+    
+    // 如果使用Bootstrap Select，需要刷新
+    if ($('#profile').data('selectpicker')) {
+        console.log('使用Bootstrap Select刷新');
+        $('#profile').selectpicker('refresh');
+        $('#profile').selectpicker('val', []); // 明确设置为空数组
+    } else {
+        console.log('未使用Bootstrap Select');
+    }
+    
+    // 触发change事件以更新代理信息
+    const event = new Event('change');
+    select.dispatchEvent(event);
+    
+    // 显示提示信息
+    showAlert('已清空账号选择', 'info');
+    
+    console.log('清空Profile选择完成');
+}
+
+// 显示代理信息
+function showProxyInfo(account) {
+    const proxyInfo = document.getElementById('proxy-info');
+    const proxyValue = document.getElementById('proxy-value');
+    
+    if (account) {
+        // 处理多选情况
+        const selectedAccounts = Array.isArray(account) ? account : [account];
+        const proxies = [];
+        
+        selectedAccounts.forEach(acc => {
+            if (accountDataMap[acc] && accountDataMap[acc].proxy) {
+                proxies.push(accountDataMap[acc].proxy);
+            }
+        });
+        
+        if (proxies.length > 0) {
+            // 去重显示代理
+            const uniqueProxies = [...new Set(proxies)];
+            proxyValue.textContent = uniqueProxies.join(', ');
+            proxyInfo.style.display = 'block';
+            // 获取并显示当前代理信息
+            getCurrentProxyInfo();
+        } else {
+            proxyInfo.style.display = 'none';
+            document.getElementById('current-proxy-info').style.display = 'none';
+        }
+    } else {
+        proxyInfo.style.display = 'none';
+        document.getElementById('current-proxy-info').style.display = 'none';
+    }
+}
+
+// 获取当前代理信息
+function getCurrentProxyInfo() {
+    const refreshBtn = document.querySelector('#current-proxy-info .btn');
+    const originalContent = refreshBtn.innerHTML;
+    
+    // 设置按钮为不可点击状态
+    refreshBtn.disabled = true;
+    
+    // 倒计时功能
+    let countdown = 5;
+    let countdownTimer = null;
+    const updateButtonText = () => {
+        refreshBtn.innerHTML = `<i class="bi bi-arrow-clockwise spin"></i> 刷新中...(${countdown}s)`;
+        countdown--;
+        
+        if (countdown >= 0) {
+            countdownTimer = setTimeout(updateButtonText, 1000);
+        }
+    };
+    updateButtonText();
+    
+    fetch('/api/proxy/current-info')
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const currentProxyInfo = document.getElementById('current-proxy-info');
+            const currentCountry = document.getElementById('current-country');
+            const currentCountryCode = document.getElementById('current-country-code');
+            const currentIp = document.getElementById('current-ip');
+            
+            currentCountry.textContent = data.data.country;
+            currentCountryCode.textContent = data.data.country_code;
+            currentIp.textContent = data.data.ip;
+            
+            currentProxyInfo.style.display = 'block';
+        } else {
+            console.error('获取当前代理信息失败:', data.message);
+            document.getElementById('current-proxy-info').style.display = 'none';
+        }
+    })
+    .catch(error => {
+        console.error('Error getting current proxy info:', error);
+        document.getElementById('current-proxy-info').style.display = 'none';
+    })
+    .finally(() => {
+        // 清除倒计时定时器
+        if (countdownTimer) {
+            clearTimeout(countdownTimer);
+        }
+        
+        // 立即恢复按钮状态
+        refreshBtn.disabled = false;
+        refreshBtn.innerHTML = originalContent;
+    });
+}
+
+// 加载配置列表
+function loadConfigs() {
+    return fetch('/api/config/list')
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const select = document.getElementById('config-select');
+            select.innerHTML = '<option value="">请选择配置...</option>';
+            
+            Object.keys(data.configs).forEach(configName => {
+                const config = data.configs[configName];
+                const option = document.createElement('option');
+                option.value = configName;
+                option.textContent = configName;
+                select.appendChild(option);
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+}
+
+// 加载选中的配置
+function loadSelectedConfig() {
+    const configName = document.getElementById('config-select').value;
+    if (!configName) {
+        showAlert('请先选择配置', 'warning');
+        return;
+    }
+    
+    fetch(`/api/config/${configName}`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            currentConfig = data.config.config;
+            fillFormWithConfig(currentConfig);
+            showAlert('配置加载成功！', 'success');
+        } else {
+            showAlert('加载失败: ' + data.message, 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('加载失败: ' + error.message, 'danger');
+    });
+}
+
+// 用配置填充表单
+function fillFormWithConfig(config) {
+    console.log('开始填充表单，配置:', config);
+    
+    // 检查表单元素是否存在
+    const form = document.getElementById('config-form');
+    if (!form) {
+        console.error('未找到config-form表单元素');
+        return;
+    }
+    
+    // 清空表单
+    if (form.reset && typeof form.reset === 'function') {
+        form.reset();
+    } else {
+        console.warn('表单reset方法不可用，跳过清空操作');
+    }
+    
+    // 填充值
+    Object.keys(config).forEach(key => {
+        const element = document.getElementById(key);
+        console.log(`处理字段 ${key}:`, element, '值:', config[key]);
+        if (element) {
+            if (element.type === 'checkbox') {
+                element.checked = config[key];
+                console.log(`设置复选框 ${key}:`, element.checked);
+            } else if (element.tagName === 'SELECT') {
+                element.value = config[key];
+                console.log(`设置选择框 ${key}:`, element.value);
+                // 如果是Bootstrap Select，需要刷新
+                if (element.id === 'profile') {
+                    // 处理多选情况，将逗号分隔的字符串转换为数组
+                    let profileValues = config[key];
+                    if (typeof profileValues === 'string' && profileValues.includes(',')) {
+                        profileValues = profileValues.split(',').map(p => p.trim()).filter(p => p);
+                    } else if (typeof profileValues === 'string') {
+                        profileValues = [profileValues];
+                    }
+                    
+                    // 使用Bootstrap Select的val方法设置值
+                    $('#profile').selectpicker('val', profileValues);
+                    // 显示proxy信息
+                    showProxyInfo(profileValues);
+                }
+            } else {
+                element.value = config[key];
+                console.log(`设置输入框 ${key}:`, element.value);
+            }
+        } else {
+            console.log(`未找到元素: ${key}`);
+        }
+    });
+    
+    // 处理VPN设置
+    // 重置所有VPN选项
+    document.getElementById('vpn_auto').checked = false;
+    document.getElementById('no_auto_vpn').checked = false;
+    document.getElementById('vpn_manual').checked = false;
+    
+    if (config['vpn_auto']) {
+        // 自动切换VPN
+        document.getElementById('vpn_auto').checked = true;
+        console.log('设置VPN自动模式');
+    } else if (config['no_auto_vpn']) {
+        // 跳过VPN设置
+        document.getElementById('no_auto_vpn').checked = true;
+        console.log('设置VPN跳过模式');
+    } else if (config['vpn_manual']) {
+        // 手动设置VPN
+        document.getElementById('vpn_manual').checked = true;
+        console.log('设置VPN手动模式');
+    } else {
+        // 如果没有VPN配置，默认选中手动设置VPN
+        document.getElementById('vpn_manual').checked = true;
+        console.log('默认设置VPN手动模式');
+    }
+    
+    console.log('表单填充完成');
+}
+
+// 启动脚本
+function startScript() {
+    const formData = new FormData(document.getElementById('config-form'));
+    const config = {};
+    
+    // 收集表单数据
+    for (let [key, value] of formData.entries()) {
+        if (value !== '') {
+            config[key] = value;
+        }
+    }
+    
+    // 处理复选框
+    const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+        config[checkbox.name] = checkbox.checked;
+    });
+    
+    // 特殊处理profile多选
+    const profileSelect = document.getElementById('profile');
+    if (profileSelect && profileSelect.multiple) {
+        const selectedProfiles = Array.from(profileSelect.selectedOptions).map(option => option.value);
+        if (selectedProfiles.length > 0) {
+            config['profile'] = selectedProfiles.join(',');
+        }
+    }
+    
+    // 处理VPN设置
+    if (config['vpn_auto']) {
+        // 自动切换VPN - 需要用户手动输入VPN配置
+        // 这里可以添加提示或验证
+        // 移除其他VPN选项
+        delete config['no_auto_vpn'];
+        delete config['vpn_manual'];
+    } else if (config['no_auto_vpn']) {
+        // 跳过VPN设置
+        delete config['vpn_auto'];
+        delete config['vpn_manual'];
+    } else if (config['vpn_manual']) {
+        // 手动设置VPN
+        delete config['vpn_auto'];
+        delete config['no_auto_vpn'];
+    }
+    
+    // 如果命令区域可见，更新命令显示
+    if (commandSectionVisible) {
+        generateCommand();
+    }
+    
+    fetch('/api/script/start', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ config: config })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('脚本启动成功！', 'success');
+            updateStatus();
+        } else {
+            showAlert('启动失败: ' + data.message, 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('启动失败: ' + error.message, 'danger');
+    });
+}
+
+// 停止脚本
+function stopScript() {
+    fetch('/api/script/stop', {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('脚本已停止！', 'success');
+            updateStatus();
+        } else {
+            showAlert('停止失败: ' + data.message, 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('停止失败: ' + error.message, 'danger');
+    });
+}
+
+// 清理残留进程
+function cleanupProcesses() {
+    if (confirm('确定要清理所有残留的Chromium进程吗？')) {
+        fetch('/api/script/cleanup', {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert(data.message, 'success');
+                // 清理后更新进程数量
+                updateChromiumCount();
+            } else {
+                showAlert('清理失败: ' + data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('清理失败: ' + error.message, 'danger');
+        });
+    }
+}
+
+// 获取Chromium进程数量
+function updateChromiumCount() {
+    fetch('/api/script/chromium-count')
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const count = data.count;
+            const countElement = document.getElementById('chromium-count');
+            const cleanupBtn = document.getElementById('cleanup-btn');
+            
+            // 更新显示的数量
+            countElement.textContent = count;
+            
+            // 根据数量控制按钮状态
+            if (count > 0) {
+                cleanupBtn.disabled = false;
+                cleanupBtn.className = 'btn btn-warning';
+            } else {
+                cleanupBtn.disabled = true;
+                cleanupBtn.className = 'btn btn-secondary';
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error getting chromium count:', error);
+    });
+}
+
+// 更新状态
+function updateStatus() {
+    fetch('/api/script/status')
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const status = data.status;
+            const statusBadge = document.getElementById('status-badge');
+            const controlStatus = document.getElementById('control-status');
+            
+            if (status === 'running') {
+                statusBadge.className = 'badge bg-success';
+                statusBadge.textContent = '状态: 运行中';
+                controlStatus.className = 'badge bg-success';
+                controlStatus.textContent = '运行中';
+            } else {
+                statusBadge.className = 'badge bg-secondary';
+                statusBadge.textContent = '状态: 停止';
+                controlStatus.className = 'badge bg-secondary';
+                controlStatus.textContent = '停止';
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+}
+
+// 获取并显示运行信息
+function updateRunningInfo() {
+    console.log('开始获取运行信息...');
+    fetch('/api/script/running-info')
+    .then(response => response.json())
+    .then(data => {
+        console.log('获取到的运行信息:', data);
+        if (data.success) {
+            const runningInfoSection = document.getElementById('running-info-section');
+            const runtimeSection = document.getElementById('runtime-section');
+            
+            console.log('运行状态:', data.data.status);
+            console.log('运行信息区域元素:', runningInfoSection);
+            console.log('运行时长区域元素:', runtimeSection);
+            
+            if (data.data.status === 'running') {
+                console.log('脚本正在运行，显示运行信息');
+                // 显示运行信息
+                document.getElementById('running-account').textContent = data.data.account;
+                document.getElementById('start-time').textContent = formatDateTime(data.data.start_time);
+                document.getElementById('process-pid').textContent = data.data.pid;
+                document.getElementById('full-command').textContent = data.data.full_command;
+                
+                // 显示运行时长
+                document.getElementById('runtime-display').textContent = data.data.runtime;
+                runtimeSection.style.display = 'block';
+                
+                // 显示参数说明
+                const parametersList = document.getElementById('parameters-list');
+                parametersList.innerHTML = '';
+                data.data.parameters.forEach(param => {
+                    const badge = document.createElement('span');
+                    badge.className = 'badge bg-info me-1 mb-1';
+                    badge.textContent = param;
+                    parametersList.appendChild(badge);
+                });
+                
+                runningInfoSection.style.display = 'block';
+                console.log('运行信息已显示');
+            } else {
+                console.log('脚本未运行，隐藏运行信息');
+                runningInfoSection.style.display = 'none';
+                runtimeSection.style.display = 'none';
+            }
+        } else {
+            console.error('获取运行信息失败:', data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error getting running info:', error);
+    });
+}
+
+// 格式化日期时间
+function formatDateTime(isoString) {
+    if (!isoString) return '未知';
+    const date = new Date(isoString);
+    return date.toLocaleString('zh-CN');
+}
+
+// 刷新日志
+function refreshLogs() {
+    fetch('/api/logs')
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const logContainer = document.getElementById('log-container');
+            logContainer.innerHTML = '';
+            
+            data.logs.forEach(log => {
+                const logLine = document.createElement('div');
+                logLine.textContent = log;
+                logContainer.appendChild(logLine);
+            });
+            
+            // 滚动到底部
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+}
+
+// 为日志行添加颜色分类
+function addLogColors(logText) {
+    // 匹配时间戳和日志级别
+    return logText.replace(
+        /(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) (INFO|WARNING|ERROR|DEBUG|SUCCESS) (.+)/g,
+        '<div class="log-line $2.toLowerCase()">$1 <strong>$2</strong> $3</div>'
+    );
+}
+
+// 刷新所有日志
+function refreshAllLogs() {
+    // 刷新server.log
+    fetch('/api/logs/server')
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const logContainer = document.getElementById('server-log-container');
+            logContainer.innerHTML = '';
+            
+            data.logs.forEach(log => {
+                const logLine = document.createElement('div');
+                // 添加颜色分类
+                logLine.innerHTML = addLogColors(log);
+                logContainer.appendChild(logLine);
+            });
+            
+            // 滚动到底部
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+    })
+    .catch(error => {
+        console.error('Error refreshing server logs:', error);
+    });
+    
+    // 刷新run.log
+    fetch('/api/logs/run')
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const logContainer = document.getElementById('run-log-container');
+            logContainer.innerHTML = '';
+            
+            data.logs.forEach(log => {
+                const logLine = document.createElement('div');
+                // 添加颜色分类
+                logLine.innerHTML = addLogColors(log);
+                logContainer.appendChild(logLine);
+            });
+            
+            // 滚动到底部
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+    })
+    .catch(error => {
+        console.error('Error refreshing run logs:', error);
+    });
+    
+    // 检查输入状态
+    checkInputStatus();
+}
+
+// 清空日志
+function clearLogs() {
+    document.getElementById('log-container').innerHTML = '<div class="text-muted">日志已清空...</div>';
+}
+
+// 清空所有日志
+function clearAllLogs() {
+    document.getElementById('server-log-container').innerHTML = '<div class="text-muted">server.log已清空...</div>';
+    document.getElementById('run-log-container').innerHTML = '<div class="text-muted">run.log已清空...</div>';
+}
+
+// 刷新控制面板run.log
+function refreshControlRunLog() {
+    fetch('/api/logs/run')
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const logContainer = document.getElementById('control-run-log-container');
+            logContainer.innerHTML = '';
+            
+            data.logs.forEach(log => {
+                const logLine = document.createElement('div');
+                // 添加颜色分类
+                logLine.innerHTML = addLogColors(log);
+                logContainer.appendChild(logLine);
+            });
+            
+            // 滚动到底部
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+    })
+    .catch(error => {
+        console.error('Error refreshing control run logs:', error);
+    });
+}
+
+// 清空控制面板run.log
+function clearControlRunLog() {
+    document.getElementById('control-run-log-container').innerHTML = '<div class="text-muted">run.log已清空...</div>';
+}
+
+// 发送输入到脚本
+function sendInput() {
+    const input = document.getElementById('script-input').value;
+    if (!input.trim()) {
+        showAlert('请输入内容', 'warning');
+        return;
+    }
+    
+    fetch('/api/script/input', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            input: input
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // 清空输入框
+            document.getElementById('script-input').value = '';
+            // 刷新日志
+            refreshAllLogs();
+            // 延迟检查输入状态，确保日志已更新
+            setTimeout(() => {
+                checkInputStatus();
+            }, 1000);
+        } else {
+            showAlert('发送输入失败: ' + data.message, 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('发送输入失败: ' + error.message, 'danger');
+    });
+}
+
+// 检查脚本是否需要输入 (已废弃，使用 checkInputStatus 替代)
+function checkForInputPrompt() {
+    // 调用新的检查函数
+    checkInputStatus();
+}
+
+// 开始日志轮询
+function startLogPolling() {
+    const interval = parseInt(document.getElementById('refresh-interval').value);
+    if (interval > 0) {
+        logInterval = setInterval(() => {
+            refreshAllLogs();
+            updateStatus();
+            updateRunningInfo(); // 更新运行信息
+            updateChromiumCount(); // 更新Chromium进程数量
+            checkForInputPrompt(); // 检查是否需要输入
+        }, interval);
+    }
+}
+
+// 页面卸载时清理
+window.addEventListener('beforeunload', function() {
+    if (logInterval) {
+        clearInterval(logInterval);
+    }
+});
+</script>
+{% endblock %}
