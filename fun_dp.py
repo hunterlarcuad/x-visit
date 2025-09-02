@@ -690,16 +690,65 @@ class DpUtils():
                 break
 
         return b_ret
+    
+    def check_connection(self):
+        """
+        检测当前的互联网连接是否可用
+        
+        Returns:
+            bool: True表示连接正常，False表示连接异常
+        """
+        import time
+        
+        for attempt in range(3):  # 最多重试3次（初始1次 + 重试2次）
+            try:
+                # 尝试HTTP请求到Google
+                import requests
+                response = requests.get("http://www.google.com", timeout=10)
+                if response.status_code == 200:
+                    logger.info(f"网络连接检测成功 (Google) - 第{attempt + 1}次尝试")
+                    return True
+                else:
+                    logger.warning(f"网络连接检测失败，HTTP状态码: {response.status_code} - 第{attempt + 1}次尝试")
+                    if attempt < 2:  # 如果不是最后一次尝试
+                        logger.info("等待3秒后重试...")
+                        time.sleep(3)
+                        continue
+                    else:
+                        return False
+                
+            except Exception as e:
+                logger.error(f"网络连接检测异常: {e} - 第{attempt + 1}次尝试")
+                if attempt < 2:  # 如果不是最后一次尝试
+                    logger.info("等待3秒后重试...")
+                    time.sleep(3)
+                    continue
+                else:
+                    return False
+        
+        return False
 
 
 def main():
     parser = argparse.ArgumentParser(description='DrissionPage 插件检测工具')
     parser.add_argument('--profile', type=str, required=True, help='浏览器用户目录名称')
     parser.add_argument('--extension_id', type=str, required=False, default='', help='需要检测的插件 extension_id')
+    parser.add_argument('--check_connection', action='store_true', help='检测网络连接状态')
     args = parser.parse_args()
 
     dp = DpUtils()
     dp.set_args(args)
+    
+    # 如果指定了检测网络连接
+    if args.check_connection:
+        print("正在检测网络连接...")
+        if dp.check_connection():
+            print("✅ 网络连接正常")
+        else:
+            print("❌ 网络连接异常")
+        return
+    
+    # 检测浏览器和插件
     browser = dp.get_browser(args.profile)
     if browser is None:
         print('浏览器启动失败')

@@ -981,6 +981,10 @@ class XWool():
             if self.inst_dp.set_vpn(s_vpn) is False:
                 return False
 
+        if self.inst_dp.check_connection() is False:
+            self.logit(None, 'Network connection check failed, return ...')
+            return False
+
         if self.args.reset:
             input(
                 'Remove the cookie, delete token from status.csv, '
@@ -995,13 +999,28 @@ class XWool():
             # ding_msg(s_msg, DEF_DING_TOKEN, msgtype='text')
             return True
 
-        lst_extension_id = [
-            (EXTENSION_ID_YESCAPTCHA, 'yescaptcha'),
-            (EXTENSION_ID_CAPMONSTER, 'capmonster'),
-        ]
-        self.inst_dp.check_extension(
-            n_max_try=1, lst_extension_id=lst_extension_id
-        )
+        # 根据配置决定是否执行扩展检测
+        if hasattr(args, 'do_extension_check') and args.do_extension_check:
+            # 使用配置的扩展检测参数
+            if hasattr(args, 'extension_id') and args.extension_id:
+                # 使用自定义扩展ID
+                lst_extension_id = [
+                    (s_id, 'custom') for s_id in args.extension_id.split(',')
+                ]
+            else:
+                # 使用默认扩展
+                lst_extension_id = [
+                    (EXTENSION_ID_YESCAPTCHA, 'yescaptcha'),
+                    (EXTENSION_ID_CAPMONSTER, 'capmonster'),
+                ]
+            
+            # 使用配置的重试次数
+            max_try = getattr(args, 'extension_check_max_try', 1)
+            self.inst_dp.check_extension(
+                n_max_try=max_try, lst_extension_id=lst_extension_id
+            )
+        else:
+            logger.info('扩展检测已禁用，跳过扩展检查')
 
         if self.inst_dp.init_capmonster() is False:
             return False
@@ -1354,6 +1373,20 @@ if __name__ == '__main__':
     parser.add_argument(
         '--max_interactions', required=False, default=10, type=int,
         help='[默认为 10] 最大互动次数，控制每个账号的互动轮数'
+    )
+
+    # 扩展检测相关参数
+    parser.add_argument(
+        '--do_extension_check', required=False, action='store_true',
+        help='Do extension check'
+    )
+    parser.add_argument(
+        '--extension_check_max_try', required=False, default=3, type=int,
+        help='[默认为 3] 扩展检测最大重试次数'
+    )
+    parser.add_argument(
+        '--extension_id', required=False, default='',
+        help='自定义扩展ID，多个用逗号分隔，留空则使用默认扩展'
     )
 
     args = parser.parse_args()

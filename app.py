@@ -858,6 +858,81 @@ def delete_account(account):
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
+@app.route('/api/script/account-stats/<profile>', methods=['GET'])
+def get_account_stats(profile):
+    """获取指定账号的今日数据统计"""
+    try:
+        import csv
+        from datetime import datetime, date
+        
+        # 构建CSV文件路径
+        csv_file = f'datas/status/xwool/status_{profile}.csv'
+        
+        if not os.path.exists(csv_file):
+            return jsonify({
+                'success': True,
+                'data': {
+                    'profile': profile,
+                    'today': date.today().isoformat(),
+                    'follow': 0,
+                    'like': 0,
+                    'reply': 0,
+                    'total': 0
+                }
+            })
+        
+        # 获取今天的日期
+        today = date.today()
+        
+        # 统计今日数据
+        follow_count = 0
+        like_count = 0
+        reply_count = 0
+        
+        with open(csv_file, 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                # 检查是否是今天的记录
+                try:
+                    # 使用 'update' 列，格式是 '2025-09-02T20:17:18+0800'
+                    update_str = row.get('update', '')
+                    if update_str:
+                        # 提取日期部分 (前10个字符: YYYY-MM-DD)
+                        record_date_str = update_str[:10]
+                        record_date = datetime.strptime(record_date_str, '%Y-%m-%d').date()
+                        
+                        if record_date == today:
+                            # 使用 'op_type' 列来判断操作类型
+                            op_type = row.get('op_type', '').lower()
+                            if 'follow' in op_type:
+                                follow_count += 1
+                            elif 'like' in op_type:
+                                like_count += 1
+                            elif 'reply' in op_type:
+                                reply_count += 1
+                except (ValueError, TypeError) as e:
+                    # 如果日期格式不正确，跳过这条记录
+                    app.logger.debug(f"跳过无效记录: {row}, 错误: {e}")
+                    continue
+        
+        total_count = follow_count + like_count + reply_count
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'profile': profile,
+                'today': today.isoformat(),
+                'follow': follow_count,
+                'like': like_count,
+                'reply': reply_count,
+                'total': total_count
+            }
+        })
+        
+    except Exception as e:
+        app.logger.error(f"获取账号统计失败: {e}")
+        return jsonify({'success': False, 'message': f'获取统计失败: {str(e)}'}), 500
+
 def collect_logs():
     """收集日志的线程函数"""
     global current_process, process_logs
