@@ -190,8 +190,22 @@ def stop_script():
                     try:
                         cmdline = proc.info['cmdline']
                         if cmdline and any('chromium' in arg.lower() or 'chrome' in arg.lower() for arg in cmdline):
-                            # 检查是否是我们的调试端口
+                            # 检查是否是我们的调试端口或者包含用户数据目录
+                            is_target_process = False
+                            
+                            # 检查调试端口
                             if any(f'--remote-debugging-port={debug_port}' in arg for arg in cmdline):
+                                is_target_process = True
+                            
+                            # 检查用户数据目录（chrome_profile）
+                            if any('chrome_profile' in arg for arg in cmdline):
+                                is_target_process = True
+                            
+                            # 检查是否包含我们的扩展路径
+                            if any('extensions/okx' in arg or 'extensions/YesCaptcha' in arg or 'extensions/CapMonster' in arg for arg in cmdline):
+                                is_target_process = True
+                            
+                            if is_target_process:
                                 app.logger.info(f"终止Chromium进程: {proc.info['pid']}")
                                 proc.terminate()
                                 try:
@@ -479,9 +493,24 @@ def cleanup_processes():
             try:
                 cmdline = proc.info['cmdline']
                 if cmdline and any('chromium' in arg.lower() or 'chrome' in arg.lower() for arg in cmdline):
-                    # 检查是否是我们的调试端口
+                    # 检查是否是我们的调试端口或者包含用户数据目录
+                    is_target_process = False
+                    
+                    # 检查调试端口
                     if any(f'--remote-debugging-port={debug_port}' in arg for arg in cmdline):
+                        is_target_process = True
+                    
+                    # 检查用户数据目录（chrome_profile）
+                    if any('chrome_profile' in arg for arg in cmdline):
+                        is_target_process = True
+                    
+                    # 检查是否包含我们的扩展路径
+                    if any('extensions/okx' in arg or 'extensions/YesCaptcha' in arg or 'extensions/CapMonster' in arg for arg in cmdline):
+                        is_target_process = True
+                    
+                    if is_target_process:
                         app.logger.info(f"清理Chromium进程: {proc.info['pid']}")
+                        app.logger.info(f"进程命令行: {' '.join(cmdline)}")
                         proc.terminate()
                         try:
                             proc.wait(timeout=3)
@@ -517,8 +546,22 @@ def get_chromium_count():
             try:
                 cmdline = proc.info['cmdline']
                 if cmdline and any('chromium' in arg.lower() or 'chrome' in arg.lower() for arg in cmdline):
-                    # 检查是否是我们的调试端口
+                    # 检查是否是我们的调试端口或者包含用户数据目录
+                    is_target_process = False
+                    
+                    # 检查调试端口
                     if any(f'--remote-debugging-port={debug_port}' in arg for arg in cmdline):
+                        is_target_process = True
+                    
+                    # 检查用户数据目录（chrome_profile）
+                    if any('chrome_profile' in arg for arg in cmdline):
+                        is_target_process = True
+                    
+                    # 检查是否包含我们的扩展路径
+                    if any('extensions/okx' in arg or 'extensions/YesCaptcha' in arg or 'extensions/CapMonster' in arg for arg in cmdline):
+                        is_target_process = True
+                    
+                    if is_target_process:
                         count += 1
             except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                 pass

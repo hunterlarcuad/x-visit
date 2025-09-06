@@ -115,15 +115,15 @@
                             <div class="d-flex flex-wrap gap-3">
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" id="headless" name="headless">
-                                    <label class="form-check-label" for="headless">
-                                        无头模式
+                                    <label class="form-check-label" for="headless" id="headless-label">
+                                        观察模式
                                     </label>
                                 </div>
                                 
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" id="force" name="force">
-                                    <label class="form-check-label" for="force">
-                                        强制运行
+                                    <label class="form-check-label" for="force" id="force-label">
+                                        每日一次
                                     </label>
                                 </div>
                                 
@@ -143,7 +143,14 @@
                             </div>
                         </div>
                         
-                        <h5 class="mt-4">VPN参数</h5>
+                        <h5 class="mt-4">
+                            VPN参数
+                            <i class="bi bi-info-circle text-muted ms-1" 
+                               data-bs-toggle="tooltip" 
+                               data-bs-placement="top" 
+                               data-bs-html="true"
+                               title="<strong>自动切换VPN：</strong>依赖 Clash API，用于多个账号，按代理信息，自动切换 VPN<br><br><strong>跳过VPN设置：</strong>忽略VPN配置，使用当前的 VPN<br><br><strong>手动设置VPN：</strong>在执行前，提示设置VPN，设置后，在输入框输入确认信息，点击继续，才会执行，否则会一直等待<br><br><em>* 如果是单号，推荐使用 跳过VPN设置 模式。</em>"></i>
+                        </h5>
                         <div class="mb-2">
                             <div class="d-flex flex-wrap gap-3">
                                 <div class="form-check">
@@ -183,29 +190,31 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="extension_check_max_try" class="form-label">
-                                        扩展检测最大重试次数
-                                        <i class="bi bi-info-circle text-muted ms-1" 
-                                           data-bs-toggle="tooltip" 
-                                           title="当扩展检测失败时，最多重试的次数"></i>
-                                    </label>
-                                    <input type="number" class="form-control" id="extension_check_max_try" name="extension_check_max_try" value="3" min="1" max="10" disabled>
-                                    <div class="form-text">检测扩展是否安装时的最大重试次数，建议设置为3-5次</div>
+                        <div id="extension-check-details" class="collapse">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="extension_check_max_try" class="form-label">
+                                            扩展检测最大重试次数
+                                            <i class="bi bi-info-circle text-muted ms-1" 
+                                               data-bs-toggle="tooltip" 
+                                               title="当扩展检测失败时，最多重试的次数"></i>
+                                        </label>
+                                        <input type="number" class="form-control" id="extension_check_max_try" name="extension_check_max_try" value="3" min="1" max="10" disabled>
+                                        <div class="form-text">检测扩展是否安装时的最大重试次数，建议设置为3-5次</div>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="extension_id" class="form-label">
-                                        自定义扩展ID
-                                        <i class="bi bi-info-circle text-muted ms-1" 
-                                           data-bs-toggle="tooltip" 
-                                           title="指定需要检测的浏览器扩展ID，多个用逗号分隔"></i>
-                                    </label>
-                                    <input type="text" class="form-control" id="extension_id" name="extension_id" placeholder="例如: abc123,def456" disabled>
-                                    <div class="form-text">留空则使用默认扩展：okx, yescaptcha, capmonster</div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="extension_id" class="form-label">
+                                            自定义扩展ID
+                                            <i class="bi bi-info-circle text-muted ms-1" 
+                                               data-bs-toggle="tooltip" 
+                                               title="指定需要检测的浏览器扩展ID，多个用逗号分隔"></i>
+                                        </label>
+                                        <input type="text" class="form-control" id="extension_id" name="extension_id" placeholder="例如: abc123,def456" disabled>
+                                        <div class="form-text">留空则使用默认扩展：okx, yescaptcha, capmonster</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -298,7 +307,7 @@
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="reset" name="reset">
                                 <label class="form-check-label" for="reset">
-                                    重置账号
+                                    清理缓存
                                 </label>
                             </div>
                         </div>
@@ -572,8 +581,7 @@
                         <select class="form-select" id="status-filter-select" style="min-width: 120px;">
                             <option value="">全部状态</option>
                             <option value="OK">正常</option>
-                            <option value="ERROR">错误</option>
-                            <option value="PENDING">待处理</option>
+                            <option value="ERROR">异常</option>
                         </select>
                         <button type="button" class="btn btn-primary" onclick="refreshAccountStatus()">
                             <i class="bi bi-arrow-clockwise"></i> 刷新
@@ -722,6 +730,111 @@
                         </tbody>
                     </table>
                 </div>
+        </div>
+    </div>
+
+    <!-- 打赏作者部分 -->
+    <div id="donation-section" class="section" style="display: none;">
+        <div class="config-section">
+            <h3><i class="bi bi-heart-fill"></i> 打赏作者</h3>
+            
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="alert alert-info">
+                        <h5><i class="bi bi-info-circle"></i> 关于本项目</h5>
+                        <p><strong>XWool Personal Assistant</strong> 是一个薅羊毛个人助手，在大模型时代，AI已经渗透到日常生活的方方面面，打理 X 账号费时费力，让大模型来帮忙，我们可以喝着咖啡，有兴趣就看着他干活儿，没时间就让他自己在幕后跑着，跟粉丝做做互动。</p>
+                    </div>
+                    
+                    <div class="alert alert-success">
+                        <h5><i class="bi bi-heart-fill text-danger"></i> 如果本项目对您有所帮助，不妨打赏一下，请我喝杯咖啡</h5>
+                        <p class="mb-0">您的支持是我继续开发和维护这个项目的动力！</p>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="bi bi-qr-code"></i> 微信收款码</h5>
+                        </div>
+                        <div class="card-body text-center">
+                            <img src="/static/img/wechatpay.png" alt="微信收款码" class="img-fluid" style="max-width: 300px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+                            <p class="mt-3 text-muted">扫码支持作者，感谢您的慷慨！</p>
+                        </div>
+                    </div>
+                    
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="bi bi-currency-bitcoin"></i> 加密货币地址</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6><i class="bi bi-ethereum text-primary"></i> Ethereum / BSC</h6>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control font-monospace" value="0x38b45B70577C3923f49dB5BbAB9aD1141e3e216C" readonly id="eth-address">
+                                        <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('eth-address')" title="复制地址">
+                                            <i class="bi bi-clipboard"></i>
+                                        </button>
+                                    </div>
+                                    <small class="text-muted">支持 ETH、USDT、USDC 等 ERC-20 代币</small>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="text-center">
+                                        <div class="alert alert-info mb-0">
+                                            <i class="bi bi-info-circle"></i>
+                                            <strong>温馨提示：</strong><br>
+                                            请确保网络选择正确<br>
+                                            <small>Ethereum 主网 / BSC 智能链</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="bi bi-shield-check"></i> 使用条款</h5>
+                        </div>
+                        <div class="card-body">
+                            <ul class="list-unstyled">
+                                <li class="mb-2"><i class="bi bi-check-circle text-success"></i> XWool Personal Assistant 仅用于辅助个人 X 账号互动</li>
+                                <li class="mb-2"><i class="bi bi-x-circle text-danger"></i> 禁止将 XWool Personal Assistant 用于攻击与骚扰行为</li>
+                                <li class="mb-2"><i class="bi bi-exclamation-triangle text-warning"></i> 使用 XWool Personal Assistant 发生的一切行为均由使用人自行负责</li>
+                                <li class="mb-2"><i class="bi bi-info-circle text-info"></i> 因使用 XWool Personal Assistant 导致的 X 账号限流、被封，版权持有人不承担任何责任</li>
+                                <li class="mb-0"><i class="bi bi-info-circle text-info"></i> 版权持有人不对 XWool Personal Assistant 可能存在的缺陷导致的任何损失负任何责任</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="bi bi-github"></i> 项目信息</h5>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>项目名称：</strong>XWool Personal Assistant</p>
+                            <p><strong>项目类型：</strong>X 账号自动化管理工具</p>
+                            <p><strong>GitHub 地址：</strong></p>
+                            <div class="input-group mb-3">
+                                <input type="text" class="form-control font-monospace" value="https://github.com/hunterlarcuad/x-visit" readonly id="github-url">
+                                <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('github-url')" title="复制GitHub地址">
+                                    <i class="bi bi-clipboard"></i>
+                                </button>
+                                <a href="https://github.com/hunterlarcuad/x-visit" target="_blank" class="btn btn-primary" title="在GitHub中打开">
+                                    <i class="bi bi-box-arrow-up-right"></i>
+                                </a>
+                            </div>
+                            <p><strong>主要功能：</strong></p>
+                            <ul class="list-unstyled">
+                                <li><i class="bi bi-arrow-right"></i> 自动互动（点赞、关注、转发、回复）</li>
+                                <li><i class="bi bi-arrow-right"></i> 多账号管理</li>
+                                <li><i class="bi bi-arrow-right"></i> 智能代理切换</li>
+                                <li><i class="bi bi-arrow-right"></i> 数据统计分析</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -914,6 +1027,31 @@ function showAlert(message, type = 'info') {
     }, 3000);
 }
 
+// 复制到剪贴板功能
+function copyToClipboard(elementId) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.select();
+        element.setSelectionRange(0, 99999); // 对于移动设备
+        
+        try {
+            document.execCommand('copy');
+            showAlert('地址已复制到剪贴板！', 'success');
+        } catch (err) {
+            // 如果execCommand失败，尝试使用现代的Clipboard API
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(element.value).then(() => {
+                    showAlert('地址已复制到剪贴板！', 'success');
+                }).catch(() => {
+                    showAlert('复制失败，请手动复制', 'danger');
+                });
+            } else {
+                showAlert('复制失败，请手动复制', 'danger');
+            }
+        }
+    }
+}
+
 // 账号状态相关变量
 let accountStatusData = [];
 let filteredStatusData = [];
@@ -1047,7 +1185,17 @@ function filterAccounts() {
     filteredStatusData = accountStatusData.filter(account => {
         const matchesSearch = account.account.toLowerCase().includes(searchTerm) ||
                              (account.proxy && account.proxy.toLowerCase().includes(searchTerm));
-        const matchesStatus = !statusFilter || account.status === statusFilter;
+        
+        let matchesStatus = true;
+        if (statusFilter) {
+            if (statusFilter === 'ERROR') {
+                // 异常选项同时筛选ERROR和SUSPEND状态
+                matchesStatus = account.status === 'ERROR' || account.status === 'SUSPEND';
+            } else {
+                matchesStatus = account.status === statusFilter;
+            }
+        }
+        
         return matchesSearch && matchesStatus;
     });
     
@@ -1137,23 +1285,19 @@ function startSingleAccount(account) {
     if (profileSelect) {
         // 先清空所有选择
         profileSelect.value = '';
-        // 如果是Bootstrap Select，需要更新
-        if ($('#profile').data('selectpicker')) {
-            $('#profile').selectpicker('val', []);
+        // 如果是Select2，需要更新
+        if ($('#profile').hasClass('select2-hidden-accessible')) {
+            $('#profile').val([]).trigger('change');
         }
         
         // 然后设置新的账号
         profileSelect.value = account;
-        // 如果是Bootstrap Select，需要更新
-        if ($('#profile').data('selectpicker')) {
-            $('#profile').selectpicker('val', [account]);
-            // 强制刷新以确保显示正确
-            $('#profile').selectpicker('refresh');
+        // 如果是Select2，需要更新
+        if ($('#profile').hasClass('select2-hidden-accessible')) {
+            $('#profile').val([account]).trigger('change');
         }
         
-        // 触发change事件以更新代理信息
-        const event = new Event('change');
-        profileSelect.dispatchEvent(event);
+        // Select2的trigger('change')已经会触发事件，无需额外触发
         
         // 设置标记，防止loadAccounts重新初始化时覆盖
         profileSelect.setAttribute('data-manually-set', 'true');
@@ -1394,23 +1538,19 @@ function startStatusCommand(account) {
     if (profileSelect) {
         // 先清空所有选择
         profileSelect.value = '';
-        // 如果是Bootstrap Select，需要更新
-        if ($('#profile').data('selectpicker')) {
-            $('#profile').selectpicker('val', []);
+        // 如果是Select2，需要更新
+        if ($('#profile').hasClass('select2-hidden-accessible')) {
+            $('#profile').val([]).trigger('change');
         }
         
         // 然后设置新的账号
         profileSelect.value = account;
-        // 如果是Bootstrap Select，需要更新
-        if ($('#profile').data('selectpicker')) {
-            $('#profile').selectpicker('val', [account]);
-            // 强制刷新以确保显示正确
-            $('#profile').selectpicker('refresh');
+        // 如果是Select2，需要更新
+        if ($('#profile').hasClass('select2-hidden-accessible')) {
+            $('#profile').val([account]).trigger('change');
         }
         
-        // 触发change事件以更新代理信息
-        const event = new Event('change');
-        profileSelect.dispatchEvent(event);
+        // Select2的trigger('change')已经会触发事件，无需额外触发
         
         // 设置标记，防止loadAccounts重新初始化时覆盖
         profileSelect.setAttribute('data-manually-set', 'true');
@@ -1433,13 +1573,25 @@ let isSearching = false;
 
 // 加载账号列表
 function loadAccountsList() {
+    console.log('开始加载账号列表...');
     fetch('/api/accounts/manage')
         .then(response => response.json())
         .then(data => {
             if (data.success) {
+                console.log('账号列表加载成功，账号数量:', data.accounts.length);
                 accountsData = data.accounts;
-                renderAccountsTable();
+                
+                // 如果当前在搜索状态，重新执行搜索以更新filteredAccountsData
+                if (isSearching) {
+                    console.log('当前在搜索状态，重新执行搜索...');
+                    searchAccounts();
+                } else {
+                    renderAccountsTable();
+                }
+                
+                showAlert('账号列表刷新成功', 'success');
             } else {
+                console.error('加载账号列表失败:', data.error);
                 showAlert('加载账号列表失败: ' + data.error, 'error');
             }
         })
@@ -1546,14 +1698,21 @@ function addAccount() {
     .then(data => {
         if (data.success) {
             showAlert(data.message, 'success');
-            bootstrap.Modal.getInstance(document.getElementById('addAccountModal')).hide();
-            loadAccountsList();
-            loadAccounts(); // 刷新配置页面的账号下拉列表
             
-            // 如果当前在搜索状态，重新执行搜索
-            if (isSearching) {
-                searchAccounts();
-            }
+            // 先关闭模态框
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addAccountModal'));
+            modal.hide();
+            
+            // 延迟刷新，确保模态框完全关闭后再刷新数据
+            setTimeout(() => {
+                loadAccountsList();
+                loadAccounts(); // 刷新配置页面的账号下拉列表
+                
+                // 如果当前在搜索状态，重新执行搜索
+                if (isSearching) {
+                    searchAccounts();
+                }
+            }, 300);
         } else {
             showAlert('添加账号失败: ' + data.error, 'error');
         }
@@ -1638,14 +1797,21 @@ function updateAccount() {
     .then(data => {
         if (data.success) {
             showAlert(data.message, 'success');
-            bootstrap.Modal.getInstance(document.getElementById('editAccountModal')).hide();
-            loadAccountsList();
-            loadAccounts(); // 刷新配置页面的账号下拉列表
             
-            // 如果当前在搜索状态，重新执行搜索
-            if (isSearching) {
-                searchAccounts();
-            }
+            // 先关闭模态框
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editAccountModal'));
+            modal.hide();
+            
+            // 延迟刷新，确保模态框完全关闭后再刷新数据
+            setTimeout(() => {
+                loadAccountsList();
+                loadAccounts(); // 刷新配置页面的账号下拉列表
+                
+                // 如果当前在搜索状态，重新执行搜索
+                if (isSearching) {
+                    searchAccounts();
+                }
+            }, 300);
         } else {
             showAlert('更新账号失败: ' + data.error, 'error');
         }
@@ -1678,14 +1844,21 @@ function confirmDeleteAccount() {
     .then(data => {
         if (data.success) {
             showAlert(data.message, 'success');
-            bootstrap.Modal.getInstance(document.getElementById('deleteAccountModal')).hide();
-            loadAccountsList();
-            loadAccounts(); // 刷新配置页面的账号下拉列表
             
-            // 如果当前在搜索状态，重新执行搜索
-            if (isSearching) {
-                searchAccounts();
-            }
+            // 先关闭模态框
+            const modal = bootstrap.Modal.getInstance(document.getElementById('deleteAccountModal'));
+            modal.hide();
+            
+            // 延迟刷新，确保模态框完全关闭后再刷新数据
+            setTimeout(() => {
+                loadAccountsList();
+                loadAccounts(); // 刷新配置页面的账号下拉列表
+                
+                // 如果当前在搜索状态，重新执行搜索
+                if (isSearching) {
+                    searchAccounts();
+                }
+            }, 300);
         } else {
             showAlert('删除账号失败: ' + data.error, 'error');
         }
@@ -1698,6 +1871,8 @@ function confirmDeleteAccount() {
 
 // 刷新账号列表
 function refreshAccountsList() {
+    console.log('刷新账号列表按钮被点击');
+    showAlert('正在刷新账号列表...', 'info');
     loadAccountsList();
 }
 
@@ -2026,13 +2201,49 @@ function startSelectedAccounts() {
         return;
     }
     
-    if (selectedAccounts.length === 1) {
-        // 单个账号，直接启动
-        startSingleAccountDirect(selectedAccounts[0]);
-    } else {
-        // 多个账号，直接启动
-        startMultipleAccountsDirect(selectedAccounts);
+    // 设置账号到配置表单（使用与单行启动按钮相同的机制）
+    const profileSelect = document.getElementById('profile');
+    if (profileSelect) {
+        // 先清空所有选择
+        profileSelect.value = '';
+        // 如果是Select2，需要更新
+        if ($('#profile').hasClass('select2-hidden-accessible')) {
+            $('#profile').val([]).trigger('change');
+        }
+        
+        // 然后设置新的账号
+        if (selectedAccounts.length === 1) {
+            profileSelect.value = selectedAccounts[0];
+            // 如果是Select2，需要更新
+            if ($('#profile').hasClass('select2-hidden-accessible')) {
+                $('#profile').val(selectedAccounts).trigger('change');
+            }
+            
+            // 设置标记，防止loadAccounts重新初始化时覆盖
+            profileSelect.setAttribute('data-manually-set', 'true');
+            profileSelect.setAttribute('data-manual-account', selectedAccounts[0]);
+        } else {
+            // 多个账号，用逗号连接
+            const accountsString = selectedAccounts.join(',');
+            profileSelect.value = accountsString;
+            // 如果是Select2，需要更新
+            if ($('#profile').hasClass('select2-hidden-accessible')) {
+                $('#profile').val(selectedAccounts).trigger('change');
+            }
+            
+            // 设置标记，防止loadAccounts重新初始化时覆盖
+            profileSelect.setAttribute('data-manually-set', 'true');
+            profileSelect.setAttribute('data-manual-account', accountsString);
+        }
     }
+    
+    // 跳转到配置管理页面
+    showSection('config');
+    
+    // 更新URL
+    window.location.hash = '#/config';
+    
+    showAlert(`已选择 ${selectedAccounts.length} 个账号，请在配置管理页面确认设置后启动`, 'info');
 }
 
 // 直接启动单个账号（不跳转页面）
@@ -2596,11 +2807,12 @@ function showSection(sectionName) {
     
     // 根据sectionName找到对应的导航链接并激活
     const navLinks = {
-        'config': '.nav-link[onclick*="config"]',
-        'control': '.nav-link[onclick*="control"]',
-        'logs': '.nav-link[onclick*="logs"]',
-        'status': '.nav-link[onclick*="status"]',
-        'accounts': '.nav-link[onclick*="accounts"]'
+        'config': 'a[href="#/config"]',
+        'control': 'a[href="#/control"]',
+        'logs': 'a[href="#/logs"]',
+        'status': 'a[href="#/status"]',
+        'accounts': 'a[href="#/accounts"]',
+        'donation': 'a[href="#/donation"]'
     };
     
     const selector = navLinks[sectionName];
@@ -2791,11 +3003,11 @@ function loadAccounts() {
         if (data.success) {
             const select = document.getElementById('profile');
             
-            // 先销毁现有的Bootstrap Select
+            // 先销毁现有的Select2
             try {
-                $('#profile').selectpicker('destroy');
+                $('#profile').select2('destroy');
             } catch (e) {
-                console.log('Bootstrap Select销毁失败，可能未初始化:', e);
+                console.log('Select2销毁失败，可能未初始化:', e);
             }
             
             // 清空选项
@@ -2813,20 +3025,27 @@ function loadAccounts() {
             // 保存账号数据到全局变量
             accountDataMap = data.account_data || {};
             
-            // 重新初始化Bootstrap Select
-            $('#profile').selectpicker({
-                liveSearch: true,
-                size: 10,
+            // 重新初始化Select2
+            $('#profile').select2({
+                theme: 'bootstrap-5',
+                placeholder: '请选择账号...',
+                allowClear: true,
                 multiple: true,
-                noneSelectedText: '请选择账号...',
-                noneResultsText: '没有找到匹配的账号',
-                selectedTextFormat: 'count > 3'
+                width: '100%',
+                language: {
+                    noResults: function() {
+                        return '没有找到匹配的账号';
+                    },
+                    searching: function() {
+                        return '搜索中...';
+                    }
+                }
             });
             
-            // 添加选择事件监听
-            select.addEventListener('change', function() {
+            // 添加Select2选择事件监听
+            $('#profile').on('change', function() {
                 // 获取所有选中的值并去重
-                const selectedValues = Array.from(this.selectedOptions).map(option => option.value);
+                const selectedValues = $(this).val() || [];
                 const uniqueSelectedValues = [...new Set(selectedValues)];
                 showProxyInfo(uniqueSelectedValues);
             });
@@ -2835,12 +3054,16 @@ function loadAccounts() {
             const manuallySetAccount = select.getAttribute('data-manual-account');
             if (manuallySetAccount && select.getAttribute('data-manually-set') === 'true') {
                 // 恢复手动设置的账号
-                $('#profile').selectpicker('val', [manuallySetAccount]);
-                $('#profile').selectpicker('refresh');
+                let accountsToSet;
+                if (manuallySetAccount.includes(',')) {
+                    // 多个账号，用逗号分隔
+                    accountsToSet = manuallySetAccount.split(',').map(acc => acc.trim());
+                } else {
+                    // 单个账号
+                    accountsToSet = [manuallySetAccount];
+                }
                 
-                // 触发change事件以更新代理信息
-                const event = new Event('change');
-                select.dispatchEvent(event);
+                $('#profile').val(accountsToSet).trigger('change');
                 
                 // 清除标记
                 select.removeAttribute('data-manually-set');
@@ -2878,15 +3101,13 @@ function selectAllProfiles() {
         option.selected = true;
     });
     
-    // 如果使用Bootstrap Select，需要刷新并明确设置值
-    if ($('#profile').data('selectpicker')) {
+    // 如果使用Select2，需要触发change事件
+    if ($('#profile').hasClass('select2-hidden-accessible')) {
         const validValues = validOptions.map(option => option.value);
-        $('#profile').selectpicker('val', validValues);
+        $('#profile').val(validValues).trigger('change');
     }
     
-    // 触发change事件以更新代理信息
-    const event = new Event('change');
-    select.dispatchEvent(event);
+    // Select2的trigger('change')已经会触发事件，无需额外触发
     
     showAlert(`已全选 ${validOptions.length} 个账号`, 'success');
 }
@@ -2908,14 +3129,12 @@ function deselectAllProfiles() {
         option.selected = false;
     });
     
-    // 如果使用Bootstrap Select，需要明确设置为空数组
-    if ($('#profile').data('selectpicker')) {
-        $('#profile').selectpicker('val', []);
+    // 如果使用Select2，需要触发change事件
+    if ($('#profile').hasClass('select2-hidden-accessible')) {
+        $('#profile').val([]).trigger('change');
     }
     
-    // 触发change事件以更新代理信息
-    const event = new Event('change');
-    select.dispatchEvent(event);
+    // Select2的trigger('change')已经会触发事件，无需额外触发
     
     showAlert('已取消全选', 'success');
 }
@@ -2938,18 +3157,15 @@ function clearProfileSelection() {
         option.selected = false;
     });
     
-    // 如果使用Bootstrap Select，需要刷新
-    if ($('#profile').data('selectpicker')) {
-        console.log('使用Bootstrap Select刷新');
-        $('#profile').selectpicker('refresh');
-        $('#profile').selectpicker('val', []); // 明确设置为空数组
+    // 如果使用Select2，需要触发change事件
+    if ($('#profile').hasClass('select2-hidden-accessible')) {
+        console.log('使用Select2刷新');
+        $('#profile').val([]).trigger('change');
     } else {
-        console.log('未使用Bootstrap Select');
+        console.log('未使用Select2');
     }
     
-    // 触发change事件以更新代理信息
-    const event = new Event('change');
-    select.dispatchEvent(event);
+    // Select2的trigger('change')已经会触发事件，无需额外触发
     
     // 显示提示信息
     showAlert('已清空账号选择', 'info');
@@ -2992,55 +3208,68 @@ function showProxyInfo(account) {
 
 // 获取当前代理信息
 function getCurrentProxyInfo() {
+    const currentProxyInfo = document.getElementById('current-proxy-info');
     const refreshBtn = document.querySelector('#current-proxy-info .btn');
-    const originalContent = refreshBtn.innerHTML;
     
-    // 设置按钮为不可点击状态
+    // 保存原始按钮内容
+    const originalContent = `<i class="bi bi-arrow-clockwise"></i> 刷新`;
+    
+    // 立即显示代理信息区域并设置为正在获取状态
+    currentProxyInfo.style.display = 'block';
+    
+    // 显示正在获取状态
+    const currentCountry = document.getElementById('current-country');
+    const currentCountryCode = document.getElementById('current-country-code');
+    const currentIp = document.getElementById('current-ip');
+    
+    currentCountry.textContent = '正在获取...';
+    currentCountryCode.textContent = '正在获取...';
+    currentIp.textContent = '正在获取...';
+    
+    // 设置按钮为不可点击状态并开始倒计时
     refreshBtn.disabled = true;
-    
-    // 倒计时功能
     let countdown = 5;
-    let countdownTimer = null;
-    const updateButtonText = () => {
-        refreshBtn.innerHTML = `<i class="bi bi-arrow-clockwise spin"></i> 刷新中...(${countdown}s)`;
+    refreshBtn.innerHTML = `<i class="bi bi-arrow-clockwise spin"></i> 刷新中... ${countdown}秒后可刷新`;
+    
+    // 开始倒计时
+    const countdownInterval = setInterval(() => {
         countdown--;
-        
-        if (countdown >= 0) {
-            countdownTimer = setTimeout(updateButtonText, 1000);
+        if (countdown > 0) {
+            refreshBtn.innerHTML = `<i class="bi bi-arrow-clockwise spin"></i> 刷新中... ${countdown}秒后可刷新`;
+        } else {
+            // 倒计时结束，停止旋转动画，但保持禁用状态直到API返回
+            refreshBtn.innerHTML = `<i class="bi bi-arrow-clockwise"></i> 刷新中...`;
         }
-    };
-    updateButtonText();
+    }, 1000);
     
     fetch('/api/proxy/current-info')
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            const currentProxyInfo = document.getElementById('current-proxy-info');
-            const currentCountry = document.getElementById('current-country');
-            const currentCountryCode = document.getElementById('current-country-code');
-            const currentIp = document.getElementById('current-ip');
-            
+            // 更新代理信息
             currentCountry.textContent = data.data.country;
             currentCountryCode.textContent = data.data.country_code;
             currentIp.textContent = data.data.ip;
-            
-            currentProxyInfo.style.display = 'block';
         } else {
             console.error('获取当前代理信息失败:', data.message);
-            document.getElementById('current-proxy-info').style.display = 'none';
+            // 显示错误状态
+            currentCountry.textContent = '获取失败';
+            currentCountryCode.textContent = '获取失败';
+            currentIp.textContent = '获取失败';
         }
     })
     .catch(error => {
         console.error('Error getting current proxy info:', error);
-        document.getElementById('current-proxy-info').style.display = 'none';
+        // 显示错误状态
+        currentCountry.textContent = '获取失败';
+        currentCountryCode.textContent = '获取失败';
+        currentIp.textContent = '获取失败';
     })
     .finally(() => {
-        // 清除倒计时定时器
-        if (countdownTimer) {
-            clearTimeout(countdownTimer);
-        }
+        // 清理倒计时定时器
+        clearInterval(countdownInterval);
         
-        // 立即恢复按钮状态
+        // 恢复按钮状态
         refreshBtn.disabled = false;
         refreshBtn.innerHTML = originalContent;
     });
@@ -3133,8 +3362,8 @@ function fillFormWithConfig(config) {
                         profileValues = [profileValues];
                     }
                     
-                    // 使用Bootstrap Select的val方法设置值
-                    $('#profile').selectpicker('val', profileValues);
+                    // 使用Select2的val方法设置值
+                    $('#profile').val(profileValues).trigger('change');
                     // 显示proxy信息
                     showProxyInfo(profileValues);
                 }
@@ -3173,6 +3402,12 @@ function fillFormWithConfig(config) {
     
     // 更新扩展检测参数的状态
     toggleExtensionCheckParams();
+    
+    // 更新无头模式标签显示
+    toggleHeadlessLabel();
+    
+    // 更新强制运行标签显示
+    toggleForceLabel();
     
     console.log('表单填充完成');
 }
@@ -3238,6 +3473,14 @@ function startScript() {
         if (data.success) {
             showAlert('脚本启动成功！', 'success');
             updateStatus();
+            
+            // 延迟更新进程数量，等待脚本完全启动
+            setTimeout(() => {
+                updateChromiumCount();
+            }, 2000);
+            
+            // 启动成功后，开始倒计时并自动跳转到控制面板
+            startCountdownAndRedirect();
         } else {
             showAlert('启动失败: ' + data.message, 'danger');
         }
@@ -3246,6 +3489,62 @@ function startScript() {
         console.error('Error:', error);
         showAlert('启动失败: ' + error.message, 'danger');
     });
+}
+
+// 倒计时并自动跳转到控制面板
+function startCountdownAndRedirect() {
+    let countdown = 5;
+    
+    // 创建倒计时提示框
+    const countdownAlert = document.createElement('div');
+    countdownAlert.className = 'alert alert-info alert-dismissible fade show position-fixed';
+    countdownAlert.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    countdownAlert.innerHTML = `
+        <div class="d-flex align-items-center">
+            <div class="spinner-border spinner-border-sm me-2" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <div>
+                <strong>脚本启动成功！</strong><br>
+                <span id="countdown-text">${countdown}秒后自动跳转到控制面板...</span>
+            </div>
+            <button type="button" class="btn-close ms-auto" onclick="clearCountdown()"></button>
+        </div>
+    `;
+    
+    document.body.appendChild(countdownAlert);
+    
+    // 更新倒计时文本
+    const countdownText = document.getElementById('countdown-text');
+    const countdownInterval = setInterval(() => {
+        countdown--;
+        if (countdownText) {
+            countdownText.textContent = `${countdown}秒后自动跳转到控制面板...`;
+        }
+        
+        if (countdown <= 0) {
+            clearInterval(countdownInterval);
+            clearCountdown();
+            // 跳转到控制面板
+            showSection('control');
+        }
+    }, 1000);
+    
+    // 保存倒计时ID以便可以取消
+    window.countdownInterval = countdownInterval;
+    window.countdownAlert = countdownAlert;
+}
+
+// 清除倒计时
+function clearCountdown() {
+    if (window.countdownInterval) {
+        clearInterval(window.countdownInterval);
+        window.countdownInterval = null;
+    }
+    if (window.countdownAlert) {
+        window.countdownAlert.remove();
+        window.countdownAlert = null;
+    }
 }
 
 // 停止脚本
@@ -3264,6 +3563,9 @@ function stopScript() {
             
             // 立即更新运行信息，隐藏运行时长区域
             updateRunningInfo();
+            
+            // 更新Chromium进程数量
+            updateChromiumCount();
         } else {
             showAlert('停止失败: ' + data.message, 'danger');
         }
@@ -3299,6 +3601,7 @@ function cleanupProcesses() {
 
 // 获取Chromium进程数量
 function updateChromiumCount() {
+    console.log('正在更新Chromium进程数量...');
     fetch('/api/script/chromium-count')
     .then(response => response.json())
     .then(data => {
@@ -3307,6 +3610,9 @@ function updateChromiumCount() {
             const countElement = document.getElementById('chromium-count');
             const cleanupBtn = document.getElementById('cleanup-btn');
             
+            console.log('当前Chromium进程数量:', count);
+            console.log('进程检测详情:', data);
+            
             // 更新显示的数量
             countElement.textContent = count;
             
@@ -3314,10 +3620,14 @@ function updateChromiumCount() {
             if (count > 0) {
                 cleanupBtn.disabled = false;
                 cleanupBtn.className = 'btn btn-warning';
+                console.log('清理进程按钮已启用');
             } else {
                 cleanupBtn.disabled = true;
                 cleanupBtn.className = 'btn btn-secondary';
+                console.log('清理进程按钮已禁用');
             }
+        } else {
+            console.error('获取进程数量失败:', data.message);
         }
     })
     .catch(error => {
@@ -3888,22 +4198,56 @@ function hideManualRefreshButton() {
     }
 }
 
-// 控制扩展检测参数的启用/禁用状态
+// 控制扩展检测参数的启用/禁用状态和展开/收起
 function toggleExtensionCheckParams() {
     const doExtensionCheck = document.getElementById('do_extension_check');
     const maxTryInput = document.getElementById('extension_check_max_try');
     const extensionIdInput = document.getElementById('extension_id');
+    const extensionDetails = document.getElementById('extension-check-details');
     
-    if (doExtensionCheck && maxTryInput && extensionIdInput) {
+    if (doExtensionCheck && maxTryInput && extensionIdInput && extensionDetails) {
         if (doExtensionCheck.checked) {
+            // 展开详细配置
+            const bsCollapse = new bootstrap.Collapse(extensionDetails, { show: true });
             maxTryInput.disabled = false;
             extensionIdInput.disabled = false;
         } else {
+            // 收起详细配置
+            const bsCollapse = new bootstrap.Collapse(extensionDetails, { hide: true });
             maxTryInput.disabled = true;
             extensionIdInput.disabled = true;
         }
     }
 }
+
+// 控制无头模式标签显示
+function toggleHeadlessLabel() {
+    const headlessCheckbox = document.getElementById('headless');
+    const headlessLabel = document.getElementById('headless-label');
+    
+    if (headlessCheckbox && headlessLabel) {
+        if (headlessCheckbox.checked) {
+            headlessLabel.textContent = '无人驾驶';
+        } else {
+            headlessLabel.textContent = '观察模式';
+        }
+    }
+}
+
+// 控制强制运行标签显示
+function toggleForceLabel() {
+    const forceCheckbox = document.getElementById('force');
+    const forceLabel = document.getElementById('force-label');
+    
+    if (forceCheckbox && forceLabel) {
+        if (forceCheckbox.checked) {
+            forceLabel.textContent = '一路狂飙';
+        } else {
+            forceLabel.textContent = '每日一次';
+        }
+    }
+}
+
 
 // 页面加载完成后绑定事件
 document.addEventListener('DOMContentLoaded', function() {
@@ -3913,6 +4257,22 @@ document.addEventListener('DOMContentLoaded', function() {
         doExtensionCheck.addEventListener('change', toggleExtensionCheckParams);
         // 初始化状态
         toggleExtensionCheckParams();
+    }
+    
+    // 绑定无头模式复选框的change事件
+    const headlessCheckbox = document.getElementById('headless');
+    if (headlessCheckbox) {
+        headlessCheckbox.addEventListener('change', toggleHeadlessLabel);
+        // 初始化状态
+        toggleHeadlessLabel();
+    }
+    
+    // 绑定强制运行复选框的change事件
+    const forceCheckbox = document.getElementById('force');
+    if (forceCheckbox) {
+        forceCheckbox.addEventListener('change', toggleForceLabel);
+        // 初始化状态
+        toggleForceLabel();
     }
 });
 </script>
