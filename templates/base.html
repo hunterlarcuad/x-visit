@@ -43,6 +43,17 @@
         .main-content {
             min-height: 100vh;
         }
+        
+        /* 状态徽章样式 */
+        #status-badge {
+            min-width: 120px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
         .log-container {
             height: 400px;
             overflow-y: auto;
@@ -249,34 +260,34 @@
                     <ul class="nav flex-column">
                         <li class="nav-item">
                             <a class="nav-link active" href="#/config" onclick="showSection('config'); toggleSidebar();">
-                                <i class="bi bi-gear"></i> 配置管理
+                                <i class="bi bi-gear"></i> <span data-i18n="nav.config">配置管理</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="#/control" onclick="showSection('control'); toggleSidebar();">
-                                <i class="bi bi-play-circle"></i> 控制面板
+                                <i class="bi bi-play-circle"></i> <span data-i18n="nav.control">控制面板</span>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="#/logs" onclick="showSection('logs'); toggleSidebar();">
-                                <i class="bi bi-terminal"></i> 运行日志
+                                <i class="bi bi-terminal"></i> <span data-i18n="nav.logs">运行日志</span>
                             </a>
                         </li>
-                                            <li class="nav-item">
-                        <a class="nav-link" href="#/status" onclick="showSection('status'); toggleSidebar();">
-                            <i class="bi bi-person-check"></i> 账号状态
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#/accounts" onclick="showSection('accounts'); toggleSidebar();">
-                            <i class="bi bi-people"></i> 账号管理
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#/donation" onclick="showSection('donation'); toggleSidebar();">
-                            <i class="bi bi-heart-fill"></i> 打赏作者
-                        </a>
-                    </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#/status" onclick="showSection('status'); toggleSidebar();">
+                                <i class="bi bi-person-check"></i> <span data-i18n="nav.status">账号状态</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#/accounts" onclick="showSection('accounts'); toggleSidebar();">
+                                <i class="bi bi-people"></i> <span data-i18n="nav.accounts">账号管理</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#/donation" onclick="showSection('donation'); toggleSidebar();">
+                                <i class="bi bi-heart-fill"></i> <span data-i18n="nav.donation">打赏作者</span>
+                            </a>
+                        </li>
                     </ul>
                 </div>
             </nav>
@@ -289,11 +300,29 @@
                         <button class="btn btn-outline-secondary d-md-none me-3" type="button" onclick="toggleSidebar()">
                             <i class="bi bi-list"></i>
                         </button>
-                        <h1 class="h2 mb-0">XWool Personal Assistant</h1>
+                        <div class="d-flex align-items-center">
+                            <h1 class="h2 mb-0 me-2">XWool Personal Assistant</h1>
+                            <span class="badge bg-info" style="font-size: 12px; font-weight: normal;">Version: v1.0.0</span>
+                        </div>
                     </div>
                     <div class="btn-toolbar mb-2 mb-md-0">
                         <div class="btn-group me-2">
-                            <span class="badge bg-secondary" id="status-badge">状态: 停止</span>
+                            <span class="badge bg-secondary" id="status-badge"><span data-i18n="control.status">状态</span>: <span data-i18n="control.stopped">停止</span></span>
+                        </div>
+                        <div class="btn-group">
+                            <div class="dropdown">
+                                <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="languageDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bi bi-globe"></i> <span id="current-language">中文</span>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="languageDropdown">
+                                    <li><a class="dropdown-item" href="#" onclick="switchLanguage('zh')">
+                                        <i class="bi bi-flag-fill text-danger"></i> 中文
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="switchLanguage('en')">
+                                        <i class="bi bi-flag-fill text-primary"></i> English
+                                    </a></li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -360,6 +389,136 @@
         
         // 页面加载时处理路由
         window.addEventListener('load', handleRoute);
+        
+        // 国际化功能
+        let currentLanguage = 'zh';
+        let translations = {};
+        
+        // 加载语言包
+        async function loadLanguage(lang) {
+            try {
+                const response = await fetch(`/static/i18n/${lang}.json`);
+                if (response.ok) {
+                    translations = await response.json();
+                    currentLanguage = lang;
+                    localStorage.setItem('preferred-language', lang);
+                    applyTranslations();
+                    updateLanguageSwitcher();
+                    return Promise.resolve();
+                } else {
+                    console.error(`Failed to load language pack: ${lang}`);
+                    return Promise.reject(`Failed to load language pack: ${lang}`);
+                }
+            } catch (error) {
+                console.error('Error loading language pack:', error);
+                return Promise.reject(error);
+            }
+        }
+        
+        // 应用翻译
+        function applyTranslations() {
+            // 翻译所有带有data-i18n属性的元素
+            document.querySelectorAll('[data-i18n]').forEach(element => {
+                const key = element.getAttribute('data-i18n');
+                const text = getTranslation(key);
+                if (text) {
+                    if (element.tagName === 'INPUT' && element.type === 'text') {
+                        element.placeholder = text;
+                    } else if (element.tagName === 'INPUT' && element.type === 'submit') {
+                        element.value = text;
+                    } else {
+                        element.textContent = text;
+                    }
+                }
+            });
+            
+            // 翻译所有带有data-i18n-title属性的元素
+            document.querySelectorAll('[data-i18n-title]').forEach(element => {
+                const key = element.getAttribute('data-i18n-title');
+                const text = getTranslation(key);
+                if (text) {
+                    element.title = text;
+                }
+            });
+            
+            // 翻译所有带有data-i18n-html属性的元素
+            document.querySelectorAll('[data-i18n-html]').forEach(element => {
+                const key = element.getAttribute('data-i18n-html');
+                const text = getTranslation(key);
+                if (text) {
+                    element.innerHTML = text;
+                }
+            });
+            
+            // 翻译所有带有data-i18n-placeholder属性的元素
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(element => {
+                const key = element.getAttribute('data-i18n-placeholder');
+                const text = getTranslation(key);
+                if (text) {
+                    element.placeholder = text;
+                }
+            });
+            
+            // 更新复选框标签（如果存在相关函数）
+            if (typeof toggleHeadlessLabel === 'function') {
+                toggleHeadlessLabel();
+            }
+            if (typeof toggleForceLabel === 'function') {
+                toggleForceLabel();
+            }
+        }
+        
+        // 获取翻译文本
+        function getTranslation(key) {
+            const keys = key.split('.');
+            let value = translations;
+            
+            for (const k of keys) {
+                if (value && typeof value === 'object' && k in value) {
+                    value = value[k];
+                } else {
+                    return key; // 如果找不到翻译，返回原始key
+                }
+            }
+            
+            return typeof value === 'string' ? value : key;
+        }
+        
+        // 切换语言
+        function switchLanguage(lang) {
+            if (lang !== currentLanguage) {
+                // 保存当前页面状态
+                const currentHash = window.location.hash;
+                loadLanguage(lang).then(() => {
+                    // 语言切换完成后，恢复当前页面
+                    if (currentHash) {
+                        window.location.hash = currentHash;
+                    }
+                });
+            }
+        }
+        
+        // 更新语言切换器显示
+        function updateLanguageSwitcher() {
+            const currentLangElement = document.getElementById('current-language');
+            if (currentLangElement) {
+                currentLangElement.textContent = currentLanguage === 'zh' ? '中文' : 'English';
+            }
+        }
+        
+        // 初始化语言
+        function initLanguage() {
+            // 从localStorage获取用户偏好语言
+            const savedLanguage = localStorage.getItem('preferred-language');
+            // 从浏览器语言检测
+            const browserLanguage = navigator.language.startsWith('zh') ? 'zh' : 'en';
+            // 优先使用保存的语言，否则使用浏览器语言
+            const lang = savedLanguage || browserLanguage;
+            loadLanguage(lang);
+        }
+        
+        // 页面加载时初始化语言
+        window.addEventListener('load', initLanguage);
     </script>
     
     {% block extra_js %}{% endblock %}

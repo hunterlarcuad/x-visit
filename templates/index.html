@@ -55,47 +55,65 @@
     <!-- 配置管理部分 -->
     <div id="config-section" class="section">
         <div class="config-section">
-            <h3><i class="bi bi-gear"></i> 参数配置</h3>
+            <!-- 操作按钮区域 - 左上角 -->
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="card border-primary">
+                        <div class="card-body p-3">
+                            <div class="d-flex flex-wrap gap-2 justify-content-start">
+                                <button type="button" class="btn btn-info" onclick="toggleCommand()">
+                                    <i class="bi bi-terminal"></i> <span data-i18n="config.show_command">预览命令</span>
+                                </button>
+                                <button type="button" class="btn btn-success" onclick="startScript()">
+                                    <i class="bi bi-play"></i> <span data-i18n="config.start_script">立即发射</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <h3><i class="bi bi-gear"></i> <span data-i18n="config.title">参数配置</span></h3>
             
             <form id="config-form">
                 <div class="row">
                     <!-- 左侧参数 -->
                     <div class="col-12 col-lg-8">
-                        <h5>核心参数</h5>
+                        <h5 data-i18n="config.core_params">核心参数</h5>
                         
                         <div class="mb-3">
                             <div class="d-flex align-items-center gap-2 mb-1">
-                                <label for="profile" class="form-label mb-0">Profile (账号)</label>
+                                <label for="profile" class="form-label mb-0" data-i18n="config.profile">Profile (账号)</label>
                                 <i class="bi bi-info-circle text-muted" 
                                    style="cursor: help; font-size: 14px;" 
                                    data-bs-toggle="tooltip" 
                                    data-bs-placement="top" 
-                                   title="从datas/account/x_account.csv加载的账号列表，支持多选，多个账号用逗号连接"></i>
+                                   data-i18n-title="config.profile_tooltip" title="从datas/account/x_account.csv加载的账号列表，支持多选，多个账号用逗号连接"></i>
                                 <button type="button" class="btn btn-sm btn-outline-danger" 
-                                        onclick="clearProfileSelection()" title="清空选择">
-                                    清空
+                                        onclick="clearProfileSelection()" data-i18n-title="common.clear" title="清空选择">
+                                    <span data-i18n="common.clear">清空</span>
                                 </button>
                                 <button type="button" class="btn btn-sm btn-outline-secondary" onclick="selectAllProfiles()">
-                                    <i class="bi bi-check-all"></i> 全选
+                                    <i class="bi bi-check-all"></i> <span data-i18n="common.select_all">全选</span>
                                 </button>
                                 <button type="button" class="btn btn-sm btn-outline-secondary" onclick="deselectAllProfiles()">
-                                    <i class="bi bi-x-circle"></i> 取消全选
+                                    <i class="bi bi-x-circle"></i> <span data-i18n="common.deselect_all">取消全选</span>
                                 </button>
                             </div>
                             <select class="form-select" id="profile" name="profile" multiple>
-                                <option value="">请选择账号...</option>
+                                <option value="" data-i18n="config.profile_placeholder">请选择账号...</option>
                             </select>
 
                         </div>
                         
                         <div class="mb-3">
                             <div class="d-flex align-items-center">
-                                <label for="max_interactions" class="form-label me-2 mb-0">最大互动次数</label>
+                                <label for="max_interactions" class="form-label me-2 mb-0" data-i18n="config.max_interactions">最大互动次数</label>
                                 <i class="bi bi-info-circle text-muted me-2" 
                                    style="cursor: help; font-size: 14px;" 
                                    data-bs-toggle="tooltip" 
                                    data-bs-placement="top" 
-                                   title="控制每个账号的互动轮数"></i>
+                                   data-i18n-title="config.max_interactions_tooltip" title="控制每个账号的互动轮数"></i>
                                 <select class="form-select" id="max_interactions" name="max_interactions" style="width: 80px;">
                                     <option value="1">1</option>
                                     <option value="2">2</option>
@@ -115,28 +133,28 @@
                             <div class="d-flex flex-wrap gap-3">
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" id="headless" name="headless">
-                                    <label class="form-check-label" for="headless" id="headless-label">
+                                    <label class="form-check-label" for="headless" id="headless-label" data-i18n="config.headless_unchecked">
                                         观察模式
                                     </label>
                                 </div>
                                 
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" id="force" name="force">
-                                    <label class="form-check-label" for="force" id="force-label">
+                                    <label class="form-check-label" for="force" id="force-label" data-i18n="config.force_unchecked">
                                         每日一次
                                     </label>
                                 </div>
                                 
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" id="water" name="water">
-                                    <label class="form-check-label" for="water">
+                                    <label class="form-check-label" for="water" data-i18n="config.water">
                                         灌水模式
                                     </label>
                                 </div>
                                 
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" id="ad_user" name="ad_user">
-                                    <label class="form-check-label" for="ad_user">
+                                    <label class="form-check-label" for="ad_user" data-i18n="config.ad_user">
                                         追星模式
                                     </label>
                                 </div>
@@ -144,30 +162,30 @@
                         </div>
                         
                         <h5 class="mt-4">
-                            VPN参数
+                            <span data-i18n="config.vpn_params">VPN参数</span>
                             <i class="bi bi-info-circle text-muted ms-1" 
                                data-bs-toggle="tooltip" 
                                data-bs-placement="top" 
                                data-bs-html="true"
-                               title="<strong>自动切换VPN：</strong>依赖 Clash API，用于多个账号，按代理信息，自动切换 VPN<br><br><strong>跳过VPN设置：</strong>忽略VPN配置，使用当前的 VPN<br><br><strong>手动设置VPN：</strong>在执行前，提示设置VPN，设置后，在输入框输入确认信息，点击继续，才会执行，否则会一直等待<br><br><em>* 如果是单号，推荐使用 跳过VPN设置 模式。</em>"></i>
+                               data-i18n-title="config.vpn_tooltip" title="<strong>自动切换VPN：</strong>依赖 Clash API，用于多个账号，按代理信息，自动切换 VPN<br><br><strong>跳过VPN设置：</strong>忽略VPN配置，使用当前的 VPN<br><br><strong>手动设置VPN：</strong>在执行前，提示设置VPN，设置后，在输入框输入确认信息，点击继续，才会执行，否则会一直等待<br><br><em>* 如果是单号，推荐使用 跳过VPN设置 模式。</em>"></i>
                         </h5>
                         <div class="mb-2">
                             <div class="d-flex flex-wrap gap-3">
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" id="vpn_auto" name="vpn_auto">
-                                    <label class="form-check-label" for="vpn_auto">
+                                    <label class="form-check-label" for="vpn_auto" data-i18n="config.vpn_auto">
                                         自动切换VPN
                                     </label>
                                 </div>
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" id="no_auto_vpn" name="no_auto_vpn">
-                                    <label class="form-check-label" for="no_auto_vpn">
+                                    <label class="form-check-label" for="no_auto_vpn" data-i18n="config.vpn_skip">
                                         跳过VPN设置
                                     </label>
                                 </div>
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" id="vpn_manual" name="vpn_manual">
-                                    <label class="form-check-label" for="vpn_manual">
+                                    <label class="form-check-label" for="vpn_manual" data-i18n="config.vpn_manual">
                                         手动设置VPN
                                     </label>
                                 </div>
@@ -175,16 +193,16 @@
                         </div>
                         
                         <h5 class="mt-4">
-                            <i class="bi bi-puzzle"></i> 扩展检测
+                            <i class="bi bi-puzzle"></i> <span data-i18n="config.extension_check">扩展检测</span>
                             <i class="bi bi-info-circle text-muted ms-1" 
                                data-bs-toggle="tooltip" 
-                               title="检测浏览器扩展是否正确安装，确保脚本正常运行"></i>
+                               data-i18n-title="config.extension_check_tooltip" title="检测浏览器扩展是否正确安装，确保脚本正常运行"></i>
                         </h5>
                         <div class="mb-2">
                             <div class="d-flex flex-wrap gap-3">
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" id="do_extension_check" name="do_extension_check">
-                                    <label class="form-check-label" for="do_extension_check">
+                                    <label class="form-check-label" for="do_extension_check" data-i18n="config.enable_extension_check">
                                         启用扩展检测
                                     </label>
                                 </div>
@@ -195,47 +213,47 @@
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label for="extension_check_max_try" class="form-label">
-                                            扩展检测最大重试次数
+                                            <span data-i18n="config.extension_check_max_try">扩展检测最大重试次数</span>
                                             <i class="bi bi-info-circle text-muted ms-1" 
                                                data-bs-toggle="tooltip" 
-                                               title="当扩展检测失败时，最多重试的次数"></i>
+                                               data-i18n-title="config.extension_check_max_try_tooltip" title="当扩展检测失败时，最多重试的次数"></i>
                                         </label>
                                         <input type="number" class="form-control" id="extension_check_max_try" name="extension_check_max_try" value="3" min="1" max="10" disabled>
-                                        <div class="form-text">检测扩展是否安装时的最大重试次数，建议设置为3-5次</div>
+                                        <div class="form-text" data-i18n="config.extension_check_max_try_help">检测扩展是否安装时的最大重试次数，建议设置为3-5次</div>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label for="extension_id" class="form-label">
-                                            自定义扩展ID
+                                            <span data-i18n="config.custom_extension_id">自定义扩展ID</span>
                                             <i class="bi bi-info-circle text-muted ms-1" 
                                                data-bs-toggle="tooltip" 
-                                               title="指定需要检测的浏览器扩展ID，多个用逗号分隔"></i>
+                                               data-i18n-title="config.custom_extension_id_tooltip" title="指定需要检测的浏览器扩展ID，多个用逗号分隔"></i>
                                         </label>
-                                        <input type="text" class="form-control" id="extension_id" name="extension_id" placeholder="例如: abc123,def456" disabled>
-                                        <div class="form-text">留空则使用默认扩展：okx, yescaptcha, capmonster</div>
+                                        <input type="text" class="form-control" id="extension_id" name="extension_id" data-i18n-placeholder="config.custom_extension_id_placeholder" placeholder="例如: abc123,def456" disabled>
+                                        <div class="form-text" data-i18n="config.custom_extension_id_help">留空则使用默认扩展：okx, yescaptcha, capmonster</div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         
-                        <h5 class="mt-4">循环控制</h5>
+                        <h5 class="mt-4" data-i18n="config.loop_control">循环控制</h5>
                         <div class="row">
                             <div class="col-md-4">
                                 <div class="mb-3">
-                                    <label for="loop_interval" class="form-label">循环间隔 (秒)</label>
+                                    <label for="loop_interval" class="form-label" data-i18n="config.loop_interval_label">循环间隔 (秒)</label>
                                     <input type="number" class="form-control" id="loop_interval" name="loop_interval" value="60">
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="mb-3">
-                                    <label for="sleep_sec_min" class="form-label">最小休眠时间 (秒)</label>
+                                    <label for="sleep_sec_min" class="form-label" data-i18n="config.sleep_min_label">最小休眠时间 (秒)</label>
                                     <input type="number" class="form-control" id="sleep_sec_min" name="sleep_sec_min" value="3">
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="mb-3">
-                                    <label for="sleep_sec_max" class="form-label">最大休眠时间 (秒)</label>
+                                    <label for="sleep_sec_max" class="form-label" data-i18n="config.sleep_max_label">最大休眠时间 (秒)</label>
                                     <input type="number" class="form-control" id="sleep_sec_max" name="sleep_sec_max" value="10">
                                 </div>
                             </div>
@@ -244,13 +262,13 @@
                     
                     <!-- 右侧代理信息 -->
                     <div class="col-12 col-lg-4">
-                        <h5>代理信息</h5>
+                        <h5 data-i18n="control.proxy_info">代理信息</h5>
                         
                         <!-- Proxy信息显示区域 -->
                         <div id="proxy-info" class="mb-3" style="display: none;">
                             <div class="alert alert-info">
                                 <i class="bi bi-info-circle"></i>
-                                <strong>账号使用的代理:</strong> <span id="proxy-value"></span>
+                                <strong data-i18n="control.account_proxy">账号使用的代理:</strong> <span id="proxy-value"></span>
                             </div>
                         </div>
                         
@@ -260,15 +278,15 @@
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div>
                                         <i class="bi bi-globe"></i>
-                                        <strong>当前代理信息:</strong>
+                                        <strong data-i18n="control.current_proxy">当前代理信息:</strong>
                                         <div class="mt-1">
-                                            <span class="badge bg-primary me-2">国家: <span id="current-country"></span></span>
-                                            <span class="badge bg-secondary me-2">代码: <span id="current-country-code"></span></span>
-                                            <span class="badge bg-info">IP: <span id="current-ip"></span></span>
+                                            <span class="badge bg-primary me-2"><span data-i18n="control.country">国家</span>: <span id="current-country"></span></span>
+                                            <span class="badge bg-secondary me-2"><span data-i18n="control.code">代码</span>: <span id="current-country-code"></span></span>
+                                            <span class="badge bg-info"><span data-i18n="control.ip">IP</span>: <span id="current-ip"></span></span>
                                         </div>
                                     </div>
                                     <button type="button" class="btn btn-sm btn-outline-warning" onclick="getCurrentProxyInfo()">
-                                        <i class="bi bi-arrow-clockwise"></i> 刷新
+                                        <i class="bi bi-arrow-clockwise"></i> <span data-i18n="common.refresh">刷新</span>
                                     </button>
                                 </div>
                             </div>
@@ -278,35 +296,35 @@
                 
                 <div class="row mt-3">
                     <div class="col-12">
-                        <h5>其他选项</h5>
+                        <h5 data-i18n="config.other_options">其他选项</h5>
                         <div class="d-flex flex-wrap gap-3">
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="auto_like" name="auto_like">
-                                <label class="form-check-label" for="auto_like">
+                                <label class="form-check-label" for="auto_like" data-i18n="config.auto_like">
                                     自动点赞
                                 </label>
                             </div>
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="auto_appeal" name="auto_appeal">
-                                <label class="form-check-label" for="auto_appeal">
+                                <label class="form-check-label" for="auto_appeal" data-i18n="config.auto_appeal">
                                     自动申诉
                                 </label>
                             </div>
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="manual_exit" name="manual_exit">
-                                <label class="form-check-label" for="manual_exit">
+                                <label class="form-check-label" for="manual_exit" data-i18n="config.manual_exit">
                                     手动退出
                                 </label>
                             </div>
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="create" name="create">
-                                <label class="form-check-label" for="create">
+                                <label class="form-check-label" for="create" data-i18n="config.create">
                                     创建模式
                                 </label>
                             </div>
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="reset" name="reset">
-                                <label class="form-check-label" for="reset">
+                                <label class="form-check-label" for="reset" data-i18n="config.reset">
                                     清理缓存
                                 </label>
                             </div>
@@ -314,32 +332,20 @@
                     </div>
                 </div>
                 
-                <div class="row mt-4">
-                    <div class="col-12">
-                        <div class="d-flex flex-wrap gap-2 justify-content-center">
-                            <button type="button" class="btn btn-info" onclick="toggleCommand()">
-                                <i class="bi bi-terminal"></i> 显示命令
-                            </button>
-                            <button type="button" class="btn btn-success" onclick="startScript()">
-                                <i class="bi bi-play"></i> 启动脚本
-                            </button>
-                        </div>
-                    </div>
-                </div>
             </form>
             
             <!-- 执行命令显示区域 -->
             <div id="command-section" class="config-section" style="display: none;">
-                <h4><i class="bi bi-terminal"></i> 执行命令</h4>
+                <h4><i class="bi bi-terminal"></i> <span data-i18n="config.execute_command">执行命令</span></h4>
                 <div class="alert alert-info">
-                    <strong>完整命令:</strong>
+                    <strong data-i18n="config.full_command">完整命令:</strong>
                     <div id="command-display" class="command-display">
-                        请先配置参数，然后点击"显示命令"按钮
+                        请先配置参数，然后点击"预览命令"按钮
                     </div>
                 </div>
                 <div class="alert alert-warning">
                     <i class="bi bi-exclamation-triangle"></i>
-                    <strong>注意:</strong> 此命令将在后台执行，您可以在"运行日志"页面查看执行结果。
+                    <strong data-i18n="config.command_warning_title">注意:</strong> <span data-i18n="config.command_warning_text">此命令将在后台执行，您可以在"运行日志"页面查看执行结果。</span>
                 </div>
             </div>
         </div>
@@ -348,25 +354,24 @@
     <!-- 控制面板部分 -->
     <div id="control-section" class="section" style="display: none;">
         <div class="config-section">
-            <h3><i class="bi bi-play-circle"></i> 控制面板</h3>
             
             <div class="row">
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">脚本状态</h5>
-                            <p class="card-text">
-                                <span class="badge bg-secondary" id="control-status">停止</span>
-                            </p>
+                <div class="col-md-6 d-flex">
+                    <div class="card flex-fill">
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title">
+                                <span data-i18n="control.script_status">发射状态</span>: 
+                                <span class="badge bg-secondary ms-2" id="control-status" data-i18n="control.stopped">停止</span>
+                            </h5>
                             <div class="d-flex flex-wrap gap-2">
-                                <button type="button" class="btn btn-success" onclick="startScript()">
-                                    <i class="bi bi-play"></i> 启动
+                                <button type="button" class="btn btn-success" id="start-button" onclick="startScript()">
+                                    <i class="bi bi-play"></i> <span data-i18n="control.start">启动</span>
                                 </button>
-                                <button type="button" class="btn btn-danger" onclick="stopScript()">
-                                    <i class="bi bi-stop"></i> 停止
+                                <button type="button" class="btn btn-danger" id="stop-button" onclick="stopScript()">
+                                    <i class="bi bi-stop"></i> <span data-i18n="control.stop">停止</span>
                                 </button>
                                 <button type="button" class="btn btn-warning" id="cleanup-btn" onclick="cleanupProcesses()" disabled>
-                                    <i class="bi bi-trash"></i> 清理进程 (<span id="chromium-count">0</span>)
+                                    <i class="bi bi-trash"></i> <span data-i18n="control.cleanup_processes">清理进程</span> (<span id="chromium-count">0</span>)
                                 </button>
                             </div>
                             
@@ -374,7 +379,7 @@
                             <div id="runtime-section" class="mt-2" style="display: none;">
                                 <div class="alert alert-info py-2">
                                     <i class="bi bi-clock"></i> 
-                                    <strong>运行时长:</strong> 
+                                    <strong data-i18n="control.runtime">运行时长:</strong> 
                                     <span id="runtime-display" class="fw-bold"></span>
                                 </div>
                             </div>
@@ -383,21 +388,25 @@
                             <div id="running-info-section" class="mt-3" style="display: none;">
                                 <div class="alert alert-success">
                                     <h6 class="alert-heading">
-                                        <i class="bi bi-play-circle"></i> 当前运行信息
+                                        <i class="bi bi-play-circle"></i> <span data-i18n="control.current_running_info">当前运行信息</span>
                                     </h6>
                                     <div class="row">
                                         <div class="col-md-6">
-                                            <p class="mb-1"><strong>运行账号:</strong> <span id="running-account"></span></p>
-                                            <p class="mb-1"><strong>启动时间:</strong> <span id="start-time"></span></p>
-                                            <p class="mb-1"><strong>进程ID:</strong> <span id="process-pid"></span></p>
+                                            <p class="mb-1"><strong data-i18n="control.running_account">运行账号:</strong> <span id="running-account"></span></p>
+                                            <p class="mb-1"><strong data-i18n="control.process_id">进程ID:</strong> <span id="process-pid"></span></p>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <p class="mb-1"><strong data-i18n="control.start_time">启动时间:</strong> <span id="start-time" style="white-space: nowrap;"></span></p>
                                         </div>
                                     </div>
                                     <div class="mt-2">
-                                        <p class="mb-1"><strong>完整命令:</strong></p>
+                                        <p class="mb-1"><strong data-i18n="control.full_command">完整命令:</strong></p>
                                         <code id="full-command" class="small d-block"></code>
                                     </div>
                                     <div class="mt-2">
-                                        <p class="mb-1"><strong>参数说明:</strong></p>
+                                        <p class="mb-1"><strong data-i18n="control.parameters_description">参数说明:</strong></p>
                                         <div id="parameters-list" class="small"></div>
                                     </div>
                                 </div>
@@ -409,41 +418,41 @@
                             <div id="today-stats-section" class="mt-3" style="display: none;">
                                 <div class="alert alert-info">
                                     <h6 class="alert-heading">
-                                        <i class="bi bi-graph-up"></i> <span id="stats-title">今日数据统计</span>
+                                        <i class="bi bi-graph-up"></i> <span id="stats-title" data-i18n="control.today_stats">今日数据统计</span>
                                     </h6>
                                     <div class="row">
                                         <div class="col-md-3">
                                             <div class="text-center">
                                                 <div class="h4 text-primary mb-1" id="stats-follow">0</div>
-                                                <small class="text-muted">关注</small>
+                                                <small class="text-muted" data-i18n="control.follow">关注</small>
                                             </div>
                                         </div>
                                         <div class="col-md-3">
                                             <div class="text-center">
                                                 <div class="h4 text-success mb-1" id="stats-like">0</div>
-                                                <small class="text-muted">点赞</small>
+                                                <small class="text-muted" data-i18n="control.like">点赞</small>
                                             </div>
                                         </div>
                                         <div class="col-md-3">
                                             <div class="text-center">
                                                 <div class="h4 text-warning mb-1" id="stats-reply">0</div>
-                                                <small class="text-muted">回复</small>
+                                                <small class="text-muted" data-i18n="control.reply">回复</small>
                                             </div>
                                         </div>
                                         <div class="col-md-3">
                                             <div class="text-center">
                                                 <div class="h4 text-info mb-1" id="stats-total">0</div>
-                                                <small class="text-muted">总计</small>
+                                                <small class="text-muted" data-i18n="control.total">总计</small>
                                             </div>
                                         </div>
                                     </div>
                                     <div class="mt-2 text-center">
-                                        <small class="text-muted">更新时间: <span id="stats-update-time"></span></small>
+                                        <small class="text-muted"><span data-i18n="control.update_time">更新时间:</span> <span id="stats-update-time"></span></small>
                                         <br>
-                                        <small class="text-muted">下次刷新: <span id="stats-countdown">5</span>秒</small>
+                                        <small class="text-muted"><span data-i18n="control.next_refresh">下次刷新:</span> <span id="stats-countdown">5</span><span data-i18n="control.seconds">秒</span></small>
                                         <br>
                                         <button id="manual-refresh-stats" class="btn btn-sm btn-outline-primary mt-1" onclick="manualRefreshStats()" style="display: none;">
-                                            <i class="bi bi-arrow-clockwise"></i> 手动刷新
+                                            <i class="bi bi-arrow-clockwise"></i> <span data-i18n="control.manual_refresh">手动刷新</span>
                                         </button>
                                     </div>
                                 </div>
@@ -452,21 +461,21 @@
                             <!-- 等待输入提示 -->
                             <div id="waiting-input-alert" class="alert alert-info mt-3" style="display: none;">
                                 <i class="bi bi-info-circle"></i>
-                                <strong>脚本正在等待输入</strong>
-                                <p class="mb-0 mt-2">脚本已启动并正在等待用户输入。请查看下方的输入区域或日志页面获取详细信息。</p>
+                                <strong data-i18n="control.script_waiting">脚本正在等待输入</strong>
+                                <p class="mb-0 mt-2" data-i18n="control.script_waiting_desc">脚本已启动并正在等待用户输入。请查看下方的输入区域或日志页面获取详细信息。</p>
                                 <button type="button" class="btn btn-sm btn-outline-info mt-2" onclick="checkInputStatus()">
-                                    <i class="bi bi-arrow-clockwise"></i> 重新检查状态
+                                    <i class="bi bi-arrow-clockwise"></i> <span data-i18n="control.recheck_status">重新检查状态</span>
                                 </button>
                             </div>
                             
                             <!-- 脚本输入区域 -->
                             <div id="script-input-section" class="mt-3" style="display: none;">
                                 <div class="alert alert-warning">
-                                    <strong>脚本等待输入:</strong>
+                                    <strong data-i18n="control.script_input">脚本等待输入:</strong>
                                     <div class="input-group mt-2">
-                                        <input type="text" class="form-control" id="script-input" placeholder="请输入内容...">
+                                        <input type="text" class="form-control" id="script-input" data-i18n-placeholder="control.input_placeholder" placeholder="请输入内容...">
                                         <button class="btn btn-primary" onclick="sendInput()">
-                                            <i class="bi bi-arrow-right"></i> 继续
+                                            <i class="bi bi-arrow-right"></i> <span data-i18n="control.continue">继续</span>
                                         </button>
                                     </div>
                                 </div>
@@ -475,21 +484,21 @@
                     </div>
                 </div>
                 
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-body">
+                <div class="col-md-6 d-flex">
+                    <div class="card flex-fill">
+                        <div class="card-body d-flex flex-column">
                             <h5 class="card-title">
-                                <i class="bi bi-play-circle"></i> Run.log (脚本运行日志)
+                                <i class="bi bi-play-circle"></i> <span data-i18n="control.run_log">Run.log (脚本运行日志)</span>
                             </h5>
-                            <div class="log-container" id="control-run-log-container" style="height: 400px; overflow-y: auto; background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 10px; font-family: monospace; font-size: 12px;">
-                                <div class="text-muted">等待run.log输出...</div>
+                            <div class="log-container flex-grow-1" id="control-run-log-container" style="min-height: 300px; overflow-y: auto; background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 10px; font-family: monospace; font-size: 12px;">
+                                <div class="text-muted" data-i18n="control.waiting_log_output">等待run.log输出...</div>
                             </div>
                             <div class="mt-2">
                                 <button type="button" class="btn btn-sm btn-outline-secondary" onclick="refreshControlRunLog()">
-                                    <i class="bi bi-arrow-clockwise"></i> 刷新日志
+                                    <i class="bi bi-arrow-clockwise"></i> <span data-i18n="control.refresh_log">刷新日志</span>
                                 </button>
                                 <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearControlRunLog()">
-                                    <i class="bi bi-trash"></i> 清空日志
+                                    <i class="bi bi-trash"></i> <span data-i18n="control.clear_log">清空日志</span>
                                 </button>
                             </div>
                         </div>
@@ -502,29 +511,29 @@
     <!-- 日志部分 -->
     <div id="logs-section" class="section" style="display: none;">
         <div class="config-section">
-            <h3><i class="bi bi-terminal"></i> 运行日志</h3>
+            <h3><i class="bi bi-terminal"></i> <span data-i18n="logs.title">运行日志</span></h3>
             
             <div class="mb-3">
                 <div class="row">
                     <div class="col-12 col-md-6">
                         <div class="d-flex flex-wrap gap-2 mb-2 mb-md-0">
                             <button type="button" class="btn btn-secondary" onclick="refreshAllLogs()">
-                                <i class="bi bi-arrow-clockwise"></i> 刷新日志
+                                <i class="bi bi-arrow-clockwise"></i> <span data-i18n="logs.refresh_logs">刷新日志</span>
                             </button>
                             <button type="button" class="btn btn-outline-secondary" onclick="clearAllLogs()">
-                                <i class="bi bi-trash"></i> 清空日志
+                                <i class="bi bi-trash"></i> <span data-i18n="logs.clear_logs">清空日志</span>
                             </button>
                         </div>
                     </div>
                     <div class="col-12 col-md-6">
                         <div class="d-flex flex-wrap align-items-center justify-content-start justify-content-md-end gap-2">
-                            <label for="refresh-interval" class="form-label mb-0">刷新间隔:</label>
+                            <label for="refresh-interval" class="form-label mb-0" data-i18n="logs.refresh_interval">刷新间隔:</label>
                             <select class="form-select" id="refresh-interval" style="width: auto; min-width: 100px;">
-                                <option value="3000">3秒</option>
-                                <option value="5000">5秒</option>
-                                <option value="10000">10秒</option>
-                                <option value="30000">30秒</option>
-                                <option value="0" selected>不刷新</option>
+                                <option value="3000" data-i18n="logs.refresh_interval_3s">3秒</option>
+                                <option value="5000" data-i18n="logs.refresh_interval_5s">5秒</option>
+                                <option value="10000" data-i18n="logs.refresh_interval_10s">10秒</option>
+                                <option value="30000" data-i18n="logs.refresh_interval_30s">30秒</option>
+                                <option value="0" selected data-i18n="logs.refresh_interval_off">不刷新</option>
                             </select>
                         </div>
                     </div>
@@ -534,20 +543,20 @@
             <!-- 日志页面等待输入提示 -->
             <div id="logs-waiting-input-alert" class="alert alert-info mb-3" style="display: none;">
                 <i class="bi bi-info-circle"></i>
-                <strong>脚本正在等待输入</strong>
-                <p class="mb-0 mt-2">脚本已启动并正在等待用户输入。请切换到"控制面板"页面进行输入操作。</p>
+                <strong data-i18n="logs.script_waiting_input">脚本正在等待输入</strong>
+                <p class="mb-0 mt-2" data-i18n="logs.script_waiting_input_desc">脚本已启动并正在等待用户输入。请切换到"控制面板"页面进行输入操作。</p>
             </div>
             
             <!-- Server.log 区域 -->
             <div class="card mb-3">
                 <div class="card-header">
                     <h5 class="mb-0">
-                        <i class="bi bi-server"></i> Server.log (Flask应用日志)
+                        <i class="bi bi-server"></i> <span data-i18n="logs.server_log">Server.log (Flask应用日志)</span>
                     </h5>
                 </div>
                 <div class="card-body">
                     <div class="log-container" id="server-log-container" style="height: 300px; overflow-y: auto; background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 10px; font-family: monospace; font-size: 12px;">
-                        <div class="text-muted">等待server.log输出...</div>
+                        <div class="text-muted" data-i18n="logs.waiting_server_log">等待server.log输出...</div>
                     </div>
                 </div>
             </div>
@@ -556,12 +565,12 @@
             <div class="card">
                 <div class="card-header">
                     <h5 class="mb-0">
-                        <i class="bi bi-play-circle"></i> Run.log (脚本运行日志)
+                        <i class="bi bi-play-circle"></i> <span data-i18n="logs.run_log">Run.log (脚本运行日志)</span>
                     </h5>
                 </div>
                 <div class="card-body">
                     <div class="log-container" id="run-log-container" style="height: 300px; overflow-y: auto; background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 10px; font-family: monospace; font-size: 12px;">
-                        <div class="text-muted">等待run.log输出...</div>
+                        <div class="text-muted" data-i18n="logs.waiting_run_log">等待run.log输出...</div>
                     </div>
                 </div>
             </div>
@@ -571,36 +580,36 @@
     <!-- 账号状态部分 -->
     <div id="status-section" class="section" style="display: none;">
         <div class="config-section">
-            <h3><i class="bi bi-person-check"></i> 账号状态</h3>
+            <h3><i class="bi bi-person-check"></i> <span data-i18n="status.title">账号状态</span></h3>
             
             <!-- 筛选和操作区域 -->
             <div class="row mb-3">
                 <div class="col-12 col-md-6">
                     <div class="d-flex flex-wrap gap-2">
-                        <input type="text" class="form-control" id="status-filter" placeholder="搜索账号或代理..." style="min-width: 200px;">
+                        <input type="text" class="form-control" id="status-filter" data-i18n-placeholder="status.search_placeholder" placeholder="搜索账号或代理..." style="min-width: 200px;">
                         <select class="form-select" id="status-filter-select" style="min-width: 120px;">
-                            <option value="">全部状态</option>
-                            <option value="OK">正常</option>
-                            <option value="ERROR">异常</option>
+                            <option value="" data-i18n="status.all_status">全部状态</option>
+                            <option value="OK" data-i18n="status.normal">正常</option>
+                            <option value="ERROR" data-i18n="status.error">异常</option>
                         </select>
                         <button type="button" class="btn btn-primary" onclick="refreshAccountStatus()">
-                            <i class="bi bi-arrow-clockwise"></i> 刷新
+                            <i class="bi bi-arrow-clockwise"></i> <span data-i18n="status.refresh">刷新</span>
                         </button>
                     </div>
                 </div>
                                     <div class="col-12 col-md-6">
                         <div class="d-flex flex-wrap gap-2 justify-content-start justify-content-md-end">
                             <button type="button" class="btn btn-info" onclick="showSelectedCommand()">
-                                <i class="bi bi-terminal"></i> 显示命令
+                                <i class="bi bi-terminal"></i> <span data-i18n="status.show_command">显示命令</span>
                             </button>
                             <button type="button" class="btn btn-success" onclick="startSelectedAccounts()">
-                                <i class="bi bi-play"></i> 启动选中账号
+                                <i class="bi bi-play"></i> <span data-i18n="status.start_selected">启动选中账号</span>
                             </button>
                             <button type="button" class="btn btn-outline-secondary" onclick="selectAllAccounts()">
-                                <i class="bi bi-check-all"></i> 全选
+                                <i class="bi bi-check-all"></i> <span data-i18n="status.select_all">全选</span>
                             </button>
                             <button type="button" class="btn btn-outline-secondary" onclick="deselectAllAccounts()">
-                                <i class="bi bi-x-circle"></i> 取消全选
+                                <i class="bi bi-x-circle"></i> <span data-i18n="status.deselect_all">取消全选</span>
                             </button>
                         </div>
                     </div>
@@ -615,33 +624,33 @@
                                 <input type="checkbox" id="select-all-checkbox" onchange="toggleSelectAll()">
                             </th>
                             <th class="sortable" onclick="sortTable('account')" style="cursor: pointer;">
-                                账号 <i class="bi bi-arrow-down-up"></i>
+                                <span data-i18n="status.account">账号</span> <i class="bi bi-arrow-down-up"></i>
                             </th>
                             <th class="sortable" onclick="sortTable('status')" style="cursor: pointer;">
-                                状态 <i class="bi bi-arrow-down-up"></i>
+                                <span data-i18n="status.status">状态</span> <i class="bi bi-arrow-down-up"></i>
                             </th>
                             <th class="sortable" onclick="sortTable('update_time')" style="cursor: pointer;">
-                                更新时间 <i class="bi bi-arrow-down-up"></i>
+                                <span data-i18n="status.update_time">更新时间</span> <i class="bi bi-arrow-down-up"></i>
                             </th>
                             <th class="sortable" onclick="sortTable('days_ago')" style="cursor: pointer;">
-                                更新天数 <i class="bi bi-arrow-down-up"></i>
+                                <span data-i18n="status.days_ago">更新天数</span> <i class="bi bi-arrow-down-up"></i>
                             </th>
                             <th class="sortable" onclick="sortTable('visit_date')" style="cursor: pointer;">
-                                访问日期 <i class="bi bi-arrow-down-up"></i>
+                                <span data-i18n="status.visit_date">访问日期</span> <i class="bi bi-arrow-down-up"></i>
                             </th>
                             <th class="sortable" onclick="sortTable('num_visit')" style="cursor: pointer;">
-                                访问次数 <i class="bi bi-arrow-down-up"></i>
+                                <span data-i18n="status.num_visit">访问次数</span> <i class="bi bi-arrow-down-up"></i>
                             </th>
                             <th class="sortable" onclick="sortTable('proxy')" style="cursor: pointer;">
-                                代理 <i class="bi bi-arrow-down-up"></i>
+                                <span data-i18n="status.proxy">代理</span> <i class="bi bi-arrow-down-up"></i>
                             </th>
-                            <th>操作</th>
+                            <th data-i18n="status.actions">操作</th>
                         </tr>
                     </thead>
                     <tbody id="status-table-body">
                         <tr>
                             <td colspan="9" class="text-center text-muted">
-                                <i class="bi bi-hourglass-split"></i> 加载中...
+                                <i class="bi bi-hourglass-split"></i> <span data-i18n="status.loading">加载中...</span>
                             </td>
                         </tr>
                     </tbody>
@@ -654,16 +663,16 @@
                     <div class="alert alert-info">
                         <div class="row">
                             <div class="col-md-3">
-                                <strong>总账号数:</strong> <span id="total-accounts">0</span>
+                                <strong data-i18n="status.total_accounts">总账号数:</strong> <span id="total-accounts">0</span>
                             </div>
                             <div class="col-md-3">
-                                <strong>正常账号:</strong> <span id="ok-accounts">0</span>
+                                <strong data-i18n="status.normal_accounts">正常账号:</strong> <span id="ok-accounts">0</span>
                             </div>
                             <div class="col-md-3">
-                                <strong>选中账号:</strong> <span id="selected-accounts">0</span>
+                                <strong data-i18n="status.selected_accounts">选中账号:</strong> <span id="selected-accounts">0</span>
                             </div>
                             <div class="col-md-3">
-                                <strong>最近更新:</strong> <span id="last-update">-</span>
+                                <strong data-i18n="status.last_update">最近更新:</strong> <span id="last-update">-</span>
                             </div>
                         </div>
                     </div>
@@ -675,25 +684,25 @@
     <!-- 账号管理部分 -->
     <div id="accounts-section" class="section" style="display: none;">
         <div class="config-section">
-            <h3><i class="bi bi-people"></i> 账号管理</h3>
+            <h3><i class="bi bi-people"></i> <span data-i18n="accounts.title">账号管理</span></h3>
             
             <!-- 搜索和操作区域 -->
             <div class="row mb-3">
                 <div class="col-md-8">
                     <div class="input-group">
-                        <input type="text" class="form-control" id="accounts-search" placeholder="搜索账号、用户名或代理..." onkeyup="searchAccounts()">
+                        <input type="text" class="form-control" id="accounts-search" data-i18n-placeholder="accounts.search_placeholder" placeholder="搜索账号、用户名或代理..." onkeyup="searchAccounts()">
                         <button class="btn btn-outline-secondary" type="button" onclick="clearSearch()">
-                            <i class="bi bi-x-circle"></i> 清除
+                            <i class="bi bi-x-circle"></i> <span data-i18n="accounts.clear">清除</span>
                         </button>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="d-flex gap-2">
                         <button type="button" class="btn btn-primary" onclick="showAddAccountModal()">
-                            <i class="bi bi-plus-circle"></i> 添加账号
+                            <i class="bi bi-plus-circle"></i> <span data-i18n="accounts.add_account">添加账号</span>
                         </button>
                         <button type="button" class="btn btn-secondary" onclick="refreshAccountsList()">
-                            <i class="bi bi-arrow-clockwise"></i> 刷新
+                            <i class="bi bi-arrow-clockwise"></i> <span data-i18n="accounts.refresh">刷新</span>
                         </button>
                     </div>
                 </div>
@@ -703,7 +712,7 @@
             <div class="row mb-3" id="search-stats" style="display: none;">
                 <div class="col-12">
                     <div class="alert alert-info">
-                        <i class="bi bi-search"></i> 搜索结果: <span id="search-results-count">0</span> 个账号
+                        <i class="bi bi-search"></i> <span data-i18n="accounts.search_results">搜索结果:</span> <span id="search-results-count">0</span> <span data-i18n="accounts.accounts_count">个账号</span>
                     </div>
                 </div>
             </div>
@@ -713,18 +722,18 @@
                     <table class="table table-striped table-hover">
                         <thead class="table-dark">
                             <tr>
-                                <th>账号名</th>
-                                <th>用户名</th>
-                                <th>密码</th>
-                                <th>验证码</th>
-                                <th>代理</th>
-                                <th width="150">操作</th>
+                                <th data-i18n="accounts.account_name">账号名</th>
+                                <th data-i18n="accounts.username">用户名</th>
+                                <th data-i18n="accounts.password">密码</th>
+                                <th data-i18n="accounts.verification_code">验证码</th>
+                                <th data-i18n="accounts.proxy">代理</th>
+                                <th width="150" data-i18n="accounts.actions">操作</th>
                             </tr>
                         </thead>
                         <tbody id="accounts-table-body">
                             <tr>
                                 <td colspan="6" class="text-center text-muted">
-                                    <i class="bi bi-hourglass-split"></i> 加载中...
+                                    <i class="bi bi-hourglass-split"></i> <span data-i18n="accounts.loading">加载中...</span>
                                 </td>
                             </tr>
                         </tbody>
@@ -736,53 +745,53 @@
     <!-- 打赏作者部分 -->
     <div id="donation-section" class="section" style="display: none;">
         <div class="config-section">
-            <h3><i class="bi bi-heart-fill"></i> 打赏作者</h3>
+            <h3><i class="bi bi-heart-fill"></i> <span data-i18n="donation.title">打赏作者</span></h3>
             
             <div class="row">
                 <div class="col-md-8">
                     <div class="alert alert-info">
-                        <h5><i class="bi bi-info-circle"></i> 关于本项目</h5>
-                        <p><strong>XWool Personal Assistant</strong> 是一个薅羊毛个人助手，在大模型时代，AI已经渗透到日常生活的方方面面，打理 X 账号费时费力，让大模型来帮忙，我们可以喝着咖啡，有兴趣就看着他干活儿，没时间就让他自己在幕后跑着，跟粉丝做做互动。</p>
+                        <h5><i class="bi bi-info-circle"></i> <span data-i18n="donation.about_project">关于本项目</span></h5>
+                        <p data-i18n-html="donation.project_description"><strong>XWool Personal Assistant</strong> 是一个薅羊毛个人助手，在大模型时代，AI已经渗透到日常生活的方方面面，打理 X 账号费时费力，让大模型来帮忙，我们可以喝着咖啡，有兴趣就看着他干活儿，没时间就让他自己在幕后跑着，跟粉丝做做互动。</p>
                     </div>
                     
                     <div class="alert alert-success">
-                        <h5><i class="bi bi-heart-fill text-danger"></i> 如果本项目对您有所帮助，不妨打赏一下，请我喝杯咖啡</h5>
-                        <p class="mb-0">您的支持是我继续开发和维护这个项目的动力！</p>
+                        <h5><i class="bi bi-heart-fill text-danger"></i> <span data-i18n="donation.support_message">如果本项目对您有所帮助，不妨打赏一下，请我喝杯咖啡</span></h5>
+                        <p class="mb-0" data-i18n="donation.support_description">您的支持是我继续开发和维护这个项目的动力！</p>
                     </div>
                     
                     <div class="card">
                         <div class="card-header">
-                            <h5 class="mb-0"><i class="bi bi-qr-code"></i> 微信收款码</h5>
+                            <h5 class="mb-0"><i class="bi bi-qr-code"></i> <span data-i18n="donation.wechat_qr">微信收款码</span></h5>
                         </div>
                         <div class="card-body text-center">
                             <img src="/static/img/wechatpay.png" alt="微信收款码" class="img-fluid" style="max-width: 300px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
-                            <p class="mt-3 text-muted">扫码支持作者，感谢您的慷慨！</p>
+                            <p class="mt-3 text-muted" data-i18n="donation.scan_support">扫码支持作者，感谢您的慷慨！</p>
                         </div>
                     </div>
                     
                     <div class="card mt-3">
                         <div class="card-header">
-                            <h5 class="mb-0"><i class="bi bi-currency-bitcoin"></i> 加密货币地址</h5>
+                            <h5 class="mb-0"><i class="bi bi-currency-bitcoin"></i> <span data-i18n="donation.crypto_address">加密货币地址</span></h5>
                         </div>
                         <div class="card-body">
                             <div class="row">
                                 <div class="col-md-6">
-                                    <h6><i class="bi bi-ethereum text-primary"></i> Ethereum / BSC</h6>
+                                    <h6><i class="bi bi-ethereum text-primary"></i> <span data-i18n="donation.ethereum_bsc">Ethereum / BSC</span></h6>
                                     <div class="input-group">
                                         <input type="text" class="form-control font-monospace" value="0x38b45B70577C3923f49dB5BbAB9aD1141e3e216C" readonly id="eth-address">
-                                        <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('eth-address')" title="复制地址">
+                                        <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('eth-address')" data-i18n-title="donation.copy_address" title="复制地址">
                                             <i class="bi bi-clipboard"></i>
                                         </button>
                                     </div>
-                                    <small class="text-muted">支持 ETH、USDT、USDC 等 ERC-20 代币</small>
+                                    <small class="text-muted" data-i18n="donation.supported_tokens">支持 ETH、USDT、USDC 等 ERC-20 代币</small>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="text-center">
                                         <div class="alert alert-info mb-0">
                                             <i class="bi bi-info-circle"></i>
-                                            <strong>温馨提示：</strong><br>
-                                            请确保网络选择正确<br>
-                                            <small>Ethereum 主网 / BSC 智能链</small>
+                                            <strong data-i18n="donation.crypto_tip">温馨提示：</strong><br>
+                                            <span data-i18n="donation.crypto_tip">请确保网络选择正确</span><br>
+                                            <small data-i18n="donation.crypto_networks">Ethereum 主网 / BSC 智能链</small>
                                         </div>
                                     </div>
                                 </div>
@@ -794,42 +803,42 @@
                 <div class="col-md-4">
                     <div class="card">
                         <div class="card-header">
-                            <h5 class="mb-0"><i class="bi bi-shield-check"></i> 使用条款</h5>
+                            <h5 class="mb-0"><i class="bi bi-shield-check"></i> <span data-i18n="donation.terms">使用条款</span></h5>
                         </div>
                         <div class="card-body">
                             <ul class="list-unstyled">
-                                <li class="mb-2"><i class="bi bi-check-circle text-success"></i> XWool Personal Assistant 仅用于辅助个人 X 账号互动</li>
-                                <li class="mb-2"><i class="bi bi-x-circle text-danger"></i> 禁止将 XWool Personal Assistant 用于攻击与骚扰行为</li>
-                                <li class="mb-2"><i class="bi bi-exclamation-triangle text-warning"></i> 使用 XWool Personal Assistant 发生的一切行为均由使用人自行负责</li>
-                                <li class="mb-2"><i class="bi bi-info-circle text-info"></i> 因使用 XWool Personal Assistant 导致的 X 账号限流、被封，版权持有人不承担任何责任</li>
-                                <li class="mb-0"><i class="bi bi-info-circle text-info"></i> 版权持有人不对 XWool Personal Assistant 可能存在的缺陷导致的任何损失负任何责任</li>
+                                <li class="mb-2"><i class="bi bi-check-circle text-success"></i> <span data-i18n="donation.terms_1">XWool Personal Assistant 仅用于辅助个人 X 账号互动</span></li>
+                                <li class="mb-2"><i class="bi bi-x-circle text-danger"></i> <span data-i18n="donation.terms_2">禁止将 XWool Personal Assistant 用于攻击与骚扰行为</span></li>
+                                <li class="mb-2"><i class="bi bi-exclamation-triangle text-warning"></i> <span data-i18n="donation.terms_3">使用 XWool Personal Assistant 发生的一切行为均由使用人自行负责</span></li>
+                                <li class="mb-2"><i class="bi bi-info-circle text-info"></i> <span data-i18n="donation.terms_4">因使用 XWool Personal Assistant 导致的 X 账号限流、被封，版权持有人不承担任何责任</span></li>
+                                <li class="mb-0"><i class="bi bi-info-circle text-info"></i> <span data-i18n="donation.terms_5">版权持有人不对 XWool Personal Assistant 可能存在的缺陷导致的任何损失负任何责任</span></li>
                             </ul>
                         </div>
                     </div>
                     
                     <div class="card mt-3">
                         <div class="card-header">
-                            <h5 class="mb-0"><i class="bi bi-github"></i> 项目信息</h5>
+                            <h5 class="mb-0"><i class="bi bi-github"></i> <span data-i18n="donation.project_info">项目信息</span></h5>
                         </div>
                         <div class="card-body">
-                            <p><strong>项目名称：</strong>XWool Personal Assistant</p>
-                            <p><strong>项目类型：</strong>X 账号自动化管理工具</p>
-                            <p><strong>GitHub 地址：</strong></p>
+                            <p><strong data-i18n="donation.project_name">项目名称：</strong><br>XWool Personal Assistant</p>
+                            <p><strong data-i18n="donation.project_type">项目类型：</strong><br><span data-i18n="donation.project_type_value">X 账号自动化管理工具</span></p>
+                            <p><strong data-i18n="donation.github_url">GitHub 地址：</strong></p>
                             <div class="input-group mb-3">
                                 <input type="text" class="form-control font-monospace" value="https://github.com/hunterlarcuad/x-visit" readonly id="github-url">
-                                <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('github-url')" title="复制GitHub地址">
+                                <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('github-url')" data-i18n-title="donation.copy_address" title="复制GitHub地址">
                                     <i class="bi bi-clipboard"></i>
                                 </button>
-                                <a href="https://github.com/hunterlarcuad/x-visit" target="_blank" class="btn btn-primary" title="在GitHub中打开">
+                                <a href="https://github.com/hunterlarcuad/x-visit" target="_blank" class="btn btn-primary" data-i18n-title="donation.open_github" title="在GitHub中打开">
                                     <i class="bi bi-box-arrow-up-right"></i>
                                 </a>
                             </div>
-                            <p><strong>主要功能：</strong></p>
+                            <p><strong data-i18n="donation.main_features">主要功能：</strong></p>
                             <ul class="list-unstyled">
-                                <li><i class="bi bi-arrow-right"></i> 自动互动（点赞、关注、转发、回复）</li>
-                                <li><i class="bi bi-arrow-right"></i> 多账号管理</li>
-                                <li><i class="bi bi-arrow-right"></i> 智能代理切换</li>
-                                <li><i class="bi bi-arrow-right"></i> 数据统计分析</li>
+                                <li><i class="bi bi-arrow-right"></i> <span data-i18n="donation.feature_1">自动互动（点赞、关注、转发、回复）</span></li>
+                                <li><i class="bi bi-arrow-right"></i> <span data-i18n="donation.feature_2">多账号管理</span></li>
+                                <li><i class="bi bi-arrow-right"></i> <span data-i18n="donation.feature_3">智能代理切换</span></li>
+                                <li><i class="bi bi-arrow-right"></i> <span data-i18n="donation.feature_4">数据统计分析</span></li>
                             </ul>
                         </div>
                     </div>
@@ -889,7 +898,7 @@
                     </div>
                     <div class="mb-3">
                         <label for="newAccountProxy" class="form-label">代理</label>
-                        <input type="text" class="form-control" id="newAccountProxy" placeholder="例如: gcp-g01-tw">
+                        <input type="text" class="form-control" id="newAccountProxy" data-i18n-placeholder="config.proxy_placeholder" placeholder="例如: gcp-g01-tw">
                     </div>
                 </form>
             </div>
@@ -952,7 +961,7 @@
                     </div>
                     <div class="mb-3">
                         <label for="editAccountProxy" class="form-label">代理</label>
-                        <input type="text" class="form-control" id="editAccountProxy" placeholder="例如: gcp-g01-tw">
+                        <input type="text" class="form-control" id="editAccountProxy" data-i18n-placeholder="config.proxy_placeholder" placeholder="例如: gcp-g01-tw">
                     </div>
                 </form>
             </div>
@@ -1036,17 +1045,17 @@ function copyToClipboard(elementId) {
         
         try {
             document.execCommand('copy');
-            showAlert('地址已复制到剪贴板！', 'success');
+            showAlert(getTranslation('donation.copy_success'), 'success');
         } catch (err) {
             // 如果execCommand失败，尝试使用现代的Clipboard API
             if (navigator.clipboard) {
                 navigator.clipboard.writeText(element.value).then(() => {
-                    showAlert('地址已复制到剪贴板！', 'success');
+                    showAlert(getTranslation('donation.copy_success'), 'success');
                 }).catch(() => {
-                    showAlert('复制失败，请手动复制', 'danger');
+                    showAlert(getTranslation('donation.copy_failed'), 'danger');
                 });
             } else {
-                showAlert('复制失败，请手动复制', 'danger');
+                showAlert(getTranslation('donation.copy_failed'), 'danger');
             }
         }
     }
@@ -1472,7 +1481,7 @@ function showCommandInStatusPage(cmd, account) {
         commandDisplay.className = 'mt-3 p-3 bg-light border rounded';
         commandDisplay.innerHTML = `
             <div class="d-flex justify-content-between align-items-center mb-2">
-                <h6 class="mb-0"><i class="bi bi-terminal"></i> 执行命令</h6>
+                <h6 class="mb-0"><i class="bi bi-terminal"></i> <span data-i18n="config.execute_command">执行命令</span></h6>
                 <button type="button" class="btn btn-sm btn-outline-secondary" onclick="closeStatusCommand()">
                     <i class="bi bi-x"></i>
                 </button>
@@ -1485,10 +1494,10 @@ function showCommandInStatusPage(cmd, account) {
             </div>
             <div class="mt-2">
                 <button type="button" class="btn btn-sm btn-primary" onclick="copyStatusCommand()">
-                    <i class="bi bi-clipboard"></i> 复制命令
+                    <i class="bi bi-clipboard"></i> <span data-i18n="common.copy">复制命令</span>
                 </button>
                 <button type="button" class="btn btn-sm btn-success" onclick="startStatusCommand('${account}')">
-                    <i class="bi bi-play"></i> 启动脚本
+                    <i class="bi bi-play"></i> <span data-i18n="config.start_script">启动脚本</span>
                 </button>
             </div>
         `;
@@ -1506,6 +1515,9 @@ function showCommandInStatusPage(cmd, account) {
     
     // 滚动到命令显示区域
     commandDisplay.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    
+    // 重新应用翻译到新创建的元素
+    applyTranslations();
     
     showAlert(`已生成账号 ${account} 的执行命令`, 'info');
 }
@@ -2917,17 +2929,20 @@ function toggleCommand() {
     if (commandSectionVisible) {
         // 隐藏命令区域
         commandSection.style.display = 'none';
-        toggleButton.innerHTML = '<i class="bi bi-terminal"></i> 显示命令';
+        toggleButton.innerHTML = `<i class="bi bi-terminal"></i> <span data-i18n="config.show_command">预览命令</span>`;
         toggleButton.className = 'btn btn-info me-2';
         commandSectionVisible = false;
     } else {
         // 显示命令区域
         generateCommand();
         commandSection.style.display = 'block';
-        toggleButton.innerHTML = '<i class="bi bi-eye-slash"></i> 隐藏命令';
+        toggleButton.innerHTML = `<i class="bi bi-eye-slash"></i> <span data-i18n="config.hide_command">隐藏命令</span>`;
         toggleButton.className = 'btn btn-secondary me-2';
         commandSectionVisible = true;
     }
+    
+    // 重新应用翻译到新创建的元素
+    applyTranslations();
 }
 
 // 生成执行命令
@@ -3011,7 +3026,7 @@ function loadAccounts() {
             }
             
             // 清空选项
-            select.innerHTML = '<option value="">请选择账号...</option>';
+            select.innerHTML = '<option value="" data-i18n="config.profile_placeholder">请选择账号...</option>';
             
             // 去重添加账号选项
             const uniqueAccounts = [...new Set(data.accounts)];
@@ -3028,7 +3043,7 @@ function loadAccounts() {
             // 重新初始化Select2
             $('#profile').select2({
                 theme: 'bootstrap-5',
-                placeholder: '请选择账号...',
+                placeholder: getTranslation('config.profile_placeholder'),
                 allowClear: true,
                 multiple: true,
                 width: '100%',
@@ -3212,7 +3227,7 @@ function getCurrentProxyInfo() {
     const refreshBtn = document.querySelector('#current-proxy-info .btn');
     
     // 保存原始按钮内容
-    const originalContent = `<i class="bi bi-arrow-clockwise"></i> 刷新`;
+    const originalContent = `<i class="bi bi-arrow-clockwise"></i> ${getTranslation('common.refresh')}`;
     
     // 立即显示代理信息区域并设置为正在获取状态
     currentProxyInfo.style.display = 'block';
@@ -3222,23 +3237,23 @@ function getCurrentProxyInfo() {
     const currentCountryCode = document.getElementById('current-country-code');
     const currentIp = document.getElementById('current-ip');
     
-    currentCountry.textContent = '正在获取...';
-    currentCountryCode.textContent = '正在获取...';
-    currentIp.textContent = '正在获取...';
+    currentCountry.textContent = getTranslation('common.loading');
+    currentCountryCode.textContent = getTranslation('common.loading');
+    currentIp.textContent = getTranslation('common.loading');
     
     // 设置按钮为不可点击状态并开始倒计时
     refreshBtn.disabled = true;
     let countdown = 5;
-    refreshBtn.innerHTML = `<i class="bi bi-arrow-clockwise spin"></i> 刷新中... ${countdown}秒后可刷新`;
+    refreshBtn.innerHTML = `<i class="bi bi-arrow-clockwise spin"></i> ${getTranslation('control.refreshing')} ${countdown}${getTranslation('control.seconds_remaining')}`;
     
     // 开始倒计时
     const countdownInterval = setInterval(() => {
         countdown--;
         if (countdown > 0) {
-            refreshBtn.innerHTML = `<i class="bi bi-arrow-clockwise spin"></i> 刷新中... ${countdown}秒后可刷新`;
+            refreshBtn.innerHTML = `<i class="bi bi-arrow-clockwise spin"></i> ${getTranslation('control.refreshing')} ${countdown}${getTranslation('control.seconds_remaining')}`;
         } else {
             // 倒计时结束，停止旋转动画，但保持禁用状态直到API返回
-            refreshBtn.innerHTML = `<i class="bi bi-arrow-clockwise"></i> 刷新中...`;
+            refreshBtn.innerHTML = `<i class="bi bi-arrow-clockwise"></i> ${getTranslation('control.refreshing')}`;
         }
     }, 1000);
     
@@ -3253,17 +3268,17 @@ function getCurrentProxyInfo() {
         } else {
             console.error('获取当前代理信息失败:', data.message);
             // 显示错误状态
-            currentCountry.textContent = '获取失败';
-            currentCountryCode.textContent = '获取失败';
-            currentIp.textContent = '获取失败';
+            currentCountry.textContent = getTranslation('errors.proxy_info_failed');
+            currentCountryCode.textContent = getTranslation('errors.proxy_info_failed');
+            currentIp.textContent = getTranslation('errors.proxy_info_failed');
         }
     })
     .catch(error => {
         console.error('Error getting current proxy info:', error);
         // 显示错误状态
-        currentCountry.textContent = '获取失败';
-        currentCountryCode.textContent = '获取失败';
-        currentIp.textContent = '获取失败';
+        currentCountry.textContent = getTranslation('errors.proxy_info_failed');
+        currentCountryCode.textContent = getTranslation('errors.proxy_info_failed');
+        currentIp.textContent = getTranslation('errors.proxy_info_failed');
     })
     .finally(() => {
         // 清理倒计时定时器
@@ -3282,7 +3297,7 @@ function loadConfigs() {
     .then(data => {
         if (data.success) {
             const select = document.getElementById('config-select');
-            select.innerHTML = '<option value="">请选择配置...</option>';
+            select.innerHTML = '<option value="" data-i18n="config.config_select_placeholder">请选择配置...</option>';
             
             Object.keys(data.configs).forEach(configName => {
                 const config = data.configs[configName];
@@ -3505,8 +3520,8 @@ function startCountdownAndRedirect() {
                 <span class="visually-hidden">Loading...</span>
             </div>
             <div>
-                <strong>脚本启动成功！</strong><br>
-                <span id="countdown-text">${countdown}秒后自动跳转到控制面板...</span>
+                <strong data-i18n="config.script_started_success">脚本启动成功！</strong><br>
+                <span id="countdown-text">${countdown}<span data-i18n="config.auto_redirect_countdown">秒后自动跳转到指挥中心...</span></span>
             </div>
             <button type="button" class="btn-close ms-auto" onclick="clearCountdown()"></button>
         </div>
@@ -3519,7 +3534,9 @@ function startCountdownAndRedirect() {
     const countdownInterval = setInterval(() => {
         countdown--;
         if (countdownText) {
-            countdownText.textContent = `${countdown}秒后自动跳转到控制面板...`;
+            countdownText.innerHTML = `${countdown}<span data-i18n="config.auto_redirect_countdown">秒后自动跳转到指挥中心...</span>`;
+            // 重新应用翻译到新创建的元素
+            applyTranslations();
         }
         
         if (countdown <= 0) {
@@ -3647,15 +3664,48 @@ function updateStatus() {
             
             if (status === 'running') {
                 statusBadge.className = 'badge bg-success';
-                statusBadge.textContent = '状态: 运行中';
+                statusBadge.innerHTML = `<span data-i18n="control.status">状态</span>: <span data-i18n="control.running">运行中</span>`;
                 controlStatus.className = 'badge bg-success';
-                controlStatus.textContent = '运行中';
+                controlStatus.setAttribute('data-i18n', 'control.running');
+                controlStatus.textContent = getTranslation('control.running');
+                
+                // 禁用启动按钮，启用停止按钮
+                const startButton = document.getElementById('start-button');
+                const stopButton = document.getElementById('stop-button');
+                if (startButton) {
+                    startButton.disabled = true;
+                    startButton.classList.remove('btn-success');
+                    startButton.classList.add('btn-secondary');
+                }
+                if (stopButton) {
+                    stopButton.disabled = false;
+                    stopButton.classList.remove('btn-secondary');
+                    stopButton.classList.add('btn-danger');
+                }
             } else {
                 statusBadge.className = 'badge bg-secondary';
-                statusBadge.textContent = '状态: 停止';
+                statusBadge.innerHTML = `<span data-i18n="control.status">状态</span>: <span data-i18n="control.stopped">停止</span>`;
                 controlStatus.className = 'badge bg-secondary';
-                controlStatus.textContent = '停止';
+                controlStatus.setAttribute('data-i18n', 'control.stopped');
+                controlStatus.textContent = getTranslation('control.stopped');
+                
+                // 启用启动按钮，禁用停止按钮
+                const startButton = document.getElementById('start-button');
+                const stopButton = document.getElementById('stop-button');
+                if (startButton) {
+                    startButton.disabled = false;
+                    startButton.classList.remove('btn-secondary');
+                    startButton.classList.add('btn-success');
+                }
+                if (stopButton) {
+                    stopButton.disabled = true;
+                    stopButton.classList.remove('btn-danger');
+                    stopButton.classList.add('btn-secondary');
+                }
             }
+            
+            // 重新应用翻译到新创建的元素
+            applyTranslations();
         }
     })
     .catch(error => {
@@ -3831,7 +3881,16 @@ function updateRuntimeDisplay(startTime) {
 function formatDateTime(isoString) {
     if (!isoString) return '未知';
     const date = new Date(isoString);
-    return date.toLocaleString('zh-CN');
+    
+    // 格式化为 yyyy-mm-dd hh:MM:SS
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 }
 
 // 刷新日志
@@ -4227,9 +4286,11 @@ function toggleHeadlessLabel() {
     
     if (headlessCheckbox && headlessLabel) {
         if (headlessCheckbox.checked) {
-            headlessLabel.textContent = '无人驾驶';
+            headlessLabel.setAttribute('data-i18n', 'config.headless_checked');
+            headlessLabel.textContent = getTranslation('config.headless_checked');
         } else {
-            headlessLabel.textContent = '观察模式';
+            headlessLabel.setAttribute('data-i18n', 'config.headless_unchecked');
+            headlessLabel.textContent = getTranslation('config.headless_unchecked');
         }
     }
 }
@@ -4241,9 +4302,11 @@ function toggleForceLabel() {
     
     if (forceCheckbox && forceLabel) {
         if (forceCheckbox.checked) {
-            forceLabel.textContent = '一路狂飙';
+            forceLabel.setAttribute('data-i18n', 'config.force_checked');
+            forceLabel.textContent = getTranslation('config.force_checked');
         } else {
-            forceLabel.textContent = '每日一次';
+            forceLabel.setAttribute('data-i18n', 'config.force_unchecked');
+            forceLabel.textContent = getTranslation('config.force_unchecked');
         }
     }
 }
