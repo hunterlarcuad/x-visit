@@ -117,6 +117,126 @@ class XWool():
 
         self.lst_advertise_url = []
 
+        # 按日期统计 关注、点赞、回复、转发 数量
+        self.dic_date_count = {}
+
+    def update_daily_stats(self, date, op_type, count=1):
+        """
+        更新每日操作统计
+        
+        Args:
+            date (str): 日期字符串
+            op_type (str): 操作类型 ('follow', 'like', 'reply', 'retweet')
+            count (int): 操作数量，默认为1
+        """
+        if date not in self.dic_date_count:
+            self.dic_date_count[date] = {
+                'follow': 0,
+                'like': 0,
+                'reply': 0,
+                'retweet': 0
+            }
+        
+        if op_type in self.dic_date_count[date]:
+            self.dic_date_count[date][op_type] += count
+
+    def get_daily_stats(self, date):
+        """
+        获取指定日期的操作统计
+        
+        Args:
+            date (str): 日期字符串
+            
+        Returns:
+            dict: 包含各种操作数量的字典
+        """
+        return self.dic_date_count.get(date, {
+            'follow': 0,
+            'like': 0,
+            'reply': 0,
+            'retweet': 0
+        })
+
+    def get_today_stats(self):
+        """
+        获取今日操作统计
+        
+        Returns:
+            dict: 包含今日各种操作数量的字典
+        """
+        today = format_ts(time.time(), style=1, tz_offset=TZ_OFFSET)
+        return self.get_daily_stats(today)
+
+    def print_daily_stats(self):
+        """打印每日操作统计信息"""
+        if self.dic_date_count:
+            self.logit(None, 'Daily operation counts:')
+            for date, counts in sorted(self.dic_date_count.items()):
+                total = sum(counts.values())
+                self.logit(None,
+                           f'{date}: Follow={counts["follow"]}, '
+                           f'Like={counts["like"]}, Reply={counts["reply"]}, '
+                           f'Retweet={counts["retweet"]}, Total={total}')
+        else:
+            self.logit(None, 'No daily operation counts found')
+
+    def print_session_stats(self, session_counts):
+        """
+        打印会话统计信息
+        
+        Args:
+            session_counts (dict): 当前会话的操作统计
+        """
+        today_counts = self.get_today_stats()
+        
+        # 显示当前会话统计
+        self.logit(None,
+                   f'This session - Follow: {session_counts["follow"]}, '
+                   f'Like: {session_counts["like"]}, '
+                   f'Reply: {session_counts["reply"]}, '
+                   f'Retweet: {session_counts["retweet"]}')
+        
+        # 显示当日总计
+        total_today = {
+            'follow': today_counts['follow'] + session_counts['follow'],
+            'like': today_counts['like'] + session_counts['like'],
+            'reply': today_counts['reply'] + session_counts['reply'],
+            'retweet': today_counts['retweet'] + session_counts['retweet']
+        }
+        self.logit(None,
+                   f'Today total - Follow: {total_today["follow"]}, '
+                   f'Like: {total_today["like"]}, '
+                   f'Reply: {total_today["reply"]}, '
+                   f'Retweet: {total_today["retweet"]}')
+
+    def check_daily_limits(self, op_type, current_count, max_limit):
+        """
+        检查是否达到每日操作限制
+        
+        Args:
+            op_type (str): 操作类型
+            current_count (int): 当前会话已执行的操作数量
+            max_limit (int): 最大限制
+            
+        Returns:
+            tuple: (是否达到限制, 当前总数, 限制信息)
+        """
+        if max_limit == 0:
+            return True, 0, "Operation disabled"
+        
+        if max_limit == -1:
+            return False, 0, "No limit"
+        
+        today_counts = self.get_today_stats()
+        total_count = today_counts[op_type] + current_count
+        
+        if total_count >= max_limit:
+            return True, total_count, (f"Daily {op_type} limit reached: "
+                                       f"{total_count}/{max_limit}")
+        
+        return False, total_count, (f"Current {op_type} count: "
+                                    f"{total_count}/{max_limit}")
+
     def set_args(self, args):
         self.args = args
         self.is_update = False
@@ -188,34 +308,52 @@ class XWool():
                             continue
                         if fields[2] not in [DEF_INTERACTION_OK, DEF_INTERACTION_IGNORE]: # noqa
                             continue
+
+                        # 解析日期和操作类型
+                        s_datetime = fields[0]  # 完整的时间戳
+                        s_date = s_datetime.split('T')[0]  # 提取日期部分
+                        s_op_type = fields[1]  # 操作类型
                         s_url = fields[3]
+                        
                         if fields[2] == DEF_INTERACTION_IGNORE:
                             self.set_url_ignored.add(s_url)
                             continue
 
-                        if 'follow' == fields[1]:
+                        # 统计操作数量
+                        if 'follow' == s_op_type:
                             name = fields[4]
                             if name in self.set_user_followed:
                                 continue
                             self.set_user_followed.add(name)
-                        elif 'like' == fields[1]:
+                            if fields[2] == DEF_INTERACTION_OK:
+                                self.update_daily_stats(s_date, 'follow', 1)
+                        elif 'like' == s_op_type:
                             if s_url in self.set_url_liked:
                                 continue
                             self.set_url_liked.add(s_url)
-                        elif 'reply' == fields[1]:
+                            if fields[2] == DEF_INTERACTION_OK:
+                                self.update_daily_stats(s_date, 'like', 1)
+                        elif 'reply' == s_op_type:
                             if s_url in self.set_url_replied:
                                 continue
                             self.set_url_replied.add(s_url)
-                        elif 'retweet' == fields[1]:
+                            if fields[2] == DEF_INTERACTION_OK:
+                                self.update_daily_stats(s_date, 'reply', 1)
+                        elif 'retweet' == s_op_type:
                             if s_url in self.set_url_retweeted:
                                 continue
                             self.set_url_retweeted.add(s_url)
+                            if fields[2] == DEF_INTERACTION_OK:
+                                self.update_daily_stats(s_date, 'retweet', 1)
 
         self.logit(None, f'load_ignored_url: {len(self.set_url_ignored)}') # noqa
         self.logit(None, f'load_followed_user: {len(self.set_user_followed)}') # noqa
         self.logit(None, f'load_liked_url: {len(self.set_url_liked)}') # noqa
         self.logit(None, f'load_replied_url: {len(self.set_url_replied)}') # noqa
         self.logit(None, f'load_retweeted_url: {len(self.set_url_retweeted)}') # noqa
+
+        # 显示每日统计信息
+        self.print_daily_stats()
 
     def close(self):
         # 在有头浏览器模式 Debug 时，不退出浏览器，用于调试
@@ -352,6 +490,9 @@ class XWool():
                     s_msg=f'{name}',
                     s_status=DEF_INTERACTION_OK,
                 )
+                # 更新每日统计
+                today = format_ts(time.time(), style=1, tz_offset=TZ_OFFSET)
+                self.update_daily_stats(today, 'follow', 1)
                 b_ret = True
             else:
                 self.logit(None, f'Follow x: {name} [Failed]')
@@ -586,12 +727,13 @@ class XWool():
         is_follow: 是否关注
         """
         b_ret = False
+        counts = {'follow': 0, 'like': 0, 'reply': 0, 'retweet': 0}
         if not tweet_url:
-            return b_ret
+            return b_ret, counts
 
         if tweet_url in self.set_url_ignored:
             self.logit(None, 'Already ignored before, skip ...')
-            return b_ret
+            return b_ret, counts
 
         if tweet_url.startswith('https://x.com/'):
             name = tweet_url.split('com/')[-1].split('/')[0]
@@ -635,12 +777,13 @@ class XWool():
 
                             tab.close()
 
-                            return b_ret
+                            return b_ret, counts
                         self.logit(None, f's_tweet_type: {s_tweet_type}')
 
                     # reply
                     if is_reply:
-                        self.reply_tweet(s_tweet_type, s_tweet_text)
+                        if self.reply_tweet(s_tweet_type, s_tweet_text):
+                            counts['reply'] = 1
 
             # like
             if is_like:
@@ -655,6 +798,7 @@ class XWool():
                             s_msg='',
                             s_status=DEF_INTERACTION_OK,
                         )
+                        counts['like'] = 1
                         b_ret = True
 
             # retweet
@@ -670,6 +814,7 @@ class XWool():
                             s_msg='',
                             s_status=DEF_INTERACTION_OK,
                         )
+                        counts['retweet'] = 1
                         b_ret = True
 
             tab.close()
@@ -681,9 +826,10 @@ class XWool():
                 else:
                     is_success = self.follow_user(name)
                     if is_success:
+                        counts['follow'] = 1
                         b_ret = True
 
-        return b_ret
+        return b_ret, counts
 
     def click_display_post(self):
         tab = self.browser.latest_tab
@@ -753,6 +899,14 @@ class XWool():
         self.click_display_post()
         tab = self.browser.latest_tab
 
+        # 初始化计数器
+        n_follow_count = 0
+        n_like_count = 0
+        n_reply_count = 0
+        n_retweet_count = 0
+
+        # 获取当日已执行的操作数量（通过统计函数获取）
+
         for i in range(1, 5):
             ele_blks_top = tab.eles(
                 '@@tag()=div@@class=css-175oi2r@@data-testid=cellInnerDiv',
@@ -797,12 +951,68 @@ class XWool():
                     self.logit(None, 'Already ignored before, skip ...')
                     continue
 
-                is_success = self.proc_tw_url(
+                # 检查是否已达到最大限制
+                if is_follow:
+                    is_limit_reached, _, limit_msg = self.check_daily_limits(
+                        'follow', n_follow_count, self.args.max_follow)
+                    if is_limit_reached:
+                        is_follow = False
+                        self.logit(None, limit_msg)
+                
+                if is_like:
+                    is_limit_reached, _, limit_msg = self.check_daily_limits(
+                        'like', n_like_count, self.args.max_like)
+                    if is_limit_reached:
+                        is_like = False
+                        self.logit(None, limit_msg)
+                
+                if is_reply:
+                    is_limit_reached, _, limit_msg = self.check_daily_limits(
+                        'reply', n_reply_count, self.args.max_reply)
+                    if is_limit_reached:
+                        is_reply = False
+                        self.logit(None, limit_msg)
+                
+                if is_retweet:
+                    is_limit_reached, _, limit_msg = self.check_daily_limits(
+                        'retweet', n_retweet_count, self.args.max_retweet)
+                    if is_limit_reached:
+                        is_retweet = False
+                        self.logit(None, limit_msg)
+
+                # 如果所有操作都被限制，则跳过
+                if not (is_reply or is_like or is_retweet or is_follow):
+                    self.logit(None,
+                               'All operations reached max limit, skip ...')
+                    break
+
+                is_success, counts = self.proc_tw_url(
                     tweet_url, is_reply=is_reply, is_all_reply=is_all_reply,
                     is_like=is_like, is_retweet=is_retweet, is_follow=is_follow
                 )
                 if is_success:
                     b_ret = True
+                    # 更新计数器
+                    n_follow_count += counts.get('follow', 0)
+                    n_like_count += counts.get('like', 0)
+                    n_reply_count += counts.get('reply', 0)
+                    n_retweet_count += counts.get('retweet', 0)
+                    
+                    # 更新每日统计
+                    today = format_ts(time.time(), style=1,
+                                      tz_offset=TZ_OFFSET)
+                    if counts.get('follow', 0) > 0:
+                        self.update_daily_stats(today, 'follow',
+                                                counts['follow'])
+                    if counts.get('like', 0) > 0:
+                        self.update_daily_stats(today, 'like',
+                                                counts['like'])
+                    if counts.get('reply', 0) > 0:
+                        self.update_daily_stats(today, 'reply',
+                                                counts['reply'])
+                    if counts.get('retweet', 0) > 0:
+                        self.update_daily_stats(today, 'retweet',
+                                                counts['retweet'])
             else:
                 self.logit(None, 'tweet_url is not found')
 
@@ -813,6 +1023,15 @@ class XWool():
                 break
 
         self.logit(None, f'n_proc_success={n_proc_success}')
+
+        # 显示会话统计信息
+        session_counts = {
+            'follow': n_follow_count,
+            'like': n_like_count,
+            'reply': n_reply_count,
+            'retweet': n_retweet_count
+        }
+        self.print_session_stats(session_counts)
 
         return b_ret
 
@@ -831,25 +1050,37 @@ class XWool():
         if x_user in self.set_user_followed:
             self.logit(None, 'Already followed before, skip ...')
         else:
-            # Follow
-            user_url = f'https://x.com/{x_user}' # noqa
-            tab = self.browser.new_tab(user_url)
-            if self.is_followed(x_user):
-                self.logit(None, 'Already followed, skip ...')
+            # 检查关注限制
+            is_follow_limit, follow_count, follow_msg = (
+                self.check_daily_limits('follow', 0, self.args.max_follow))
+            if is_follow_limit:
+                self.logit(None, f'Follow: {follow_msg}')
+                self.logit(None, 'Follow limit reached, skip ...')
             else:
-                self.logit(None, f'Try to Follow x: {x_user}')
-                if self.inst_x.x_follow(x_user):
-                    tab.wait(1)
-                    self.status_append(
-                        s_op_type='follow',
-                        s_url=user_url,
-                        s_msg=f'{x_user}',
-                        s_status=DEF_INTERACTION_OK,
-                    )
-                    b_ret = True
-                    self.set_user_followed.add(x_user)
+                self.logit(None, f'Follow: {follow_msg}')
+                # Follow
+                user_url = f'https://x.com/{x_user}' # noqa
+                tab = self.browser.new_tab(user_url)
+                if self.is_followed(x_user):
+                    self.logit(None, 'Already followed, skip ...')
                 else:
-                    self.logit(None, f'Follow x: {x_user} [Failed]')
+                    self.logit(None, f'Try to Follow x: {x_user}')
+                    if self.inst_x.x_follow(x_user):
+                        tab.wait(1)
+                        self.status_append(
+                            s_op_type='follow',
+                            s_url=user_url,
+                            s_msg=f'{x_user}',
+                            s_status=DEF_INTERACTION_OK,
+                        )
+                        # 更新每日统计
+                        today = format_ts(time.time(), style=1,
+                                          tz_offset=TZ_OFFSET)
+                        self.update_daily_stats(today, 'follow', 1)
+                        b_ret = True
+                        self.set_user_followed.add(x_user)
+                    else:
+                        self.logit(None, f'Follow x: {x_user} [Failed]')
 
         # 生成一个 1-2 随机数
         n_max_proc = random.randint(1, 2)
@@ -875,6 +1106,39 @@ class XWool():
             self.logit(None, 'Already ignored before, skip ...')
             return False
 
+        # 检查当日操作限制
+        # 检查回复限制
+        is_reply_limit, reply_count, reply_msg = self.check_daily_limits(
+            'reply', 0, self.args.max_reply)
+        if is_reply_limit:
+            self.logit(None, f'Reply: {reply_msg}')
+        else:
+            self.logit(None, f'Reply: {reply_msg}')
+        
+        # 检查点赞限制
+        is_like_limit, like_count, like_msg = self.check_daily_limits(
+            'like', 0, self.args.max_like)
+        if is_like_limit:
+            self.logit(None, f'Like: {like_msg}')
+        else:
+            self.logit(None, f'Like: {like_msg}')
+        
+        # 检查转帖限制
+        is_retweet_limit, retweet_count, retweet_msg = self.check_daily_limits(
+            'retweet', 0, self.args.max_retweet)
+        if is_retweet_limit:
+            self.logit(None, f'Retweet: {retweet_msg}')
+        else:
+            self.logit(None, f'Retweet: {retweet_msg}')
+        
+        # 检查关注限制
+        is_follow_limit, follow_count, follow_msg = self.check_daily_limits(
+            'follow', 0, self.args.max_follow)
+        if is_follow_limit:
+            self.logit(None, f'Follow: {follow_msg}')
+        else:
+            self.logit(None, f'Follow: {follow_msg}')
+
         # Like
         tab = self.browser.new_tab(tweet_url)
 
@@ -883,7 +1147,9 @@ class XWool():
         # Comment
 
         self.logit(None, f'Try to Reply x: {tweet_url}')
-        if self.inst_x.x_is_replied():
+        if is_reply_limit:
+            self.logit(None, 'Reply limit reached, skip ...')
+        elif self.inst_x.x_is_replied():
             self.logit(None, 'Already replied, skip ...')
         else:
             # get tweet text
@@ -911,7 +1177,9 @@ class XWool():
 
         # like
         self.logit(None, f'Try to Like x: {tweet_url}')
-        if tweet_url in self.set_url_liked:
+        if is_like_limit:
+            self.logit(None, 'Like limit reached, skip ...')
+        elif tweet_url in self.set_url_liked:
             self.logit(None, 'Already liked before, skip ...')
         else:
             if self.inst_x.x_like():
@@ -923,10 +1191,15 @@ class XWool():
                     s_status=DEF_INTERACTION_OK,
                 )
                 self.set_url_liked.add(tweet_url)
+                # 更新每日统计
+                today = format_ts(time.time(), style=1, tz_offset=TZ_OFFSET)
+                self.update_daily_stats(today, 'like', 1)
 
         # retweet
         self.logit(None, f'Try to Retweet x: {tweet_url}')
-        if tweet_url in self.set_url_retweeted:
+        if is_retweet_limit:
+            self.logit(None, 'Retweet limit reached, skip ...')
+        elif tweet_url in self.set_url_retweeted:
             self.logit(None, 'Already retweeted before, skip ...')
         else:
             if self.inst_x.x_retweet():
@@ -938,13 +1211,18 @@ class XWool():
                     s_status=DEF_INTERACTION_OK,
                 )
                 self.set_url_retweeted.add(tweet_url)
+                # 更新每日统计
+                today = format_ts(time.time(), style=1, tz_offset=TZ_OFFSET)
+                self.update_daily_stats(today, 'retweet', 1)
 
         tab.close()
 
         # follow
         self.logit(None, f'Try to Follow x: {tweet_url}')
         name = tweet_url.split('com/')[-1].split('/')[0]
-        if name in self.set_user_followed:
+        if is_follow_limit:
+            self.logit(None, 'Follow limit reached, skip ...')
+        elif name in self.set_user_followed:
             self.logit(None, 'Already followed before, skip ...')
         else:
             if self.follow_user(name):
@@ -1048,6 +1326,16 @@ class XWool():
             for x_user, x_nickname in lst_random:
                 if n_proc_success >= n_max_proc:
                     break
+
+                # 检查是否已达到每日关注限制
+                is_follow_limit, _, follow_msg = self.check_daily_limits(
+                    'follow', 0, self.args.max_follow)
+                if is_follow_limit:
+                    self.logit(None, f'Daily follow limit reached: '
+                                     f'{follow_msg}')
+                    self.logit(None, 'Stop processing ad users due to limit')
+                    break
+
                 is_success = self.proc_ad_user(x_user, x_nickname)
                 if is_success:
                     n_proc_success += 1
@@ -1389,6 +1677,24 @@ if __name__ == '__main__':
         help='自定义扩展ID，多个用逗号分隔，留空则使用默认扩展'
     )
 
+    # 添加最大数量限制参数
+    parser.add_argument(
+        '--max_follow', required=False, default=-1, type=int,
+        help='[默认为 -1] 当日最大关注数量，-1表示无限制，0表示不关注'
+    )
+    parser.add_argument(
+        '--max_like', required=False, default=-1, type=int,
+        help='[默认为 -1] 当日最大点赞数量，-1表示无限制，0表示不点赞'
+    )
+    parser.add_argument(
+        '--max_reply', required=False, default=-1, type=int,
+        help='[默认为 -1] 当日最大回复数量，-1表示无限制，0表示不回复'
+    )
+    parser.add_argument(
+        '--max_retweet', required=False, default=-1, type=int,
+        help='[默认为 -1] 当日最大转帖数量，-1表示无限制，0表示不转帖'
+    )
+
     args = parser.parse_args()
     show_msg(args)
     if args.loop_interval <= 0:
@@ -1416,4 +1722,8 @@ python xwool.py --auto_like --auto_appeal --manual_exit --water --profile=g22
 python xwool.py --no_auto_vpn --force --manual_exit --water --ad_user --profile=g07
 
 python xwool.py --auto_like --manual_exit --water --ad_user --profile=g07
+
+# 使用新的当日最大数量限制参数
+python xwool.py --no_auto_vpn --force --profile=g01 --max_follow=5 --max_like=10 --max_reply=3 --max_retweet=2
+python xwool.py --no_auto_vpn --force --ad_user --profile=g01 --max_follow=3 --max_like=8
 """

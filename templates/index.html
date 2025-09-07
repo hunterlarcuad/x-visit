@@ -162,6 +162,70 @@
                         </div>
                         
                         <h5 class="mt-4">
+                            <i class="bi bi-graph-up"></i> <span data-i18n="config.max_limits">当日数量限制</span>
+                            <i class="bi bi-info-circle text-muted ms-1" 
+                               data-bs-toggle="tooltip" 
+                               data-bs-placement="top" 
+                               data-i18n-title="config.max_limits_tooltip" title="设置当日各种操作的最大数量限制，-1表示无限制，0表示不进行此操作"></i>
+                        </h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="max_follow" class="form-label">
+                                        <span data-i18n="config.max_follow">当日最大关注数量</span>
+                                        <i class="bi bi-info-circle text-muted ms-1" 
+                                           data-bs-toggle="tooltip" 
+                                           data-bs-placement="top" 
+                                           data-i18n-title="config.max_follow_tooltip" title="设置当日最多关注多少个用户，-1表示无限制，0表示不关注"></i>
+                                    </label>
+                                    <input type="number" class="form-control" id="max_follow" name="max_follow" value="-1" min="-1" max="1000">
+                                    <div class="form-text" data-i18n="config.max_follow_help">-1表示无限制，0表示不关注，建议设置为5-20</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="max_like" class="form-label">
+                                        <span data-i18n="config.max_like">当日最大点赞数量</span>
+                                        <i class="bi bi-info-circle text-muted ms-1" 
+                                           data-bs-toggle="tooltip" 
+                                           data-bs-placement="top" 
+                                           data-i18n-title="config.max_like_tooltip" title="设置当日最多点赞多少个帖子，-1表示无限制，0表示不点赞"></i>
+                                    </label>
+                                    <input type="number" class="form-control" id="max_like" name="max_like" value="-1" min="-1" max="1000">
+                                    <div class="form-text" data-i18n="config.max_like_help">-1表示无限制，0表示不点赞，建议设置为10-50</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="max_reply" class="form-label">
+                                        <span data-i18n="config.max_reply">当日最大回复数量</span>
+                                        <i class="bi bi-info-circle text-muted ms-1" 
+                                           data-bs-toggle="tooltip" 
+                                           data-bs-placement="top" 
+                                           data-i18n-title="config.max_reply_tooltip" title="设置当日最多回复多少个帖子，-1表示无限制，0表示不回复"></i>
+                                    </label>
+                                    <input type="number" class="form-control" id="max_reply" name="max_reply" value="-1" min="-1" max="1000">
+                                    <div class="form-text" data-i18n="config.max_reply_help">-1表示无限制，0表示不回复，建议设置为3-10</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="max_retweet" class="form-label">
+                                        <span data-i18n="config.max_retweet">当日最大转帖数量</span>
+                                        <i class="bi bi-info-circle text-muted ms-1" 
+                                           data-bs-toggle="tooltip" 
+                                           data-bs-placement="top" 
+                                           data-i18n-title="config.max_retweet_tooltip" title="设置当日最多转帖多少个帖子，-1表示无限制，0表示不转帖"></i>
+                                    </label>
+                                    <input type="number" class="form-control" id="max_retweet" name="max_retweet" value="-1" min="-1" max="1000">
+                                    <div class="form-text" data-i18n="config.max_retweet_help">-1表示无限制，0表示不转帖，建议设置为2-5</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <h5 class="mt-4">
                             <span data-i18n="config.vpn_params">VPN参数</span>
                             <i class="bi bi-info-circle text-muted ms-1" 
                                data-bs-toggle="tooltip" 
@@ -840,6 +904,7 @@
                                 <li><i class="bi bi-arrow-right"></i> <span data-i18n="donation.feature_3">智能代理切换</span></li>
                                 <li><i class="bi bi-arrow-right"></i> <span data-i18n="donation.feature_4">数据统计分析</span></li>
                             </ul>
+                            <p class="mt-3 mb-0"><strong data-i18n="donation.last_update">最后更新：</strong>2025-09-07</p>
                         </div>
                     </div>
                 </div>
@@ -1147,18 +1212,21 @@ function renderAccountStatusTable() {
             <td><strong>${account.account}</strong></td>
             <td><span class="${statusClass}">${account.status}</span></td>
             <td>${account.update_time || '-'}</td>
-            <td><span class="text-muted">${account.days_ago}</span></td>
+            <td><span class="text-muted">${formatDaysAgo(account.days_ago)}</span></td>
             <td>${account.visit_date || '-'}</td>
             <td>${account.num_visit || '0'}</td>
             <td><span class="text-info">${account.proxy || '-'}</span></td>
             <td>
                 <button type="button" class="btn btn-sm btn-success" onclick="startSingleAccount('${account.account}')">
-                    <i class="bi bi-play"></i> 启动
+                    <i class="bi bi-play"></i> <span data-i18n="status.start">启动</span>
                 </button>
             </td>
         `;
         tbody.appendChild(row);
     });
+    
+    // 应用国际化翻译到动态生成的表格内容
+    applyTranslations();
 }
 
 // 更新统计信息
@@ -2699,7 +2767,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     updateStatus();
     updateRunningInfo(); // 初始化时获取运行信息
-    updateChromiumCount(); // 初始化时获取Chromium进程数量
+    startChromiumCountUpdate(); // 启动Chromium进程数量独立更新定时器
     startLogPolling();
     startInputStatusCheck(); // 启动输入状态检查
     startStatsUpdate(); // 启动统计更新定时器
@@ -3084,6 +3152,9 @@ function loadAccounts() {
                 select.removeAttribute('data-manually-set');
                 select.removeAttribute('data-manual-account');
             }
+            
+            // 应用国际化翻译到动态生成的选项
+            applyTranslations();
         }
     })
     .catch(error => {
@@ -3306,6 +3377,9 @@ function loadConfigs() {
                 option.textContent = configName;
                 select.appendChild(option);
             });
+            
+            // 应用国际化翻译到动态生成的选项
+            applyTranslations();
         }
     })
     .catch(error => {
@@ -3652,6 +3726,31 @@ function updateChromiumCount() {
     });
 }
 
+// 启动Chromium进程数量独立更新定时器
+function startChromiumCountUpdate() {
+    // 清除之前的定时器
+    stopChromiumCountUpdate();
+    
+    // 立即更新一次
+    updateChromiumCount();
+    
+    // 每30秒更新一次
+    chromiumCountTimer = setInterval(() => {
+        updateChromiumCount();
+    }, 30000);
+    
+    console.log('Chromium进程数量独立更新定时器已启动（30秒间隔）');
+}
+
+// 停止Chromium进程数量独立更新定时器
+function stopChromiumCountUpdate() {
+    if (chromiumCountTimer) {
+        clearInterval(chromiumCountTimer);
+        chromiumCountTimer = null;
+        console.log('Chromium进程数量独立更新定时器已停止');
+    }
+}
+
 // 更新状态
 function updateStatus() {
     fetch('/api/script/status')
@@ -3743,10 +3842,57 @@ function updateRunningInfo() {
                 // 显示参数说明
                 const parametersList = document.getElementById('parameters-list');
                 parametersList.innerHTML = '';
+                
+                // 参数键值映射
+                const paramKeyMap = {
+                    '账号': 'profile',
+                    '最大互动次数': 'max_interactions',
+                    '无头模式': 'headless',
+                    '强制运行': 'force',
+                    '浇水模式': 'water',
+                    '追星模式': 'ad_user',
+                    '自动切换VPN': 'vpn_auto',
+                    '跳过VPN设置': 'no_auto_vpn',
+                    '手动设置VPN': 'vpn_manual',
+                    '循环间隔(秒)': 'loop_interval',
+                    '最小休眠时间(秒)': 'sleep_sec_min',
+                    '最大休眠时间(秒)': 'sleep_sec_max',
+                    '自动点赞': 'auto_like',
+                    '自动关注': 'auto_follow',
+                    '自动转发': 'auto_retweet',
+                    '自动回复': 'auto_reply'
+                };
+                
                 data.data.parameters.forEach(param => {
                     const badge = document.createElement('span');
                     badge.className = 'badge bg-info me-1 mb-1';
-                    badge.textContent = param;
+                    
+                    // 解析参数文本，提取参数名和值
+                    const parts = param.split(': ');
+                    if (parts.length === 2) {
+                        const paramName = parts[0];
+                        const paramValue = parts[1];
+                        
+                        // 获取参数键
+                        const paramKey = paramKeyMap[paramName];
+                        if (paramKey) {
+                            // 获取国际化的参数名
+                            const i18nParamName = getTranslation(`control.param_${paramKey}`);
+                            
+                            // 处理参数值
+                            let i18nParamValue = paramValue;
+                            if (paramValue === '启用') {
+                                i18nParamValue = getTranslation('control.param_enabled');
+                            }
+                            
+                            badge.textContent = `${i18nParamName}: ${i18nParamValue}`;
+                        } else {
+                            badge.textContent = param; // 如果找不到映射，使用原始文本
+                        }
+                    } else {
+                        badge.textContent = param; // 如果格式不匹配，使用原始文本
+                    }
+                    
                     parametersList.appendChild(badge);
                 });
                 
@@ -3860,11 +4006,11 @@ function updateRuntimeDisplay(startTime) {
         
         let runtimeStr = '';
         if (hours > 0) {
-            runtimeStr = `${hours}小时${minutes}分钟${seconds}秒`;
+            runtimeStr = `${hours}${getTranslation('control.runtime_hours')}${minutes}${getTranslation('control.runtime_minutes')}${seconds}${getTranslation('control.runtime_seconds')}`;
         } else if (minutes > 0) {
-            runtimeStr = `${minutes}分钟${seconds}秒`;
+            runtimeStr = `${minutes}${getTranslation('control.runtime_minutes')}${seconds}${getTranslation('control.runtime_seconds')}`;
         } else {
-            runtimeStr = `${seconds}秒`;
+            runtimeStr = `${seconds}${getTranslation('control.runtime_seconds')}`;
         }
         
         // 更新显示
@@ -3891,6 +4037,42 @@ function formatDateTime(isoString) {
     const seconds = String(date.getSeconds()).padStart(2, '0');
     
     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
+// 格式化天数前显示
+function formatDaysAgo(daysAgoStr) {
+    if (!daysAgoStr) return getTranslation('status.unknown');
+    
+    // 处理中文格式
+    if (daysAgoStr === '今天') {
+        return getTranslation('status.today');
+    }
+    
+    if (daysAgoStr.includes('天前')) {
+        const days = daysAgoStr.replace('天前', '');
+        return `${days} ${getTranslation('status.days_ago')}`;
+    }
+    
+    if (daysAgoStr.includes('周前')) {
+        const weeks = daysAgoStr.replace('周前', '');
+        return `${weeks} ${getTranslation('status.weeks_ago')}`;
+    }
+    
+    if (daysAgoStr.includes('个月前')) {
+        const months = daysAgoStr.replace('个月前', '');
+        return `${months} ${getTranslation('status.months_ago')}`;
+    }
+    
+    if (daysAgoStr === '时间解析错误') {
+        return getTranslation('status.time_parse_error');
+    }
+    
+    if (daysAgoStr === '未知') {
+        return getTranslation('status.unknown');
+    }
+    
+    // 如果格式不匹配，返回原始文本
+    return daysAgoStr;
 }
 
 // 刷新日志
@@ -4082,6 +4264,7 @@ window.addEventListener('beforeunload', function() {
     if (logInterval) {
         clearInterval(logInterval);
     }
+    stopChromiumCountUpdate(); // 清理Chromium进程数量定时器
 });
 
 // 加载今日数据统计
@@ -4115,11 +4298,14 @@ function displayTodayStats(stats) {
         
         // 更新标题，显示日期
         const today = new Date().toISOString().split('T')[0]; // 格式: YYYY-MM-DD
-        document.getElementById('stats-title').textContent = `今日数据统计(${today})`;
+        const titleElement = document.getElementById('stats-title');
+        titleElement.setAttribute('data-i18n', 'control.today_stats');
+        titleElement.textContent = `${getTranslation('control.today_stats')}(${today})`;
         
         // 更新时间为当前时间
         const now = new Date();
-        const updateTime = now.toLocaleString('zh-CN', {
+        const locale = currentLanguage === 'zh' ? 'zh-CN' : 'en-US';
+        const updateTime = now.toLocaleString(locale, {
             year: 'numeric',
             month: '2-digit',
             day: '2-digit',
@@ -4143,6 +4329,9 @@ function displayTodayStats(stats) {
 let statsUpdateTimer = null;
 let statsCountdownTimer = null;
 let countdownSeconds = 5;
+
+// Chromium进程数量更新定时器
+let chromiumCountTimer = null;
 
 // 更新今日数据统计（定时刷新）
 function updateTodayStats() {
