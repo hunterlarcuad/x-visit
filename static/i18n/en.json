@@ -150,6 +150,7 @@
     "follow": "Follow",
     "like": "Like",
     "reply": "Reply",
+    "retweet": "Retweet",
     "total": "Total",
     "manual_refresh": "Manual Refresh",
     "script_waiting": "Script is waiting for input",

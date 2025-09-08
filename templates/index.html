@@ -485,25 +485,31 @@
                                         <i class="bi bi-graph-up"></i> <span id="stats-title" data-i18n="control.today_stats">今日数据统计</span>
                                     </h6>
                                     <div class="row">
-                                        <div class="col-md-3">
+                                        <div class="col-md-2 col-6">
                                             <div class="text-center">
                                                 <div class="h4 text-primary mb-1" id="stats-follow">0</div>
                                                 <small class="text-muted" data-i18n="control.follow">关注</small>
                                             </div>
                                         </div>
-                                        <div class="col-md-3">
+                                        <div class="col-md-2 col-6">
                                             <div class="text-center">
                                                 <div class="h4 text-success mb-1" id="stats-like">0</div>
                                                 <small class="text-muted" data-i18n="control.like">点赞</small>
                                             </div>
                                         </div>
-                                        <div class="col-md-3">
+                                        <div class="col-md-2 col-6">
                                             <div class="text-center">
                                                 <div class="h4 text-warning mb-1" id="stats-reply">0</div>
                                                 <small class="text-muted" data-i18n="control.reply">回复</small>
                                             </div>
                                         </div>
-                                        <div class="col-md-3">
+                                        <div class="col-md-2 col-6">
+                                            <div class="text-center">
+                                                <div class="h4 text-danger mb-1" id="stats-retweet">0</div>
+                                                <small class="text-muted" data-i18n="control.retweet">转发</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4 col-12">
                                             <div class="text-center">
                                                 <div class="h4 text-info mb-1" id="stats-total">0</div>
                                                 <small class="text-muted" data-i18n="control.total">总计</small>
@@ -4290,10 +4296,14 @@ function displayTodayStats(stats) {
     const statsSection = document.getElementById('today-stats-section');
     
     if (statsSection) {
+        // 调试信息
+        console.log('显示统计数据:', stats);
+        
         // 更新统计数据
         document.getElementById('stats-follow').textContent = stats.follow;
         document.getElementById('stats-like').textContent = stats.like;
         document.getElementById('stats-reply').textContent = stats.reply;
+        document.getElementById('stats-retweet').textContent = stats.retweet || 0;
         document.getElementById('stats-total').textContent = stats.total;
         
         // 更新标题，显示日期

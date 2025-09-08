@@ -920,6 +920,7 @@ def get_account_stats(profile):
                     'follow': 0,
                     'like': 0,
                     'reply': 0,
+                    'retweet': 0,
                     'total': 0
                 }
             })
@@ -931,6 +932,7 @@ def get_account_stats(profile):
         follow_count = 0
         like_count = 0
         reply_count = 0
+        retweet_count = 0
         
         with open(csv_file, 'r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
@@ -945,20 +947,25 @@ def get_account_stats(profile):
                         record_date = datetime.strptime(record_date_str, '%Y-%m-%d').date()
                         
                         if record_date == today:
-                            # 使用 'op_type' 列来判断操作类型
-                            op_type = row.get('op_type', '').lower()
-                            if 'follow' in op_type:
-                                follow_count += 1
-                            elif 'like' in op_type:
-                                like_count += 1
-                            elif 'reply' in op_type:
-                                reply_count += 1
+                            # 检查状态是否为OK，只有OK状态才计入统计
+                            status = row.get('status', '').upper()
+                            if status == 'OK':
+                                # 使用 'op_type' 列来判断操作类型
+                                op_type = row.get('op_type', '').lower()
+                                if 'follow' in op_type:
+                                    follow_count += 1
+                                elif 'like' in op_type:
+                                    like_count += 1
+                                elif 'reply' in op_type:
+                                    reply_count += 1
+                                elif 'retweet' in op_type:
+                                    retweet_count += 1
                 except (ValueError, TypeError) as e:
                     # 如果日期格式不正确，跳过这条记录
                     app.logger.debug(f"跳过无效记录: {row}, 错误: {e}")
                     continue
         
-        total_count = follow_count + like_count + reply_count
+        total_count = follow_count + like_count + reply_count + retweet_count
         
         return jsonify({
             'success': True,
@@ -968,6 +975,7 @@ def get_account_stats(profile):
                 'follow': follow_count,
                 'like': like_count,
                 'reply': reply_count,
+                'retweet': retweet_count,
                 'total': total_count
             }
         })
