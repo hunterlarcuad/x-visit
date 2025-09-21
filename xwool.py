@@ -449,14 +449,10 @@ class XWool():
         #     return 'other'
 
         dic_keywords = {
-            # 'Spark': 'Spark',
-            # 'Sapien': 'Sapien',
-            'Openledger': 'Openledger',
-            # 'Recall': 'Recall',
+            'yapper': 'Yapper',
             'Kaito': 'Kaito',
-            'ENERGY': 'ENERGY',
-            'Kaito': 'Kaito',
-            'shout': 'shout',
+            'shout': 'Shout',
+            'espresso': 'Espresso',
         }
         for s_keyword, s_type in dic_keywords.items():
             # 不区分大小写
@@ -568,6 +564,7 @@ class XWool():
         return True, DEF_INTERACTION_OK
 
     def reply_tweet(self, s_tweet_type, s_tweet_text):
+        self.logit('reply_tweet', f's_tweet_type: {s_tweet_type}')
         s_reply = ''
         if s_tweet_type == 'follow':
             lst_reply = [
@@ -762,6 +759,7 @@ class XWool():
 
                     s_tweet_type = self.get_tweet_type_by_keyword(s_tweet_text)
                     if is_all_reply:
+                        self.logit(None, f'is_all_reply: {is_all_reply}')
                         pass
                     else:
                         if s_tweet_type == 'other':
@@ -1047,6 +1045,9 @@ class XWool():
             self.logit(None, 'Self user, skip ...')
             return False
 
+        user_url = f'https://x.com/{x_user}' # noqa
+        tab = self.browser.new_tab(user_url)
+
         if x_user in self.set_user_followed:
             self.logit(None, 'Already followed before, skip ...')
         else:
@@ -1059,8 +1060,8 @@ class XWool():
             else:
                 self.logit(None, f'Follow: {follow_msg}')
                 # Follow
-                user_url = f'https://x.com/{x_user}' # noqa
-                tab = self.browser.new_tab(user_url)
+                # user_url = f'https://x.com/{x_user}' # noqa
+                # tab = self.browser.new_tab(user_url)
                 if self.is_followed(x_user):
                     self.logit(None, 'Already followed, skip ...')
                 else:
