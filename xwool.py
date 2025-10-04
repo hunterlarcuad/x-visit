@@ -945,6 +945,13 @@ class XWool():
                 tweet_url = ele_tweet_url.attr('href')
                 self.logit(None, f'tweet_url: {tweet_url}')
 
+                try:
+                    x_user = tweet_url.split('/')[3]
+                    if self.i_xuser == x_user:
+                        continue
+                except: # noqa
+                    continue
+
                 if tweet_url in self.set_url_ignored:
                     self.logit(None, 'Already ignored before, skip ...')
                     continue
@@ -1231,6 +1238,19 @@ class XWool():
 
         return True
 
+    def load_ad_tw_urls(self):
+        self.lst_advertise_url = []
+        lst_ad_url = load_advertising_urls(
+            self.file_advertising
+        )
+        # https://x.com/ablenavy/
+        for s_url in lst_ad_url:
+            x_user = s_url.split('/')[3]
+            if self.i_xuser != x_user:
+                self.lst_advertise_url.append(s_url)
+        if len(self.lst_advertise_url) > 1:
+            random.shuffle(self.lst_advertise_url)
+
     def xwool_run(self):
         self.browser = self.inst_dp.get_browser(self.args.s_profile)
 
@@ -1317,7 +1337,12 @@ class XWool():
             return True
 
         if self.args.ad_user:
-            self.lst_ad_user = load_ad_user(self.file_ad_user)
+            self.lst_ad_user = []
+            lst_x_user = load_ad_user(self.file_ad_user)
+            for x_user in lst_x_user:
+                if self.i_xuser != x_user:
+                    self.lst_ad_user.append(x_user)
+
             self.logit(None, f'len(self.lst_ad_user)={len(self.lst_ad_user)}')
             # 打乱顺序，最多取n个
             lst_random = copy.deepcopy(self.lst_ad_user)
@@ -1342,34 +1367,27 @@ class XWool():
                     n_proc_success += 1
 
         if self.args.water:
-            self.lst_advertise_url = load_advertising_urls(
-                self.file_advertising
-            )
-            # 打乱顺序，最多取n个
-            lst_random = copy.deepcopy(self.lst_advertise_url)
-            random.shuffle(lst_random)
-            for s_url in lst_random[:5]:
+            # 加载广告 URL
+            self.load_ad_tw_urls()
+
+            # lst_random = copy.deepcopy(self.lst_advertise_url)
+            for s_url in self.lst_advertise_url[:5]:
                 self.water_by_url(s_url)
-        else:
-            n_max_run = self.args.max_interactions
-            for i in range(1, n_max_run+1):
-                self.logit(None, f'Run {i}/{n_max_run} times ...')
 
-                # 加载广告 URL
-                self.lst_advertise_url = load_advertising_urls(
-                    self.file_advertising
-                )
+        n_max_run = self.args.max_interactions
+        for i in range(1, n_max_run+1):
+            self.logit(None, f'Run {i}/{n_max_run} times ...')
 
-                lst_tabs = self.list_tabs()
-                # lst_tabs = ['X 推特华语区【蓝V互关】']
-                # lst_tabs = ['为你推荐']
-                for s_tab_name in lst_tabs:
-                    self.select_tab(s_tab_name)
-                    self.interaction()
-                self.browser.latest_tab.refresh()
-                n_sleep = random.randint(60, 120)
-                self.logit(None, f'Sleep {n_sleep} seconds ...')
-                time.sleep(n_sleep)
+            lst_tabs = self.list_tabs()
+            # lst_tabs = ['X 推特华语区【蓝V互关】']
+            # lst_tabs = ['为你推荐']
+            for s_tab_name in lst_tabs:
+                self.select_tab(s_tab_name)
+                self.interaction()
+            self.browser.latest_tab.refresh()
+            n_sleep = random.randint(60, 120)
+            self.logit(None, f'Sleep {n_sleep} seconds ...')
+            time.sleep(n_sleep)
 
         if self.args.manual_exit and self.args.headless is False:
             s_msg = 'Press any key to exit! ⚠️' # noqa
