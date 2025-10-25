@@ -5,6 +5,7 @@
     "logs": "Run Logs",
     "status": "Account Status",
     "accounts": "Account Management",
+    "dashboard": "Dashboard",
     "donation": "Support Author"
   },
   "common": {
@@ -257,6 +258,32 @@
     "account_added": "Account added successfully",
     "account_updated": "Account updated successfully",
     "account_deleted": "Account deleted successfully"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "total_accounts": "Total Accounts",
+    "total_proxies": "Total Proxies",
+    "avg_accounts_per_proxy": "Avg Accounts/Proxy",
+    "max_accounts_proxy": "Max Accounts Proxy",
+    "proxy_accounts_chart": "Proxy Accounts Distribution",
+    "refresh": "Refresh Data",
+    "last_updated": "Last Updated:",
+    "detailed_data": "Detailed Data",
+    "proxy": "Proxy",
+    "account_count": "Account Count",
+    "percentage": "Percentage",
+    "status": "Status",
+    "loading": "Loading...",
+    "accounts": "accounts",
+        "no_proxy": "No Proxy",
+        "status_normal": "Normal",
+        "status_no_account": "No Account",
+        "daily_visits_chart": "Last 30 Days Active Accounts",
+        "total_active_accounts": "Total Active Accounts",
+        "avg_daily_active": "Avg Daily Active",
+        "max_daily_active": "Max Daily Active",
+        "daily_visits": "Daily Active Accounts",
+        "visits": "accounts"
   },
   "donation": {
     "title": "Support Author",

@@ -815,6 +815,150 @@
         </div>
     </div>
 
+    <!-- 数据看板部分 -->
+    <div id="dashboard-section" class="section" style="display: none;">
+        <div class="config-section">
+            <h3><i class="bi bi-bar-chart"></i> <span data-i18n="dashboard.title">数据看板</span></h3>
+            
+            <!-- 统计概览 -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title text-primary" id="dashboard-total-accounts">0</h5>
+                            <p class="card-text" data-i18n="dashboard.total_accounts">总账号数</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title text-success" id="dashboard-total-proxies">0</h5>
+                            <p class="card-text" data-i18n="dashboard.total_proxies">代理数量</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title text-info" id="dashboard-avg-accounts-per-proxy">0</h5>
+                            <p class="card-text" data-i18n="dashboard.avg_accounts_per_proxy">平均账号/代理</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title text-warning" id="dashboard-max-accounts-proxy">0</h5>
+                            <p class="card-text" data-i18n="dashboard.max_accounts_proxy">最大账号代理</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 图表区域 -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-bar-chart-fill"></i> <span data-i18n="dashboard.proxy_accounts_chart">代理账号分布图</span>
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div>
+                                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="refreshDashboard()">
+                                        <i class="bi bi-arrow-clockwise"></i> <span data-i18n="dashboard.refresh">刷新数据</span>
+                                    </button>
+                                </div>
+                                <div class="text-muted">
+                                    <small data-i18n="dashboard.last_updated">最后更新:</small> <span id="dashboard-last-updated">-</span>
+                                </div>
+                            </div>
+                            <div style="position: relative; height: 400px;">
+                                <canvas id="proxyAccountsChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 每日访问统计图表 -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-calendar-check"></i> <span data-i18n="dashboard.daily_visits_chart">最近30天访问统计</span>
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <!-- 统计概览 -->
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <div class="text-center">
+                                        <h6 class="text-muted mb-1" data-i18n="dashboard.total_active_accounts">总活跃账号数</h6>
+                                        <h4 class="text-primary mb-0" id="dashboard-total-active-accounts">0</h4>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="text-center">
+                                        <h6 class="text-muted mb-1" data-i18n="dashboard.avg_daily_active">平均每日活跃</h6>
+                                        <h4 class="text-success mb-0" id="dashboard-avg-daily-active">0</h4>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="text-center">
+                                        <h6 class="text-muted mb-1" data-i18n="dashboard.max_daily_active">最大单日活跃</h6>
+                                        <h4 class="text-warning mb-0" id="dashboard-max-daily-active">0</h4>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="position: relative; height: 300px;">
+                                <canvas id="dailyVisitsChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 详细数据表格 -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-table"></i> <span data-i18n="dashboard.detailed_data">详细数据</span>
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th data-i18n="dashboard.proxy">代理</th>
+                                            <th data-i18n="dashboard.account_count">账号数量</th>
+                                            <th data-i18n="dashboard.percentage">占比</th>
+                                            <th data-i18n="dashboard.status">状态</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="dashboard-table-body">
+                                        <tr>
+                                            <td colspan="4" class="text-center text-muted">
+                                                <i class="bi bi-hourglass-split"></i> <span data-i18n="dashboard.loading">加载中...</span>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 打赏作者部分 -->
     <div id="donation-section" class="section" style="display: none;">
         <div class="config-section">
@@ -2903,6 +3047,7 @@ function showSection(sectionName) {
         'logs': 'a[href="#/logs"]',
         'status': 'a[href="#/status"]',
         'accounts': 'a[href="#/accounts"]',
+        'dashboard': 'a[href="#/dashboard"]',
         'donation': 'a[href="#/donation"]'
     };
     
@@ -2922,6 +3067,11 @@ function showSection(sectionName) {
     // 如果是账号管理页面，加载数据
     if (sectionName === 'accounts') {
         loadAccountsList();
+    }
+    
+    // 如果是数据看板页面，加载数据
+    if (sectionName === 'dashboard') {
+        loadDashboard();
     }
     
     // 如果是控制面板，检查输入状态并加载run.log
@@ -4542,5 +4692,221 @@ document.addEventListener('DOMContentLoaded', function() {
         toggleForceLabel();
     }
 });
+
+// 数据看板相关变量
+let dashboardChart = null;
+let dailyVisitsChart = null;
+let dashboardData = null;
+
+// 加载数据看板
+function loadDashboard() {
+    fetch('/api/dashboard/stats')
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            dashboardData = data;
+            updateDashboardStats(data.stats);
+            updateDashboardChart(data.chart_data);
+            updateDailyVisitsChart(data.daily_visits_data);
+            updateDashboardTable(data.detailed_data);
+            updateDashboardLastUpdated();
+        } else {
+            showAlert('加载数据看板失败: ' + data.message, 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('加载数据看板失败: ' + error.message, 'danger');
+    });
+}
+
+// 更新统计概览
+function updateDashboardStats(stats) {
+    document.getElementById('dashboard-total-accounts').textContent = stats.total_accounts;
+    document.getElementById('dashboard-total-proxies').textContent = stats.total_proxies;
+    document.getElementById('dashboard-avg-accounts-per-proxy').textContent = stats.avg_accounts_per_proxy;
+    document.getElementById('dashboard-max-accounts-proxy').textContent = stats.max_accounts_count;
+}
+
+// 更新图表
+function updateDashboardChart(chartData) {
+    const ctx = document.getElementById('proxyAccountsChart').getContext('2d');
+    
+    // 销毁现有图表
+    if (dashboardChart) {
+        dashboardChart.destroy();
+    }
+    
+    // 获取国际化文本
+    const accountCountText = getTranslation('dashboard.account_count') || 'Account Count';
+    
+    // 如果getTranslation返回的是键名本身，说明翻译没有加载，使用默认值
+    const finalAccountCountText = accountCountText.startsWith('dashboard.') ? 'Account Count' : accountCountText;
+    
+    dashboardChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            ...chartData,
+            datasets: [{
+                ...chartData.datasets[0],
+                label: finalAccountCountText
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const accountsText = getTranslation('dashboard.accounts') || 'accounts';
+                            const finalAccountsText = accountsText.startsWith('dashboard.') ? 'accounts' : accountsText;
+                            return finalAccountCountText + ': ' + context.parsed.y + ' ' + finalAccountsText;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+}
+
+// 更新每日访问统计图表
+function updateDailyVisitsChart(dailyVisitsData) {
+    const ctx = document.getElementById('dailyVisitsChart');
+    if (!ctx) return;
+    
+    // 销毁现有图表
+    if (dailyVisitsChart) {
+        dailyVisitsChart.destroy();
+    }
+    
+    // 更新统计概览
+    document.getElementById('dashboard-total-active-accounts').textContent = dailyVisitsData.total_active_accounts;
+    document.getElementById('dashboard-avg-daily-active').textContent = dailyVisitsData.avg_daily_active;
+    document.getElementById('dashboard-max-daily-active').textContent = dailyVisitsData.max_daily_active;
+    
+    // 获取国际化文本
+    const visitsText = getTranslation('dashboard.daily_visits') || 'Daily Visits';
+    const finalVisitsText = visitsText.startsWith('dashboard.') ? 'Daily Visits' : visitsText;
+    
+    dailyVisitsChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: dailyVisitsData.labels,
+            datasets: [{
+                label: finalVisitsText,
+                data: dailyVisitsData.data,
+                backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1,
+                borderRadius: 4,
+                borderSkipped: false,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const visitsText = getTranslation('dashboard.visits') || 'visits';
+                            const finalVisitsText = visitsText.startsWith('dashboard.') ? 'visits' : visitsText;
+                            return finalVisitsText + ': ' + context.parsed.y;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        precision: 0
+                    }
+                },
+                x: {
+                    ticks: {
+                        maxRotation: 45,
+                        minRotation: 0
+                    }
+                }
+            }
+        }
+    });
+}
+
+// 更新详细数据表格
+function updateDashboardTable(detailedData) {
+    const tbody = document.getElementById('dashboard-table-body');
+    
+    if (detailedData.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="4" class="text-center text-muted">
+                    <i class="bi bi-inbox"></i> 暂无数据
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    tbody.innerHTML = detailedData.map(item => {
+        // 处理代理名称的国际化
+        let proxyName = item.proxy;
+        if (item.proxy === 'no_proxy') {
+            const noProxyText = getTranslation('dashboard.no_proxy') || 'No Proxy';
+            proxyName = noProxyText.startsWith('dashboard.') ? 'No Proxy' : noProxyText;
+        }
+        
+        // 处理状态的国际化
+        let statusText = item.status;
+        let statusClass = 'bg-success';
+        if (item.status === 'normal') {
+            const normalText = getTranslation('dashboard.status_normal') || 'Normal';
+            statusText = normalText.startsWith('dashboard.') ? 'Normal' : normalText;
+        } else if (item.status === 'no_account') {
+            const noAccountText = getTranslation('dashboard.status_no_account') || 'No Account';
+            statusText = noAccountText.startsWith('dashboard.') ? 'No Account' : noAccountText;
+            statusClass = 'bg-secondary';
+        }
+        
+        return `
+            <tr>
+                <td><strong>${proxyName}</strong></td>
+                <td><span class="badge bg-primary">${item.account_count}</span></td>
+                <td><span class="text-muted">${item.percentage}%</span></td>
+                <td><span class="badge ${statusClass}">${statusText}</span></td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// 更新最后更新时间
+function updateDashboardLastUpdated() {
+    const now = new Date();
+    const timeString = now.toLocaleString('zh-CN');
+    document.getElementById('dashboard-last-updated').textContent = timeString;
+}
+
+// 刷新数据看板
+function refreshDashboard() {
+    loadDashboard();
+}
 </script>
 {% endblock %}

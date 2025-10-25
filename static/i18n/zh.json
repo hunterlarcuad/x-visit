@@ -5,6 +5,7 @@
     "logs": "运行日志",
     "status": "账号状态",
     "accounts": "账号管理",
+    "dashboard": "数据看板",
     "donation": "打赏作者"
   },
     "common": {
@@ -257,6 +258,32 @@
     "account_added": "账号添加成功",
     "account_updated": "账号更新成功",
     "account_deleted": "账号删除成功"
+  },
+  "dashboard": {
+    "title": "数据看板",
+    "total_accounts": "总账号数",
+    "total_proxies": "代理数量",
+    "avg_accounts_per_proxy": "平均账号/代理",
+    "max_accounts_proxy": "最大账号代理",
+    "proxy_accounts_chart": "代理账号分布图",
+    "refresh": "刷新数据",
+    "last_updated": "最后更新:",
+    "detailed_data": "详细数据",
+    "proxy": "代理",
+    "account_count": "账号数量",
+    "percentage": "占比",
+    "status": "状态",
+    "loading": "加载中...",
+    "accounts": "个账号",
+        "no_proxy": "无代理",
+        "status_normal": "正常",
+        "status_no_account": "无账号",
+        "daily_visits_chart": "最近30天活跃账号统计",
+        "total_active_accounts": "总活跃账号数",
+        "avg_daily_active": "平均每日活跃",
+        "max_daily_active": "最大单日活跃",
+        "daily_visits": "每日活跃账号",
+        "visits": "个账号"
   },
   "donation": {
     "title": "打赏作者",

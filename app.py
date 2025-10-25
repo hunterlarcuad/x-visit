@@ -1055,6 +1055,201 @@ def save_configs(configs):
         json.dump(configs, f, ensure_ascii=False, indent=2)
 
 
+def get_daily_visits_stats():
+    """获取最近30天访问记录统计"""
+    try:
+        import csv
+        from datetime import datetime, timedelta
+        import pytz
+
+        # 获取最近30天的日期范围
+        end_date = datetime.now(pytz.timezone('Asia/Shanghai'))
+        start_date = end_date - timedelta(days=29)  # 包含今天，所以是29天前
+
+        # 初始化每日活跃账号统计
+        daily_stats = {}
+        current_date = start_date
+        while current_date <= end_date:
+            date_str = current_date.strftime('%Y-%m-%d')
+            daily_stats[date_str] = set()  # 使用set来存储每日活跃的账号
+            current_date += timedelta(days=1)
+
+        # 读取账号状态数据
+        csv_file = 'datas/status/x_status.csv'
+        if os.path.exists(csv_file):
+            with open(csv_file, 'r', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    visit_date = row.get('visit_date', '').strip()
+                    account = row.get('account', '').strip()
+                    if visit_date and account:
+                        # 解析访问日期
+                        try:
+                            if 'T' in visit_date:
+                                # 格式: 2025-01-15T10:30:00
+                                visit_dt = datetime.strptime(
+                                    visit_date.split('T')[0], '%Y-%m-%d')
+                            else:
+                                # 格式: 2025-01-15
+                                visit_dt = datetime.strptime(
+                                    visit_date, '%Y-%m-%d')
+
+                            # 转换为本地时区
+                            visit_dt = pytz.timezone(
+                                'Asia/Shanghai').localize(visit_dt)
+                            visit_date_str = visit_dt.strftime('%Y-%m-%d')
+
+                            # 如果在统计范围内，添加账号到对应日期的set中
+                            if visit_date_str in daily_stats:
+                                daily_stats[visit_date_str].add(account)
+
+                        except Exception as e:
+                            app.logger.warning(
+                                f"解析访问日期失败: {visit_date}, 错误: {e}")
+                            continue
+
+        # 准备图表数据
+        labels = []
+        data = []
+        for date_str in sorted(daily_stats.keys()):
+            # 格式化日期显示
+            date_obj = datetime.strptime(date_str, '%Y-%m-%d')
+            if date_obj.date() == end_date.date():
+                labels.append('今天')
+            elif date_obj.date() == (end_date - timedelta(days=1)).date():
+                labels.append('昨天')
+            else:
+                labels.append(date_obj.strftime('%m-%d'))
+            # 统计每日活跃账号数（set的长度）
+            data.append(len(daily_stats[date_str]))
+
+        # 计算活跃账号统计
+        daily_active_counts = [len(account_set)
+                               for account_set in daily_stats.values()]
+        total_active_days = sum(daily_active_counts)
+        avg_daily_active = round(
+            total_active_days / len(daily_stats), 1) if daily_stats else 0
+        max_daily_active = max(
+            daily_active_counts) if daily_active_counts else 0
+
+        return {
+            'labels': labels,
+            'data': data,
+            'total_active_accounts': total_active_days,
+            'avg_daily_active': avg_daily_active,
+            'max_daily_active': max_daily_active
+        }
+
+    except Exception as e:
+        app.logger.error(f"获取每日访问统计失败: {e}")
+        return {
+            'labels': [],
+            'data': [],
+            'total_active_accounts': 0,
+            'avg_daily_active': 0,
+            'max_daily_active': 0
+        }
+
+
+@app.route('/api/dashboard/stats', methods=['GET'])
+def get_dashboard_stats():
+    """获取数据看板统计信息"""
+    try:
+        import csv
+        from collections import defaultdict
+
+        # 读取账号数据
+        csv_file = 'datas/account/x_account.csv'
+        proxy_stats = defaultdict(int)
+        total_accounts = 0
+
+        if os.path.exists(csv_file):
+            with open(csv_file, 'r', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    # 统计所有账号，不管是否有代理
+                    total_accounts += 1
+
+                    proxy = row.get('proxy', '').strip()
+                    if proxy:
+                        proxy_stats[proxy] += 1
+
+        # 计算统计数据
+        total_proxies = len(proxy_stats)
+        avg_accounts_per_proxy = round(
+            total_accounts / total_proxies, 2) if total_proxies > 0 else 0
+
+        # 找到账号最多的代理
+        max_accounts_proxy = max(
+            proxy_stats.items(), key=lambda x: x[1]) if proxy_stats else ('', 0)
+
+        # 准备图表数据
+        # 如果没有代理信息，添加"无代理"项
+        if not proxy_stats and total_accounts > 0:
+            proxy_stats['无代理'] = total_accounts
+
+        # 按账号数量降序排列，与详细数据表格保持一致
+        sorted_proxies = sorted(proxy_stats.items(),
+                                key=lambda x: x[1], reverse=True)
+
+        chart_data = {
+            'labels': [proxy for proxy, count in sorted_proxies],
+            'datasets': [{
+                'label': 'account_count',  # 使用键名，前端会根据语言设置
+                'data': [count for proxy, count in sorted_proxies],
+                'backgroundColor': [
+                    '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
+                    '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384'
+                ],
+                'borderColor': [
+                    '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
+                    '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384'
+                ],
+                'borderWidth': 1
+            }]
+        }
+
+        # 准备详细数据
+        detailed_data = []
+        for proxy, count in sorted_proxies:
+            percentage = round((count / total_accounts) * 100,
+                               2) if total_accounts > 0 else 0
+            detailed_data.append({
+                'proxy': proxy,
+                'account_count': count,
+                'percentage': percentage,
+                'status': 'normal' if count > 0 else 'no_account'
+            })
+
+        # 如果没有代理信息但有账号，添加"无代理"项到详细数据
+        if not detailed_data and total_accounts > 0:
+            detailed_data.append({
+                'proxy': 'no_proxy',
+                'account_count': total_accounts,
+                'percentage': 100.0,
+                'status': 'normal'
+            })
+
+        # 获取最近30天访问记录统计
+        daily_visits_data = get_daily_visits_stats()
+
+        return jsonify({
+            'success': True,
+            'stats': {
+                'total_accounts': total_accounts,
+                'total_proxies': total_proxies,
+                'avg_accounts_per_proxy': avg_accounts_per_proxy,
+                'max_accounts_proxy': max_accounts_proxy[0],
+                'max_accounts_count': max_accounts_proxy[1]
+            },
+            'chart_data': chart_data,
+            'detailed_data': detailed_data,
+            'daily_visits_data': daily_visits_data
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'获取统计数据失败: {str(e)}'}), 500
+
+
 if __name__ == '__main__':
     import logging
     from logging.handlers import RotatingFileHandler

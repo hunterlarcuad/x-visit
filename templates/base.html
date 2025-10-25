@@ -284,6 +284,11 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link" href="#/dashboard" onclick="showSection('dashboard'); toggleSidebar();">
+                                <i class="bi bi-bar-chart"></i> <span data-i18n="nav.dashboard">数据看板</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link" href="#/donation" onclick="showSection('donation'); toggleSidebar();">
                                 <i class="bi bi-heart-fill"></i> <span data-i18n="nav.donation">打赏作者</span>
                             </a>
@@ -338,6 +343,8 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Select2 JS -->
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <script>
         // 移动端侧边栏切换
