@@ -25,6 +25,8 @@ CONFIG_FILE = os.path.join(CONFIGS_DIR, "xwool-configs.json")
 os.makedirs(CONFIGS_DIR, exist_ok=True)
 
 # 从配置文件加载最后使用的配置
+
+
 def load_last_used_config():
     """从配置文件加载最后使用的配置"""
     global last_used_config
@@ -39,6 +41,8 @@ def load_last_used_config():
         app.logger.error(f"加载最后使用的配置失败: {e}")
 
 # 保存最后使用的配置到文件
+
+
 def save_last_used_config(config):
     """保存最后使用的配置到文件"""
     try:
@@ -60,13 +64,14 @@ def index():
     """主页面"""
     return render_template('index.html')
 
+
 @app.route('/api/config/save', methods=['POST'])
 def save_config():
     """保存配置"""
     try:
         data = request.get_json()
         config_name = data.get('name', f'config_{int(time.time())}')
-        
+
         # 保存配置到文件
         configs = load_configs()
         configs[config_name] = {
@@ -75,11 +80,12 @@ def save_config():
             'created_at': datetime.now().isoformat(),
             'updated_at': datetime.now().isoformat()
         }
-        
+
         save_configs(configs)
         return jsonify({'success': True, 'message': '配置保存成功'})
     except Exception as e:
         return jsonify({'success': False, 'message': f'保存失败: {str(e)}'}), 500
+
 
 @app.route('/api/config/list', methods=['GET'])
 def list_configs():
@@ -89,6 +95,7 @@ def list_configs():
         return jsonify({'success': True, 'configs': configs})
     except Exception as e:
         return jsonify({'success': False, 'message': f'获取配置失败: {str(e)}'}), 500
+
 
 @app.route('/api/config/<config_name>', methods=['GET'])
 def get_config(config_name):
@@ -102,24 +109,25 @@ def get_config(config_name):
     except Exception as e:
         return jsonify({'success': False, 'message': f'获取配置失败: {str(e)}'}), 500
 
+
 @app.route('/api/script/start', methods=['POST'])
 def start_script():
     """启动脚本"""
     global current_process, process_status, process_start_time, current_config, last_used_config
-    
+
     try:
         data = request.get_json()
         app.logger.info(f"接收到的启动请求数据: {data}")
         config = data.get('config', {})
         app.logger.info(f"提取的配置: {config}")
-        
+
         if current_process and current_process.poll() is None:
             return jsonify({'success': False, 'message': '脚本已在运行中'}), 400
-        
+
         # 构建命令
         cmd = ['python', 'xwool.py']
         app.logger.info(f"初始命令: {cmd}")
-        
+
         # 添加参数
         for key, value in config.items():
             if value is not None and value != '':
@@ -131,9 +139,9 @@ def start_script():
                     cmd.append(f'--{key}')
                     cmd.append(str(value))
                     app.logger.info(f"添加参数: --{key} {value}")
-        
+
         app.logger.info(f"最终命令: {cmd}")
-        
+
         # 启动进程
         current_process = subprocess.Popen(
             cmd,
@@ -143,29 +151,30 @@ def start_script():
             universal_newlines=True,
             bufsize=1
         )
-        
+
         # 记录启动时间和配置
         process_start_time = datetime.now()
         current_config = config
         process_status = "running"
         process_logs.clear()
-        last_used_config = config # 记录最后使用的配置
-        
+        last_used_config = config  # 记录最后使用的配置
+
         # 保存最后使用的配置到文件
         save_last_used_config(config)
-        
+
         # 启动日志收集线程
         threading.Thread(target=collect_logs, daemon=True).start()
-        
+
         return jsonify({'success': True, 'message': '脚本启动成功'})
     except Exception as e:
         return jsonify({'success': False, 'message': f'启动失败: {str(e)}'}), 500
+
 
 @app.route('/api/script/stop', methods=['POST'])
 def stop_script():
     """停止脚本"""
     global current_process, process_status
-    
+
     try:
         if current_process and current_process.poll() is None:
             # 终止主进程
@@ -174,17 +183,18 @@ def stop_script():
                 current_process.wait(timeout=5)
             except subprocess.TimeoutExpired:
                 current_process.kill()
-            
+
             # 终止相关的Chromium进程
             import psutil
             try:
                 # 读取配置文件中的端口号
                 import importlib.util
-                spec = importlib.util.spec_from_file_location("conf", "conf.py")
+                spec = importlib.util.spec_from_file_location(
+                    "conf", "conf.py")
                 conf = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(conf)
                 debug_port = conf.DEF_LOCAL_PORT
-                
+
                 # 查找并终止Chromium进程
                 for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
                     try:
@@ -192,21 +202,22 @@ def stop_script():
                         if cmdline and any('chromium' in arg.lower() or 'chrome' in arg.lower() for arg in cmdline):
                             # 检查是否是我们的调试端口或者包含用户数据目录
                             is_target_process = False
-                            
+
                             # 检查调试端口
                             if any(f'--remote-debugging-port={debug_port}' in arg for arg in cmdline):
                                 is_target_process = True
-                            
+
                             # 检查用户数据目录（chrome_profile）
                             if any('chrome_profile' in arg for arg in cmdline):
                                 is_target_process = True
-                            
+
                             # 检查是否包含我们的扩展路径
                             if any('extensions/okx' in arg or 'extensions/YesCaptcha' in arg or 'extensions/CapMonster' in arg for arg in cmdline):
                                 is_target_process = True
-                            
+
                             if is_target_process:
-                                app.logger.info(f"终止Chromium进程: {proc.info['pid']}")
+                                app.logger.info(
+                                    f"终止Chromium进程: {proc.info['pid']}")
                                 proc.terminate()
                                 try:
                                     proc.wait(timeout=3)
@@ -216,7 +227,7 @@ def stop_script():
                         pass
             except Exception as e:
                 app.logger.error(f"终止Chromium进程时出错: {e}")
-            
+
             process_status = "stopped"
             return jsonify({'success': True, 'message': '脚本已停止'})
         else:
@@ -224,18 +235,19 @@ def stop_script():
     except Exception as e:
         return jsonify({'success': False, 'message': f'停止失败: {str(e)}'}), 500
 
+
 @app.route('/api/script/status', methods=['GET'])
 def get_status():
     """获取脚本状态"""
     global current_process, process_status
-    
+
     try:
         if current_process:
             if current_process.poll() is None:
                 process_status = "running"
             else:
                 process_status = "stopped"
-        
+
         return jsonify({
             'success': True,
             'status': process_status,
@@ -243,6 +255,7 @@ def get_status():
         })
     except Exception as e:
         return jsonify({'success': False, 'message': f'获取状态失败: {str(e)}'}), 500
+
 
 @app.route('/api/accounts', methods=['GET'])
 def get_accounts():
@@ -252,7 +265,7 @@ def get_accounts():
         accounts = []
         account_data = {}
         csv_file = 'datas/account/x_account.csv'
-        
+
         if os.path.exists(csv_file):
             with open(csv_file, 'r', encoding='utf-8') as f:
                 reader = csv.DictReader(f)
@@ -269,7 +282,7 @@ def get_accounts():
                             'x_verifycode': row.get('x_verifycode', ''),
                             'proxy': row.get('proxy', '')
                         }
-        
+
         return jsonify({
             'success': True,
             'accounts': accounts,
@@ -278,6 +291,7 @@ def get_accounts():
     except Exception as e:
         return jsonify({'success': False, 'message': f'获取账号列表失败: {str(e)}'}), 500
 
+
 @app.route('/api/account-status', methods=['GET'])
 def get_account_status():
     """获取账号状态列表"""
@@ -285,46 +299,53 @@ def get_account_status():
         import csv
         from datetime import datetime
         import pytz
-        
+
         status_data = []
         csv_file = 'datas/status/x_status.csv'
         account_file = 'datas/account/x_account.csv'
-        
-        # 读取账号信息（包含代理）
+
+        # 读取账号信息（包含代理和用户名）
         account_proxies = {}
+        account_usernames = {}
         if os.path.exists(account_file):
             with open(account_file, 'r', encoding='utf-8') as f:
                 reader = csv.DictReader(f)
                 for row in reader:
-                    account_proxies[row.get('account', '')] = row.get('proxy', '')
-        
+                    account_proxies[row.get('account', '')] = row.get(
+                        'proxy', '')
+                    account_usernames[row.get('account', '')] = row.get(
+                        'x_username', '')
+
         if os.path.exists(csv_file):
             with open(csv_file, 'r', encoding='utf-8') as f:
                 reader = csv.DictReader(f)
                 for row in reader:
                     account_name = row.get('account', '')
-                    
+
                     # 解析更新时间
                     update_time_str = row.get('update_time', '')
                     days_ago = '未知'
-                    
+
                     if update_time_str and update_time_str != 'None':
                         try:
                             # 解析时间字符串
                             if '+' in update_time_str:
                                 # 格式: 2025-08-31T14:23:46+0800
-                                dt = datetime.strptime(update_time_str, '%Y-%m-%dT%H:%M:%S%z')
+                                dt = datetime.strptime(
+                                    update_time_str, '%Y-%m-%dT%H:%M:%S%z')
                             else:
                                 # 格式: 2025-08-31 14:23:46
-                                dt = datetime.strptime(update_time_str, '%Y-%m-%d %H:%M:%S')
+                                dt = datetime.strptime(
+                                    update_time_str, '%Y-%m-%d %H:%M:%S')
                                 # 假设是本地时间
-                                dt = pytz.timezone('Asia/Shanghai').localize(dt)
-                            
+                                dt = pytz.timezone(
+                                    'Asia/Shanghai').localize(dt)
+
                             # 计算天数差
                             now = datetime.now(pytz.timezone('Asia/Shanghai'))
                             delta = now - dt
                             days = delta.days
-                            
+
                             if days == 0:
                                 days_ago = '今天'
                             elif days == 1:
@@ -335,13 +356,15 @@ def get_account_status():
                                 days_ago = f'{days//7}周前'
                             else:
                                 days_ago = f'{days//30}个月前'
-                                
+
                         except Exception as e:
-                            app.logger.error(f"解析时间失败: {update_time_str}, 错误: {e}")
+                            app.logger.error(
+                                f"解析时间失败: {update_time_str}, 错误: {e}")
                             days_ago = '时间解析错误'
-                    
+
                     status_data.append({
                         'account': account_name,
+                        'username': account_usernames.get(account_name, ''),
                         'status': row.get('status', ''),
                         'update_time': update_time_str,
                         'days_ago': days_ago,
@@ -350,13 +373,14 @@ def get_account_status():
                         'auth_token': row.get('auth_token', ''),
                         'proxy': account_proxies.get(account_name, '')
                     })
-        
+
         return jsonify({
             'success': True,
             'status_data': status_data
         })
     except Exception as e:
         return jsonify({'success': False, 'message': f'获取账号状态失败: {str(e)}'}), 500
+
 
 @app.route('/api/logs', methods=['GET'])
 def get_logs():
@@ -370,6 +394,7 @@ def get_logs():
         })
     except Exception as e:
         return jsonify({'success': False, 'message': f'获取日志失败: {str(e)}'}), 500
+
 
 @app.route('/api/logs/server', methods=['GET'])
 def get_server_logs():
@@ -406,11 +431,11 @@ def get_input_status():
                     last_line = lines[-1].strip()
                     # 严格检查是否包含 "Please select vpn"
                     waiting_for_input = 'Please select vpn' in last_line
-                    
+
                     # 只在等待输入时记录日志，避免日志污染
                     if waiting_for_input:
                         app.logger.info(f"检测到脚本等待输入 - 最后一行: '{last_line}'")
-                    
+
                     return jsonify({
                         'success': True,
                         'waiting_for_input': waiting_for_input,
@@ -420,7 +445,7 @@ def get_input_status():
                             'line_length': len(last_line)
                         }
                     })
-        
+
         return jsonify({
             'success': True,
             'waiting_for_input': False,
@@ -433,6 +458,7 @@ def get_input_status():
     except Exception as e:
         app.logger.error(f"检查输入状态失败: {e}")
         return jsonify({'success': False, 'message': f'检查输入状态失败: {str(e)}'}), 500
+
 
 @app.route('/api/logs/run', methods=['GET'])
 def get_run_logs():
@@ -455,15 +481,16 @@ def get_run_logs():
     except Exception as e:
         return jsonify({'success': False, 'message': f'获取run.log失败: {str(e)}'}), 500
 
+
 @app.route('/api/script/input', methods=['POST'])
 def send_input():
     """向脚本发送输入"""
     global current_process
-    
+
     try:
         data = request.get_json()
         user_input = data.get('input', '')
-        
+
         if current_process and current_process.poll() is None:
             # 发送输入到进程
             current_process.stdin.write(user_input + '\n')
@@ -474,20 +501,21 @@ def send_input():
     except Exception as e:
         return jsonify({'success': False, 'message': f'发送输入失败: {str(e)}'}), 500
 
+
 @app.route('/api/script/cleanup', methods=['POST'])
 def cleanup_processes():
     """清理残留的Chromium进程"""
     try:
         import psutil
         killed_count = 0
-        
+
         # 读取配置文件中的端口号
         import importlib.util
         spec = importlib.util.spec_from_file_location("conf", "conf.py")
         conf = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(conf)
         debug_port = conf.DEF_LOCAL_PORT
-        
+
         # 查找并终止Chromium进程
         for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
             try:
@@ -495,19 +523,19 @@ def cleanup_processes():
                 if cmdline and any('chromium' in arg.lower() or 'chrome' in arg.lower() for arg in cmdline):
                     # 检查是否是我们的调试端口或者包含用户数据目录
                     is_target_process = False
-                    
+
                     # 检查调试端口
                     if any(f'--remote-debugging-port={debug_port}' in arg for arg in cmdline):
                         is_target_process = True
-                    
+
                     # 检查用户数据目录（chrome_profile）
                     if any('chrome_profile' in arg for arg in cmdline):
                         is_target_process = True
-                    
+
                     # 检查是否包含我们的扩展路径
                     if any('extensions/okx' in arg or 'extensions/YesCaptcha' in arg or 'extensions/CapMonster' in arg for arg in cmdline):
                         is_target_process = True
-                    
+
                     if is_target_process:
                         app.logger.info(f"清理Chromium进程: {proc.info['pid']}")
                         app.logger.info(f"进程命令行: {' '.join(cmdline)}")
@@ -519,27 +547,28 @@ def cleanup_processes():
                         killed_count += 1
             except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                 pass
-        
+
         return jsonify({
-            'success': True, 
+            'success': True,
             'message': f'清理完成，终止了 {killed_count} 个Chromium进程'
         })
     except Exception as e:
         return jsonify({'success': False, 'message': f'清理失败: {str(e)}'}), 500
+
 
 @app.route('/api/script/chromium-count', methods=['GET'])
 def get_chromium_count():
     """获取当前Chromium进程数量"""
     try:
         import psutil
-        
+
         # 读取配置文件中的端口号
         import importlib.util
         spec = importlib.util.spec_from_file_location("conf", "conf.py")
         conf = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(conf)
         debug_port = conf.DEF_LOCAL_PORT
-        
+
         count = 0
         # 查找Chromium进程
         for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
@@ -548,24 +577,24 @@ def get_chromium_count():
                 if cmdline and any('chromium' in arg.lower() or 'chrome' in arg.lower() for arg in cmdline):
                     # 检查是否是我们的调试端口或者包含用户数据目录
                     is_target_process = False
-                    
+
                     # 检查调试端口
                     if any(f'--remote-debugging-port={debug_port}' in arg for arg in cmdline):
                         is_target_process = True
-                    
+
                     # 检查用户数据目录（chrome_profile）
                     if any('chrome_profile' in arg for arg in cmdline):
                         is_target_process = True
-                    
+
                     # 检查是否包含我们的扩展路径
                     if any('extensions/okx' in arg or 'extensions/YesCaptcha' in arg or 'extensions/CapMonster' in arg for arg in cmdline):
                         is_target_process = True
-                    
+
                     if is_target_process:
                         count += 1
             except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                 pass
-        
+
         return jsonify({
             'success': True,
             'count': count
@@ -573,11 +602,12 @@ def get_chromium_count():
     except Exception as e:
         return jsonify({'success': False, 'message': f'获取进程数量失败: {str(e)}'}), 500
 
+
 @app.route('/api/script/running-info', methods=['GET'])
 def get_running_info():
     """获取当前运行脚本的详细信息"""
     global current_process, process_status, process_start_time, current_config
-    
+
     try:
         if current_process and current_process.poll() is None:
             # 计算运行时长
@@ -588,7 +618,7 @@ def get_running_info():
                 hours = total_seconds // 3600
                 minutes = (total_seconds % 3600) // 60
                 seconds = total_seconds % 60
-                
+
                 if hours > 0:
                     runtime_str = f"{hours}小时{minutes}分钟{seconds}秒"
                 elif minutes > 0:
@@ -597,7 +627,7 @@ def get_running_info():
                     runtime_str = f"{seconds}秒"
             else:
                 runtime_str = "未知"
-            
+
             # 构建完整命令
             cmd = ['python', 'xwool.py']
             for key, value in current_config.items():
@@ -608,7 +638,7 @@ def get_running_info():
                     else:
                         cmd.append(f'--{key}')
                         cmd.append(str(value))
-            
+
             # 参数说明映射
             param_descriptions = {
                 'profile': '账号',
@@ -628,7 +658,7 @@ def get_running_info():
                 'auto_retweet': '自动转发',
                 'auto_reply': '自动回复'
             }
-            
+
             # 生成参数说明
             param_explanations = []
             for key, value in current_config.items():
@@ -639,7 +669,7 @@ def get_running_info():
                             param_explanations.append(f"{desc}: 启用")
                     else:
                         param_explanations.append(f"{desc}: {value}")
-            
+
             return jsonify({
                 'success': True,
                 'data': {
@@ -669,44 +699,47 @@ def get_running_info():
         app.logger.error(f"获取运行信息失败: {e}")
         return jsonify({'success': False, 'message': f'获取运行信息失败: {str(e)}'}), 500
 
+
 @app.route('/api/config/last-used', methods=['GET'])
 def get_last_used_config():
     """获取最后使用的配置"""
     global last_used_config
-    
+
     try:
         return jsonify({
-            'success': True, 
+            'success': True,
             'config': last_used_config
         })
     except Exception as e:
         app.logger.error(f"获取最后使用配置失败: {e}")
         return jsonify({'success': False, 'message': f'获取最后使用配置失败: {str(e)}'}), 500
 
+
 @app.route('/api/config/update-last-used', methods=['POST'])
 def update_last_used_config():
     """更新最后使用的配置"""
     global last_used_config
-    
+
     try:
         data = request.get_json()
         config = data.get('config', {})
-        
+
         # 更新最后使用的配置
         last_used_config = config
-        
+
         # 保存最后使用的配置到文件
         save_last_used_config(config)
-        
+
         app.logger.info(f"更新最后使用配置: {config}")
-        
+
         return jsonify({
-            'success': True, 
+            'success': True,
             'message': '配置已更新'
         })
     except Exception as e:
         app.logger.error(f"更新最后使用配置失败: {e}")
         return jsonify({'success': False, 'message': f'更新最后使用配置失败: {str(e)}'}), 500
+
 
 @app.route('/api/proxy/current-info', methods=['GET'])
 def get_current_proxy_info():
@@ -714,13 +747,14 @@ def get_current_proxy_info():
     try:
         # 导入proxy_api模块
         import importlib.util
-        spec = importlib.util.spec_from_file_location("proxy_api", "proxy_api.py")
+        spec = importlib.util.spec_from_file_location(
+            "proxy_api", "proxy_api.py")
         proxy_api = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(proxy_api)
-        
+
         # 调用get_country_info函数
         success, result = proxy_api.get_country_info()
-        
+
         if success:
             country, country_code, ip = result
             return jsonify({
@@ -749,7 +783,7 @@ def get_accounts_for_management():
         account_file = 'datas/account/x_account.csv'
         if not os.path.exists(account_file):
             return jsonify({'accounts': [], 'error': '账号文件不存在'})
-        
+
         accounts = []
         with open(account_file, 'r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
@@ -761,7 +795,7 @@ def get_accounts_for_management():
                     'x_verifycode': row.get('x_verifycode', ''),
                     'proxy': row.get('proxy', '')
                 })
-        
+
         return jsonify({'success': True, 'accounts': accounts})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
@@ -778,25 +812,25 @@ def add_account():
         x_pwd = data.get('x_pwd', '').strip()
         x_verifycode = data.get('x_verifycode', '').strip()
         proxy = data.get('proxy', '').strip()
-        
+
         if not account:
             return jsonify({'success': False, 'error': '账号名不能为空'})
-        
+
         if not x_username:
             return jsonify({'success': False, 'error': '用户名不能为空'})
-        
+
         account_file = 'datas/account/x_account.csv'
-        
+
         # 检查账号是否已存在
         existing_accounts = []
         if os.path.exists(account_file):
             with open(account_file, 'r', encoding='utf-8') as f:
                 reader = csv.DictReader(f)
                 existing_accounts = [row['account'] for row in reader]
-        
+
         if account in existing_accounts:
             return jsonify({'success': False, 'error': '账号已存在'})
-        
+
         # 添加新账号
         new_account = {
             'account': account,
@@ -805,17 +839,18 @@ def add_account():
             'x_verifycode': x_verifycode,
             'proxy': proxy
         }
-        
+
         # 写入文件
-        fieldnames = ['account', 'x_username', 'x_pwd', 'x_verifycode', 'proxy']
+        fieldnames = ['account', 'x_username',
+                      'x_pwd', 'x_verifycode', 'proxy']
         file_exists = os.path.exists(account_file)
-        
+
         with open(account_file, 'a', newline='', encoding='utf-8') as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             if not file_exists:
                 writer.writeheader()
             writer.writerow(new_account)
-        
+
         return jsonify({'success': True, 'message': '账号添加成功'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
@@ -832,17 +867,17 @@ def update_account(account):
         x_pwd = data.get('x_pwd', '').strip()
         x_verifycode = data.get('x_verifycode', '').strip()
         proxy = data.get('proxy', '').strip()
-        
+
         if not new_account:
             return jsonify({'success': False, 'error': '账号名不能为空'})
-        
+
         if not x_username:
             return jsonify({'success': False, 'error': '用户名不能为空'})
-        
+
         account_file = 'datas/account/x_account.csv'
         if not os.path.exists(account_file):
             return jsonify({'success': False, 'error': '账号文件不存在'})
-        
+
         # 读取所有账号
         accounts = []
         with open(account_file, 'r', encoding='utf-8') as f:
@@ -856,18 +891,19 @@ def update_account(account):
                     row['x_verifycode'] = x_verifycode
                     row['proxy'] = proxy
                 accounts.append(row)
-        
+
         # 检查新账号名是否与其他账号冲突
         if new_account != account and any(acc['account'] == new_account for acc in accounts):
             return jsonify({'success': False, 'error': '账号名已存在'})
-        
+
         # 写回文件
-        fieldnames = ['account', 'x_username', 'x_pwd', 'x_verifycode', 'proxy']
+        fieldnames = ['account', 'x_username',
+                      'x_pwd', 'x_verifycode', 'proxy']
         with open(account_file, 'w', newline='', encoding='utf-8') as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(accounts)
-        
+
         return jsonify({'success': True, 'message': '账号更新成功'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
@@ -881,7 +917,7 @@ def delete_account(account):
         account_file = 'datas/account/x_account.csv'
         if not os.path.exists(account_file):
             return jsonify({'success': False, 'error': '账号文件不存在'})
-        
+
         # 读取所有账号
         accounts = []
         with open(account_file, 'r', encoding='utf-8') as f:
@@ -889,17 +925,19 @@ def delete_account(account):
             for row in reader:
                 if row['account'] != account:
                     accounts.append(row)
-        
+
         # 写回文件
-        fieldnames = ['account', 'x_username', 'x_pwd', 'x_verifycode', 'proxy']
+        fieldnames = ['account', 'x_username',
+                      'x_pwd', 'x_verifycode', 'proxy']
         with open(account_file, 'w', newline='', encoding='utf-8') as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(accounts)
-        
+
         return jsonify({'success': True, 'message': '账号删除成功'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+
 
 @app.route('/api/script/account-stats/<profile>', methods=['GET'])
 def get_account_stats(profile):
@@ -907,10 +945,10 @@ def get_account_stats(profile):
     try:
         import csv
         from datetime import datetime, date
-        
+
         # 构建CSV文件路径
         csv_file = f'datas/status/xwool/status_{profile}.csv'
-        
+
         if not os.path.exists(csv_file):
             return jsonify({
                 'success': True,
@@ -924,16 +962,16 @@ def get_account_stats(profile):
                     'total': 0
                 }
             })
-        
+
         # 获取今天的日期
         today = date.today()
-        
+
         # 统计今日数据
         follow_count = 0
         like_count = 0
         reply_count = 0
         retweet_count = 0
-        
+
         with open(csv_file, 'r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             for row in reader:
@@ -944,8 +982,9 @@ def get_account_stats(profile):
                     if update_str:
                         # 提取日期部分 (前10个字符: YYYY-MM-DD)
                         record_date_str = update_str[:10]
-                        record_date = datetime.strptime(record_date_str, '%Y-%m-%d').date()
-                        
+                        record_date = datetime.strptime(
+                            record_date_str, '%Y-%m-%d').date()
+
                         if record_date == today:
                             # 检查状态是否为OK，只有OK状态才计入统计
                             status = row.get('status', '').upper()
@@ -964,9 +1003,9 @@ def get_account_stats(profile):
                     # 如果日期格式不正确，跳过这条记录
                     app.logger.debug(f"跳过无效记录: {row}, 错误: {e}")
                     continue
-        
+
         total_count = follow_count + like_count + reply_count + retweet_count
-        
+
         return jsonify({
             'success': True,
             'data': {
@@ -979,18 +1018,19 @@ def get_account_stats(profile):
                 'total': total_count
             }
         })
-        
+
     except Exception as e:
         app.logger.error(f"获取账号统计失败: {e}")
         return jsonify({'success': False, 'message': f'获取统计失败: {str(e)}'}), 500
 
+
 def collect_logs():
     """收集日志的线程函数"""
     global current_process, process_logs
-    
+
     if not current_process:
         return
-    
+
     for line in iter(current_process.stdout.readline, ''):
         if line:
             timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -1000,6 +1040,7 @@ def collect_logs():
             if len(process_logs) > 1000:
                 process_logs = process_logs[-500:]
 
+
 def load_configs():
     """加载配置文件"""
     if os.path.exists(CONFIG_FILE):
@@ -1007,10 +1048,12 @@ def load_configs():
             return json.load(f)
     return {}
 
+
 def save_configs(configs):
     """保存配置文件"""
     with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
         json.dump(configs, f, ensure_ascii=False, indent=2)
+
 
 if __name__ == '__main__':
     import logging
@@ -1031,7 +1074,8 @@ if __name__ == '__main__':
     if not os.path.exists('logs'):
         os.makedirs('logs')
 
-    file_handler = RotatingFileHandler('server.log', maxBytes=10240000, backupCount=10)
+    file_handler = RotatingFileHandler(
+        'server.log', maxBytes=10240000, backupCount=10)
     file_handler.setFormatter(logging.Formatter(
         '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
     ))
@@ -1040,7 +1084,7 @@ if __name__ == '__main__':
     app.logger.addHandler(file_handler)
     app.logger.setLevel(logging.INFO)
     app.logger.info('Flask应用启动')
-    
+
     # 在Flask应用启动后加载配置
     load_last_used_config()
 
@@ -1052,4 +1096,4 @@ if __name__ == '__main__':
     sys.stdout = open('server.log', 'a')
     sys.stderr = open('server.log', 'a')
 
-    app.run(debug=True, host='0.0.0.0', port=5001, use_reloader=False) 
+    app.run(debug=True, host='0.0.0.0', port=5001, use_reloader=False)

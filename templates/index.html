@@ -696,6 +696,9 @@
                             <th class="sortable" onclick="sortTable('account')" style="cursor: pointer;">
                                 <span data-i18n="status.account">账号</span> <i class="bi bi-arrow-down-up"></i>
                             </th>
+                            <th class="sortable" onclick="sortTable('username')" style="cursor: pointer;">
+                                <span data-i18n="status.username">用户名</span> <i class="bi bi-arrow-down-up"></i>
+                            </th>
                             <th class="sortable" onclick="sortTable('status')" style="cursor: pointer;">
                                 <span data-i18n="status.status">状态</span> <i class="bi bi-arrow-down-up"></i>
                             </th>
@@ -1198,7 +1201,7 @@ function renderAccountStatusTable() {
     if (filteredStatusData.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="9" class="text-center text-muted">
+                <td colspan="10" class="text-center text-muted">
                     <i class="bi bi-inbox"></i> 没有找到匹配的账号
                 </td>
             </tr>
@@ -1216,6 +1219,7 @@ function renderAccountStatusTable() {
                 <input type="checkbox" class="account-checkbox" value="${account.account}" onchange="updateSelectedCount()">
             </td>
             <td><strong>${account.account}</strong></td>
+            <td><span class="text-primary">${account.username || '-'}</span></td>
             <td><span class="${statusClass}">${account.status}</span></td>
             <td>${account.update_time || '-'}</td>
             <td><span class="text-muted">${formatDaysAgo(account.days_ago)}</span></td>
@@ -1267,13 +1271,14 @@ function filterAccounts() {
     
     filteredStatusData = accountStatusData.filter(account => {
         const matchesSearch = account.account.toLowerCase().includes(searchTerm) ||
+                             (account.username && account.username.toLowerCase().includes(searchTerm)) ||
                              (account.proxy && account.proxy.toLowerCase().includes(searchTerm));
         
         let matchesStatus = true;
         if (statusFilter) {
             if (statusFilter === 'ERROR') {
-                // 异常选项同时筛选ERROR和SUSPEND状态
-                matchesStatus = account.status === 'ERROR' || account.status === 'SUSPEND';
+                // 异常选项同时筛选ERROR、SUSPEND和APPEALED状态
+                matchesStatus = account.status === 'ERROR' || account.status === 'SUSPEND' || account.status === 'APPEALED';
             } else {
                 matchesStatus = account.status === statusFilter;
             }
