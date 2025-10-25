@@ -1,14 +1,14 @@
-import os # noqa
-import sys # noqa
+import os  # noqa
+import sys  # noqa
 import argparse
 import random
 import time
 import copy
-import pdb # noqa
+import pdb  # noqa
 import shutil
 import math
-import re # noqa
-from datetime import datetime # noqa
+import re  # noqa
+from datetime import datetime  # noqa
 import pyotp
 
 from DrissionPage import ChromiumOptions
@@ -144,7 +144,7 @@ class XVisit():
             if self.browser:
                 try:
                     self.browser.quit()
-                except Exception as e: # noqa
+                except Exception as e:  # noqa
                     # logger.info(f'[Close] Error: {e}')
                     pass
 
@@ -171,7 +171,7 @@ class XVisit():
             return False
 
         claimed_date = self.dic_status[s_profile][idx_status]
-        date_now = format_ts(time.time(), style=1, tz_offset=TZ_OFFSET) # noqa
+        date_now = format_ts(time.time(), style=1, tz_offset=TZ_OFFSET)  # noqa
         if date_now != claimed_date:
             return False
         else:
@@ -210,7 +210,7 @@ class XVisit():
         if len(lst_pre) == FIELD_NUM:
             try:
                 s_val = int(lst_pre[idx_status])
-            except: # noqa
+            except:  # noqa
                 pass
 
         return s_val
@@ -222,7 +222,7 @@ class XVisit():
 
         try:
             num_visit_pre = int(s_val)
-        except: # noqa
+        except:  # noqa
             pass
 
         return num_visit_pre
@@ -257,18 +257,25 @@ class XVisit():
         self.inst_x.status_load()
         self.inst_x.set_browser(self.browser)
 
-        if self.args.vpn is None:
-            idx_vpn = get_index_from_header(DEF_HEADER_ACCOUNT, 'proxy')
-            if self.args.s_profile in self.inst_x.dic_account:
-                s_vpn = self.inst_x.dic_account[self.args.s_profile][idx_vpn]
-            else:
-                logger.info(f'{self.args.s_profile} is not in self.inst_x.dic_account [ERROR]') # noqa
-                sys.exit(0)
+        if self.args.no_auto_vpn:
+            logger.info(f'{self.args.s_profile} Use Current VPN')  # noqa
+        elif self.args.vpn_manual:
+            pass
         else:
-            s_vpn = self.args.vpn
+            if self.args.vpn is None:
+                idx_vpn = get_index_from_header(DEF_HEADER_ACCOUNT, 'proxy')
+                if self.args.s_profile in self.inst_x.dic_account:
+                    s_vpn = self.inst_x.dic_account[
+                        self.args.s_profile
+                    ][idx_vpn]
+                else:
+                    logger.info(f'{self.args.s_profile} is not in self.inst_x.dic_account [ERROR]')  # noqa
+                    sys.exit(0)
+            else:
+                s_vpn = self.args.vpn
 
-        if self.inst_dp.set_vpn(s_vpn) is False:
-            return False
+            if self.inst_dp.set_vpn(s_vpn) is False:
+                return False
 
         if self.inst_dp.init_capmonster() is False:
             return False
@@ -282,7 +289,7 @@ class XVisit():
             self.inst_x.twitter_run()
 
         if self.args.manual_exit:
-            s_msg = 'Press any key to exit! ⚠️' # noqa
+            s_msg = 'Press any key to exit! ⚠️'  # noqa
             input(s_msg)
 
         self.logit('xvisit_run', 'Finished!')
@@ -335,13 +342,13 @@ def show_msg(args):
 
 def main(args):
     if args.sleep_sec_at_start > 0:
-        logger.info(f'Sleep {args.sleep_sec_at_start} seconds at start !!!') # noqa
+        logger.info(f'Sleep {args.sleep_sec_at_start} seconds at start !!!')  # noqa
         time.sleep(args.sleep_sec_at_start)
 
     if DEL_PROFILE_DIR and os.path.exists(DEF_PATH_USER_DATA):
         logger.info(f'Delete {DEF_PATH_USER_DATA} ...')
         shutil.rmtree(DEF_PATH_USER_DATA)
-        logger.info(f'Directory {DEF_PATH_USER_DATA} is deleted') # noqa
+        logger.info(f'Directory {DEF_PATH_USER_DATA} is deleted')  # noqa
 
     x_visit = XVisit()
 
@@ -402,14 +409,14 @@ def main(args):
     logger.info('#'*40)
 
     percent = math.floor((n / total) * 100)
-    logger.info(f'Progress: {percent}% [{n}/{total}]') # noqa
+    logger.info(f'Progress: {percent}% [{n}/{total}]')  # noqa
 
     while profiles:
         n += 1
         logger.info('#'*40)
         s_profile = random.choice(profiles)
         percent = math.floor((n / total) * 100)
-        logger.info(f'Progress: {percent}% [{n}/{total}] [{s_profile}]') # noqa
+        logger.info(f'Progress: {percent}% [{n}/{total}] [{s_profile}]')  # noqa
         profiles.remove(s_profile)
 
         args.s_profile = s_profile
@@ -424,7 +431,7 @@ def main(args):
         for j in range(1, max_try_except+1):
             try:
                 if j > 1:
-                    logger.info(f'⚠️ 正在重试，当前是第{j}次执行，最多尝试{max_try_except}次 [{s_profile}]') # noqa
+                    logger.info(f'⚠️ 正在重试，当前是第{j}次执行，最多尝试{max_try_except}次 [{s_profile}]')  # noqa
 
                 x_visit.set_args(args)
                 x_visit.inst_dp.set_args(args)
@@ -436,7 +443,7 @@ def main(args):
                     lst_status = None
 
                 if is_complete(lst_status):
-                    logger.info(f'[{s_profile}] Last update at {lst_status[IDX_UPDATE]}') # noqa
+                    logger.info(f'[{s_profile}] Last update at {lst_status[IDX_UPDATE]}')  # noqa
                     break
                 else:
                     if x_visit.xvisit_run():
@@ -515,6 +522,15 @@ if __name__ == '__main__':
         help='Set vpn, default is None'
     )
     parser.add_argument(
+        '--no_auto_vpn', required=False, action='store_true',
+        help='Ignore Clash Verge API'
+    )
+    # 手动设置 VPN，默认为 False
+    parser.add_argument(
+        '--vpn_manual', required=False, action='store_true',
+        help='Set vpn manually, default is False'
+    )
+    parser.add_argument(
         '--name', required=False, default='',
         help='Optional, can be generated by default'
     )
@@ -548,7 +564,7 @@ if __name__ == '__main__':
     else:
         while True:
             main(args)
-            logger.info('#####***** Loop sleep {} seconds ...'.format(args.loop_interval)) # noqa
+            logger.info('#####***** Loop sleep {} seconds ...'.format(args.loop_interval))  # noqa
             time.sleep(args.loop_interval)
 
 """
@@ -565,6 +581,8 @@ python xvisit.py --auto_like --auto_appeal --force --profile=g05
 python xvisit.py --auto_like --manual_exit --profile=g05
 
 python xvisit.py --auto_like --auto_appeal --force --headless --profile=t33
+
+python xvisit.py --auto_like --auto_appeal --force --no_auto_vpn --manual_exit --profile=t33
 
 python xvisit.py --auto_like --auto_appeal --force --create --no-headless --profile=g95
 
