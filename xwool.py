@@ -1,14 +1,14 @@
-import os # noqa
-import sys # noqa
+import os  # noqa
+import sys  # noqa
 import argparse
 import random
 import time
 import copy
-import pdb # noqa
+import pdb  # noqa
 import shutil
 import math
-import re # noqa
-from datetime import datetime # noqa
+import re  # noqa
+from datetime import datetime  # noqa
 
 from DrissionPage._elements.none_element import NoneElement
 
@@ -123,7 +123,7 @@ class XWool():
     def update_daily_stats(self, date, op_type, count=1):
         """
         更新每日操作统计
-        
+
         Args:
             date (str): 日期字符串
             op_type (str): 操作类型 ('follow', 'like', 'reply', 'retweet')
@@ -136,17 +136,17 @@ class XWool():
                 'reply': 0,
                 'retweet': 0
             }
-        
+
         if op_type in self.dic_date_count[date]:
             self.dic_date_count[date][op_type] += count
 
     def get_daily_stats(self, date):
         """
         获取指定日期的操作统计
-        
+
         Args:
             date (str): 日期字符串
-            
+
         Returns:
             dict: 包含各种操作数量的字典
         """
@@ -160,7 +160,7 @@ class XWool():
     def get_today_stats(self):
         """
         获取今日操作统计
-        
+
         Returns:
             dict: 包含今日各种操作数量的字典
         """
@@ -183,19 +183,19 @@ class XWool():
     def print_session_stats(self, session_counts):
         """
         打印会话统计信息
-        
+
         Args:
             session_counts (dict): 当前会话的操作统计
         """
         today_counts = self.get_today_stats()
-        
+
         # 显示当前会话统计
         self.logit(None,
                    f'This session - Follow: {session_counts["follow"]}, '
                    f'Like: {session_counts["like"]}, '
                    f'Reply: {session_counts["reply"]}, '
                    f'Retweet: {session_counts["retweet"]}')
-        
+
         # 显示当日总计
         total_today = {
             'follow': today_counts['follow'] + session_counts['follow'],
@@ -212,28 +212,28 @@ class XWool():
     def check_daily_limits(self, op_type, current_count, max_limit):
         """
         检查是否达到每日操作限制
-        
+
         Args:
             op_type (str): 操作类型
             current_count (int): 当前会话已执行的操作数量
             max_limit (int): 最大限制
-            
+
         Returns:
             tuple: (是否达到限制, 当前总数, 限制信息)
         """
         if max_limit == 0:
             return True, 0, "Operation disabled"
-        
+
         if max_limit == -1:
             return False, 0, "No limit"
-        
+
         today_counts = self.get_today_stats()
         total_count = today_counts[op_type] + current_count
-        
+
         if total_count >= max_limit:
             return True, total_count, (f"Daily {op_type} limit reached: "
                                        f"{total_count}/{max_limit}")
-        
+
         return False, total_count, (f"Current {op_type} count: "
                                     f"{total_count}/{max_limit}")
 
@@ -289,7 +289,7 @@ class XWool():
     def status_append(self, s_op_type, s_url, s_msg, s_status):
         update_ts = time.time()
         update_time = format_ts(update_ts, 2, TZ_OFFSET)
-        s_content = f'{update_time},{s_op_type},{s_status},{s_url},{s_msg}' # noqa
+        s_content = f'{update_time},{s_op_type},{s_status},{s_url},{s_msg}'  # noqa
         self.append2file(
             file_ot=self.file_status,
             s_content=s_content,
@@ -306,7 +306,7 @@ class XWool():
                         fields = s_line.split(',')
                         if len(fields) < 4:
                             continue
-                        if fields[2] not in [DEF_INTERACTION_OK, DEF_INTERACTION_IGNORE]: # noqa
+                        if fields[2] not in [DEF_INTERACTION_OK, DEF_INTERACTION_IGNORE]:  # noqa
                             continue
 
                         # 解析日期和操作类型
@@ -314,7 +314,7 @@ class XWool():
                         s_date = s_datetime.split('T')[0]  # 提取日期部分
                         s_op_type = fields[1]  # 操作类型
                         s_url = fields[3]
-                        
+
                         if fields[2] == DEF_INTERACTION_IGNORE:
                             self.set_url_ignored.add(s_url)
                             continue
@@ -346,11 +346,11 @@ class XWool():
                             if fields[2] == DEF_INTERACTION_OK:
                                 self.update_daily_stats(s_date, 'retweet', 1)
 
-        self.logit(None, f'load_ignored_url: {len(self.set_url_ignored)}') # noqa
-        self.logit(None, f'load_followed_user: {len(self.set_user_followed)}') # noqa
-        self.logit(None, f'load_liked_url: {len(self.set_url_liked)}') # noqa
-        self.logit(None, f'load_replied_url: {len(self.set_url_replied)}') # noqa
-        self.logit(None, f'load_retweeted_url: {len(self.set_url_retweeted)}') # noqa
+        self.logit(None, f'load_ignored_url: {len(self.set_url_ignored)}')  # noqa
+        self.logit(None, f'load_followed_user: {len(self.set_user_followed)}')  # noqa
+        self.logit(None, f'load_liked_url: {len(self.set_url_liked)}')  # noqa
+        self.logit(None, f'load_replied_url: {len(self.set_url_replied)}')  # noqa
+        self.logit(None, f'load_retweeted_url: {len(self.set_url_retweeted)}')  # noqa
 
         # 显示每日统计信息
         self.print_daily_stats()
@@ -363,7 +363,7 @@ class XWool():
             if self.browser:
                 try:
                     self.browser.quit()
-                except Exception as e: # noqa
+                except Exception as e:  # noqa
                     # logger.info(f'[Close] Error: {e}')
                     pass
 
@@ -383,7 +383,7 @@ class XWool():
             return False
 
         claimed_date = self.dic_status[s_profile][idx_status]
-        date_now = format_ts(time.time(), style=1, tz_offset=TZ_OFFSET) # noqa
+        date_now = format_ts(time.time(), style=1, tz_offset=TZ_OFFSET)  # noqa
         if date_now != claimed_date:
             return False
         else:
@@ -472,7 +472,7 @@ class XWool():
 
     def follow_user(self, name):
         b_ret = False
-        user_url = f'https://x.com/{name}' # noqa
+        user_url = f'https://x.com/{name}'  # noqa
         tab = self.browser.new_tab(user_url)
         if self.is_followed(name):
             self.logit(None, 'Already followed, skip ...')
@@ -563,6 +563,19 @@ class XWool():
 
         return True, DEF_INTERACTION_OK
 
+    def get_error_msg(self):
+        """
+        Something went wrong, but don’t fret — let’s give it another shot.
+        出错了，别担心，让我们再试一次。
+        """
+        tab = self.browser.latest_tab
+        ele_info = tab.ele('@@tag()=span@@class=css-1jxf684 r-bcqeeo r-1ttztb7 r-qvutc0 r-poiln3@@text()=Create your account', timeout=2)  # noqa
+        if not isinstance(ele_info, NoneElement):
+            s_info = ele_info.text
+            self.logit(None, f'{s_info}')
+            return s_info
+        return None
+
     def reply_tweet(self, s_tweet_type, s_tweet_text):
         self.logit('reply_tweet', f's_tweet_type: {s_tweet_type}')
         s_reply = ''
@@ -576,6 +589,16 @@ class XWool():
                 '互关互粉，冲！',
                 '来啦！互关！'
             ]
+            # 生成一个随机字符串，长度为 1 到 5 个字符(0-9,a-z,A-Z)
+            chars = (
+                '0123456789abcdefghijklmnopqrstuvwxyz'
+                'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+            )
+
+            s_random = ''.join(
+                random.choices(chars, k=random.randint(1, 5))
+            )
+            s_reply += f' {s_random}'
             # 使用已加载的广告 URL
             s_reply = random.choice(lst_reply)
             if len(self.lst_advertise_url) > 0:
@@ -644,7 +667,7 @@ class XWool():
                 # 去掉换行符
                 s_reply = s_reply.replace('\n', '')
                 # 去掉 <|begin_of_box|> 和 <|end_of_box|> 标签
-                s_reply = re.sub(r'<\|begin_of_box\|>|<\|end_of_box\|>', '', s_reply) # noqa
+                s_reply = re.sub(r'<\|begin_of_box\|>|<\|end_of_box\|>', '', s_reply)  # noqa
 
                 self.logit(None, f'[To Verify]reply_by_llm: {s_reply}')
                 # 验证回复内容是否合格
@@ -673,7 +696,7 @@ class XWool():
                         try:
                             s_reply = gene_by_llm(s_prompt)
                             if not s_reply:
-                                self.logit(None, 's_reply from llm is empty, skip ...') # noqa
+                                self.logit(None, 's_reply from llm is empty, skip ...')  # noqa
                                 return False
                         except Exception as e:
                             self.logit(None, f'Error calling gene_by_llm: {e}')
@@ -705,6 +728,14 @@ class XWool():
         if self.inst_x.x_reply(s_reply):
             s_msg = s_reply.replace('\n', ' ')
             self.logit(None, f'Reply Text: {s_msg}')
+            s_error_msg = self.get_error_msg()
+            if s_error_msg:
+                self.logit(None, f'Error Message: {s_error_msg}')
+
+                s_msg = f'[{self.args.s_profile}]{s_error_msg}'
+                ding_msg(s_msg, DEF_DING_TOKEN, msgtype='text')
+
+                return False
             self.status_append(
                 s_op_type='reply',
                 s_url=self.browser.latest_tab.url,
@@ -751,7 +782,7 @@ class XWool():
                     )
                     if not isinstance(ele_tweet_text, NoneElement):
                         s_tweet_text = ele_tweet_text.text.replace('\n', ' ')
-                        self.logit(None, f'tweet_text: {s_tweet_text[:50]} ...') # noqa
+                        self.logit(None, f'tweet_text: {s_tweet_text[:50]} ...')  # noqa
                     else:
                         self.logit(None, 'tweet_text is not found')
                         tab.close()
@@ -949,7 +980,7 @@ class XWool():
                     x_user = tweet_url.split('/')[3]
                     if self.i_xuser == x_user:
                         continue
-                except: # noqa
+                except:  # noqa
                     continue
 
                 if tweet_url in self.set_url_ignored:
@@ -963,21 +994,21 @@ class XWool():
                     if is_limit_reached:
                         is_follow = False
                         self.logit(None, limit_msg)
-                
+
                 if is_like:
                     is_limit_reached, _, limit_msg = self.check_daily_limits(
                         'like', n_like_count, self.args.max_like)
                     if is_limit_reached:
                         is_like = False
                         self.logit(None, limit_msg)
-                
+
                 if is_reply:
                     is_limit_reached, _, limit_msg = self.check_daily_limits(
                         'reply', n_reply_count, self.args.max_reply)
                     if is_limit_reached:
                         is_reply = False
                         self.logit(None, limit_msg)
-                
+
                 if is_retweet:
                     is_limit_reached, _, limit_msg = self.check_daily_limits(
                         'retweet', n_retweet_count, self.args.max_retweet)
@@ -1002,7 +1033,7 @@ class XWool():
                     n_like_count += counts.get('like', 0)
                     n_reply_count += counts.get('reply', 0)
                     n_retweet_count += counts.get('retweet', 0)
-                    
+
                     # 更新每日统计
                     today = format_ts(time.time(), style=1,
                                       tz_offset=TZ_OFFSET)
@@ -1052,7 +1083,7 @@ class XWool():
             self.logit(None, 'Self user, skip ...')
             return False
 
-        user_url = f'https://x.com/{x_user}' # noqa
+        user_url = f'https://x.com/{x_user}'  # noqa
         tab = self.browser.new_tab(user_url)
 
         if x_user in self.set_user_followed:
@@ -1122,7 +1153,7 @@ class XWool():
             self.logit(None, f'Reply: {reply_msg}')
         else:
             self.logit(None, f'Reply: {reply_msg}')
-        
+
         # 检查点赞限制
         is_like_limit, like_count, like_msg = self.check_daily_limits(
             'like', 0, self.args.max_like)
@@ -1130,7 +1161,7 @@ class XWool():
             self.logit(None, f'Like: {like_msg}')
         else:
             self.logit(None, f'Like: {like_msg}')
-        
+
         # 检查转帖限制
         is_retweet_limit, retweet_count, retweet_msg = self.check_daily_limits(
             'retweet', 0, self.args.max_retweet)
@@ -1138,7 +1169,7 @@ class XWool():
             self.logit(None, f'Retweet: {retweet_msg}')
         else:
             self.logit(None, f'Retweet: {retweet_msg}')
-        
+
         # 检查关注限制
         is_follow_limit, follow_count, follow_msg = self.check_daily_limits(
             'follow', 0, self.args.max_follow)
@@ -1261,7 +1292,7 @@ class XWool():
         self.i_xuser = self.inst_x.dic_account[self.args.s_profile][idx_xuser]
 
         if self.args.no_auto_vpn:
-            logger.info(f'{self.args.s_profile} Use Current VPN') # noqa
+            logger.info(f'{self.args.s_profile} Use Current VPN')  # noqa
         elif self.args.vpn_manual:
             pass
         else:
@@ -1272,7 +1303,7 @@ class XWool():
                         self.args.s_profile
                     ][idx_vpn]
                 else:
-                    logger.info(f'{self.args.s_profile} is not in self.inst_x.dic_account [ERROR]') # noqa
+                    logger.info(f'{self.args.s_profile} is not in self.inst_x.dic_account [ERROR]')  # noqa
                     sys.exit(0)
             else:
                 s_vpn = self.args.vpn
@@ -1292,10 +1323,10 @@ class XWool():
 
         num_visit_pre = self.inst_x.get_pre_num_visit()
         s_status = self.inst_x.get_x_status()
-        if num_visit_pre >= 5 and s_status == self.inst_x.DEF_STATUS_EXCEED_ATTEMPT: # noqa
+        if num_visit_pre >= 5 and s_status == self.inst_x.DEF_STATUS_EXCEED_ATTEMPT:  # noqa
             self.logit('twitter_run', 'Too many wrong visits, return ...')
-            # s_msg = f'[{self.args.s_profile}]发生了错误。你已超过允许尝试次数，请稍后再试。' # noqa
-            # ding_msg(s_msg, DEF_DING_TOKEN, msgtype='text')
+            s_msg = f'[{self.args.s_profile}]发生了错误。你已超过允许尝试次数，请稍后再试。' # noqa
+            ding_msg(s_msg, DEF_DING_TOKEN, msgtype='text')
             return True
 
         # 根据配置决定是否执行扩展检测
@@ -1312,7 +1343,7 @@ class XWool():
                     (EXTENSION_ID_YESCAPTCHA, 'yescaptcha'),
                     (EXTENSION_ID_CAPMONSTER, 'capmonster'),
                 ]
-            
+
             # 使用配置的重试次数
             max_try = getattr(args, 'extension_check_max_try', 1)
             self.inst_dp.check_extension(
@@ -1358,7 +1389,7 @@ class XWool():
                     'follow', 0, self.args.max_follow)
                 if is_follow_limit:
                     self.logit(None, f'Daily follow limit reached: '
-                                     f'{follow_msg}')
+                               f'{follow_msg}')
                     self.logit(None, 'Stop processing ad users due to limit')
                     break
 
@@ -1390,7 +1421,7 @@ class XWool():
             time.sleep(n_sleep)
 
         if self.args.manual_exit and self.args.headless is False:
-            s_msg = 'Press any key to exit! ⚠️' # noqa
+            s_msg = 'Press any key to exit! ⚠️'  # noqa
             input(s_msg)
 
         self.logit('xwool_run', 'Finished!')
@@ -1443,13 +1474,13 @@ def show_msg(args):
 
 def main(args):
     if args.sleep_sec_at_start > 0:
-        logger.info(f'Sleep {args.sleep_sec_at_start} seconds at start !!!') # noqa
+        logger.info(f'Sleep {args.sleep_sec_at_start} seconds at start !!!')  # noqa
         time.sleep(args.sleep_sec_at_start)
 
     if DEL_PROFILE_DIR and os.path.exists(DEF_PATH_USER_DATA):
         logger.info(f'Delete {DEF_PATH_USER_DATA} ...')
         shutil.rmtree(DEF_PATH_USER_DATA)
-        logger.info(f'Directory {DEF_PATH_USER_DATA} is deleted') # noqa
+        logger.info(f'Directory {DEF_PATH_USER_DATA} is deleted')  # noqa
 
     x_wool = XWool()
 
@@ -1510,14 +1541,14 @@ def main(args):
     logger.info('#'*40)
 
     percent = math.floor((n / total) * 100)
-    logger.info(f'Progress: {percent}% [{n}/{total}]') # noqa
+    logger.info(f'Progress: {percent}% [{n}/{total}]')  # noqa
 
     while profiles:
         n += 1
         logger.info('#'*40)
         s_profile = random.choice(profiles)
         percent = math.floor((n / total) * 100)
-        logger.info(f'Progress: {percent}% [{n}/{total}] [{s_profile}]') # noqa
+        logger.info(f'Progress: {percent}% [{n}/{total}] [{s_profile}]')  # noqa
         profiles.remove(s_profile)
 
         args.s_profile = s_profile
@@ -1532,7 +1563,7 @@ def main(args):
         for j in range(1, max_try_except+1):
             try:
                 if j > 1:
-                    logger.info(f'⚠️ 正在重试，当前是第{j}次执行，最多尝试{max_try_except}次 [{s_profile}]') # noqa
+                    logger.info(f'⚠️ 正在重试，当前是第{j}次执行，最多尝试{max_try_except}次 [{s_profile}]')  # noqa
 
                 x_wool.set_args(args)
                 x_wool.inst_dp.set_args(args)
@@ -1546,7 +1577,7 @@ def main(args):
                     lst_status = None
 
                 if is_complete(lst_status):
-                    logger.info(f'[{s_profile}] Last update at {lst_status[IDX_UPDATE]}') # noqa
+                    logger.info(f'[{s_profile}] Last update at {lst_status[IDX_UPDATE]}')  # noqa
                     break
                 else:
                     if x_wool.xwool_run():
@@ -1721,7 +1752,7 @@ if __name__ == '__main__':
     else:
         while True:
             main(args)
-            logger.info('#####***** Loop sleep {} seconds ...'.format(args.loop_interval)) # noqa
+            logger.info('#####***** Loop sleep {} seconds ...'.format(args.loop_interval))  # noqa
             time.sleep(args.loop_interval)
 
 """
