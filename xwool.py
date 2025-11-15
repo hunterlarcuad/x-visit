@@ -589,18 +589,19 @@ class XWool():
                 '互关互粉，冲！',
                 '来啦！互关！'
             ]
+            s_reply = random.choice(lst_reply)
+
             # 生成一个随机字符串，长度为 1 到 5 个字符(0-9,a-z,A-Z)
             chars = (
                 '0123456789abcdefghijklmnopqrstuvwxyz'
                 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
             )
-
             s_random = ''.join(
                 random.choices(chars, k=random.randint(1, 5))
             )
             s_reply += f' {s_random}'
+
             # 使用已加载的广告 URL
-            s_reply = random.choice(lst_reply)
             if len(self.lst_advertise_url) > 0:
                 s_reply += '\n'
                 s_reply += random.choice(self.lst_advertise_url)
