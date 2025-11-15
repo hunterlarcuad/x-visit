@@ -787,7 +787,7 @@ class XWool():
                     else:
                         self.logit(None, 'tweet_text is not found')
                         tab.close()
-                        return b_ret
+                        return b_ret, counts
 
                     s_tweet_type = self.get_tweet_type_by_keyword(s_tweet_text)
                     if is_all_reply:
