@@ -1399,8 +1399,6 @@ class XWool():
                 is_success = self.proc_ad_user(x_user, x_nickname)
                 if is_success:
                     n_proc_success += 1
-
-        pdb.set_trace()
         
         if self.args.water:
             # 加载广告 URL
