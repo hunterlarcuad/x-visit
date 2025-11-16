@@ -127,7 +127,7 @@ class XWool():
 
         Args:
             date (str): 日期字符串
-            op_type (str): 操作类型 ('follow', 'like', 'reply', 'retweet')
+            op_type (str): 操作类型 ('follow', 'like', 'reply', 'retweet', 'unfollow')
             count (int): 操作数量，默认为1
         """
         if date not in self.dic_date_count:
@@ -135,7 +135,8 @@ class XWool():
                 'follow': 0,
                 'like': 0,
                 'reply': 0,
-                'retweet': 0
+                'retweet': 0,
+                'unfollow': 0
             }
 
         if op_type in self.dic_date_count[date]:
@@ -155,7 +156,8 @@ class XWool():
             'follow': 0,
             'like': 0,
             'reply': 0,
-            'retweet': 0
+            'retweet': 0,
+            'unfollow': 0
         })
 
     def get_today_stats(self):
@@ -346,6 +348,9 @@ class XWool():
                             self.set_url_retweeted.add(s_url)
                             if fields[2] == DEF_INTERACTION_OK:
                                 self.update_daily_stats(s_date, 'retweet', 1)
+                        elif 'unfollow' == s_op_type:
+                            if fields[2] == DEF_INTERACTION_OK:
+                                self.update_daily_stats(s_date, 'unfollow', 1)
 
         self.logit(None, f'load_ignored_url: {len(self.set_url_ignored)}')  # noqa
         self.logit(None, f'load_followed_user: {len(self.set_user_followed)}')  # noqa
@@ -1286,6 +1291,214 @@ class XWool():
         if len(self.lst_advertise_url) > 1:
             random.shuffle(self.lst_advertise_url)
 
+    def do_follow_back(self, ele_btn_follow, s_nickname, s_handler):
+        """
+        Follow back
+        """
+        if self.get_today_stats().get('follow', 0) >= self.args.max_follow:
+            self.logit(None, f'Stop processing follow due to limit [{self.args.max_follow}]')
+            return False
+
+        tab = self.browser.latest_tab
+        if ele_btn_follow.wait.clickable(timeout=5) is not False:
+            ele_btn_follow.click()
+            tab.wait(3)
+
+            s_info = ele_btn_follow.text
+            if s_info in ['Following', '正在关注']:
+                self.logit(None, f'Follow back success {s_nickname} {s_handler} [OK] ✅') # noqa
+                # 更新每日统计
+                today = format_ts(time.time(), style=1, tz_offset=TZ_OFFSET)
+                self.update_daily_stats(today, 'follow', 1)
+                self.status_append(
+                    s_op_type='follow',
+                    s_url=f'https://x.com/{s_handler}',
+                    s_msg=f'{s_nickname}',
+                    s_status=DEF_INTERACTION_OK
+                )
+                tab.wait(3)
+                return True
+        return False
+
+    def check_page_follow(self, n_processed=0):
+        """
+        Return:
+            0: Success
+            1: No following and followed list
+            99: Unfollow num limit reached
+
+            (flag, n_total)
+        """
+        n_total = n_processed
+        tab = self.browser.latest_tab
+
+        tab.wait(3)
+        ele_section = tab.ele('@@tag()=section@@aria-labelledby:accessible-list', timeout=2)
+        if not isinstance(ele_section, NoneElement):
+            ele_items = ele_section.eles('@@tag()=div@@data-testid=cellInnerDiv', timeout=2)
+            n_items = len(ele_items)
+            if n_items == 0:
+                self.logit(None, 'No following and followed, skip ...')
+                return (1, n_total)
+            for idx_item in range(n_items):
+                if idx_item >= n_items:
+                    break
+                n_total += 1
+                s_id = f'[{n_total}][{idx_item+1}/{n_items}]'
+                ele_item = ele_items[idx_item]
+                # s_info = ele_item.text
+                # s_info = s_info.replace('\n', ' ')
+                # self.logit(None, f'Following and Followed: {s_info}') # noqa
+
+                ele_label_handler = ele_item.eles('@@tag()=div@@class:css-146c3p1', timeout=2) # noqa
+                if len(ele_label_handler) >= 6:
+                    # idx_nickname: 0
+                    # idx_handler: 2
+                    # idx_description: 6
+                    s_nickname = ele_label_handler[0].text
+                    s_handler = ele_label_handler[2].text
+                    # self.logit(None, f'Nickname: {s_nickname}, Handler: {s_handler}') # noqa
+                else:
+                    self.logit(None, 'Warning: len(ele_label_handler) < 6, skip ...')
+                    continue
+
+                try:
+                    tab.actions.move_to(ele_item)
+                except Exception as e:  # noqa
+                    ele_items = ele_section.eles('@@tag()=div@@data-testid=cellInnerDiv', timeout=2)
+                    n_items = len(ele_items)
+                    self.logit(None, f'Get new ele_items, n_items={n_items} 🚀🚀🚀')
+                    # self.logit(None, f'Warning: move_to ele_item failed: {e}')
+                    continue
+
+                # Follow button text
+                s_follow_status = ''
+                ele_btn_follow = ele_item.ele('@@tag()=button@@aria-describedby', timeout=2) # noqa
+                if not isinstance(ele_btn_follow, NoneElement):
+                    # 1754393434956455936-unfollow
+                    s_val = ele_btn_follow.attr('data-testid')
+                    s_follow_status = s_val.split('-')[-1]
+
+                # Followed Label
+                ele_label_followed = ele_item.ele('@@tag()=div@@data-testid=userFollowIndicator', timeout=2) # noqa
+                if not isinstance(ele_label_followed, NoneElement):
+                    s_info = ele_label_followed.text
+                    self.logit(None, f'{s_id} Is Followed me? {s_nickname} {s_info} [Yes] ✅') # noqa
+                    if s_follow_status == 'follow':
+                        self.do_follow_back(ele_btn_follow, s_nickname, s_handler)
+                    continue
+                self.logit(None, f'{s_id} Is Followed me? {s_nickname} {s_handler} [No] ❌') # noqa
+
+                if s_follow_status == 'follow':
+                    self.logit(None, f'Already unfollowed, skip ...') # noqa
+                    continue
+
+                # s_info = ele_btn_follow.text
+                # self.logit(None, f'Follow button text: {s_info}') # noqa
+                if ele_btn_follow.wait.clickable(timeout=5) is not False:
+                    ele_btn_follow.click()
+
+                    # confirmationSheetConfirm
+                    ele_btn_confirm = tab.ele('@@tag()=button@@data-testid=confirmationSheetConfirm', timeout=2) # noqa
+                    if not isinstance(ele_btn_confirm, NoneElement):
+                        s_info = ele_btn_confirm.text
+                        # self.logit(None, f'Confirm button text: {s_info}') # noqa
+                        self.logit(None, f'Unfollow {s_nickname} {s_handler} [Confirmed]') # noqa
+                        if ele_btn_confirm.wait.clickable(timeout=5) is not False:
+                            ele_btn_confirm.click()
+                            # 更新每日统计
+                            today = format_ts(time.time(), style=1, tz_offset=TZ_OFFSET)
+                            self.update_daily_stats(today, 'unfollow', 1)
+                            self.status_append(
+                                s_op_type='unfollow',
+                                s_url=f'https://x.com/{s_handler}',
+                                s_msg=f'{s_nickname}',
+                                s_status=DEF_INTERACTION_OK
+                            )
+                            n_unfollow = self.get_today_stats().get('unfollow', 0)
+                            if self.args.check_follow == -1:
+                                pass
+                            elif n_unfollow >= self.args.check_follow:
+                                # self.logit(None, 'Stop processing unfollow due to limit [{self.args.check_follow}]')
+                                return (99, n_total)
+                            tab.wait(3)
+                    else:
+                        self.logit(None, 'Warning: ele_btn_confirm is not clickable, skip ...')
+                        continue
+                else:
+                    self.logit(None, 'Warning: ele_btn_confirm is None, skip ...')
+                    continue
+            tab.wait(3)
+        return (0, n_total)
+
+    def check_follow(self, idx_tab=0, pages=20):
+        """
+        idx_tab:
+            0: Premium user followback
+            1: Free user followback
+            2: Following list
+        """
+        tab = self.browser.latest_tab
+        ele_btn = tab.ele('@@tag()=a@@data-testid=AppTabBar_Profile_Link', timeout=2) # noqa
+        if not isinstance(ele_btn, NoneElement):
+            # s_info = ele_btn.text
+            # self.logit(None, f'Click Cancel button [{s_info}]') # noqa
+            if ele_btn.wait.clickable(timeout=5) is not False:
+                ele_btn.click(by_js=True)
+
+        tab.wait(3)
+        ele_div = tab.ele('.css-175oi2r r-13awgt0 r-18u37iz r-1w6e6rj', timeout=2)
+        if not isinstance(ele_div, NoneElement):
+            s_info = ele_div.text
+            s_info = s_info.replace('\n', ' ')
+            self.logit(None, f'Following and Followed: {s_info}') # noqa
+            ele_btn = ele_div.ele('@@tag()=div', timeout=2) # noqa
+            if not isinstance(ele_btn, NoneElement):
+                s_info = ele_btn.text
+                self.logit(None, f'Follow button text: {s_info}') # noqa
+                if ele_btn.wait.clickable(timeout=5) is not False:
+                    ele_btn.click()
+                    tab.wait(3)
+
+        self.logit(None, 'Switch to followback tab ...')
+        ele_blk_tab = tab.ele('@@tag()=div@@data-testid=ScrollSnap-List', timeout=2) # noqa
+        if not isinstance(ele_btn, NoneElement):
+            ele_btns = ele_blk_tab.eles('@@tag()=div@@role=presentation', timeout=2)
+            if len(ele_btns) >= 3:
+                ele_btn = ele_btns[idx_tab]
+                if not isinstance(ele_btn, NoneElement):
+                    s_info = ele_btn.text
+                    self.logit(None, f'Click tab button [{s_info}]') # noqa
+                    if ele_btn.wait.clickable(timeout=5) is not False:
+                        ele_btn.click()
+                        tab.wait(3)
+
+        pages = 100000 if pages == -1 else pages
+        n_processed = 0
+        for i in range(1, pages+1):
+            self.logit(None, f'Check follow page {i}/{pages} ...')
+            (n_ret, n_processed) = self.check_page_follow(n_processed)
+            if n_ret == 99:
+                self.logit(None, f'Stop processing unfollow due to limit [{self.args.check_follow}]')
+                break
+            tab = self.browser.latest_tab
+            tab.scroll.to_bottom()
+            tab.wait(3)
+
+    def click_home(self):
+        """
+        Click home button
+        """
+        tab = self.browser.latest_tab
+        ele_btn = tab.ele('@@tag()=a@@aria-label=X', timeout=2)
+        if not isinstance(ele_btn, NoneElement):
+            self.logit(None, f'Click home button')
+            if ele_btn.wait.clickable(timeout=5) is not False:
+                ele_btn.click()
+                tab.wait(3)
+                return True
+        return False
+
     def xwool_run(self):
         self.browser = self.inst_dp.get_browser(self.args.s_profile)
 
@@ -1370,6 +1583,13 @@ class XWool():
         elif s_x_status != DEF_STATUS_OK:
             self.logit(None, 'X Account is suspended, return ...')
             return True
+
+        self.check_follow(0, 2)
+        self.check_follow(1, 1)
+        if self.args.check_follow >= -1:
+            # self.check_follow(2, -1)
+            self.check_follow(2, self.args.max_follow_page)
+
         if self.args.ad_user:
             self.lst_ad_user = []
             lst_x_user = load_ad_user(self.file_ad_user)
@@ -1399,7 +1619,7 @@ class XWool():
                 is_success = self.proc_ad_user(x_user, x_nickname)
                 if is_success:
                     n_proc_success += 1
-        
+
         if self.args.water:
             # 加载广告 URL
             self.load_ad_tw_urls()
@@ -1416,6 +1636,7 @@ class XWool():
             # lst_tabs = ['X 推特华语区【蓝V互关】']
             # lst_tabs = ['为你推荐']
             for s_tab_name in lst_tabs:
+                self.click_home()
                 self.select_tab(s_tab_name)
                 self.interaction()
             self.browser.latest_tab.refresh()
@@ -1748,6 +1969,15 @@ if __name__ == '__main__':
         help='[默认为 -1] 当日最大转帖数量，-1表示无限制，0表示不转帖'
     )
 
+    # 添加 --check_follow 参数，用于取消未关注的用户，回关已关注用户
+    parser.add_argument(
+        '--check_follow', required=False, default=0, type=int,
+        help='[默认为 0] 处理数量，0表示不处理，-1表示无限制'
+    )
+    parser.add_argument(
+        '--max_follow_page', required=False, default=1, type=int,
+        help='[默认为 1] 最大关注列表翻页数量'
+    )
     args = parser.parse_args()
     show_msg(args)
     if args.loop_interval <= 0:
