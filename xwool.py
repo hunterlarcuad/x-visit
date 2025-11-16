@@ -116,6 +116,7 @@ class XWool():
         self.set_url_retweeted = set([])
 
         self.lst_advertise_url = []
+        self.lst_attached_url = []
 
         # 按日期统计 关注、点赞、回复、转发 数量
         self.dic_date_count = {}
@@ -602,9 +603,9 @@ class XWool():
             s_reply += f' {s_random}'
 
             # 使用已加载的广告 URL
-            if len(self.lst_advertise_url) > 0:
+            if len(self.lst_attached_url) > 0:
                 s_reply += '\n'
-                s_reply += random.choice(self.lst_advertise_url)
+                s_reply += random.choice(self.lst_attached_url)
         else:
             # 调用大模型
             s_cont = s_tweet_text[:300]
@@ -1280,6 +1281,8 @@ class XWool():
             x_user = s_url.split('/')[3]
             if self.i_xuser != x_user:
                 self.lst_advertise_url.append(s_url)
+            else:
+                self.lst_attached_url.append(s_url)
         if len(self.lst_advertise_url) > 1:
             random.shuffle(self.lst_advertise_url)
 
@@ -1367,7 +1370,6 @@ class XWool():
         elif s_x_status != DEF_STATUS_OK:
             self.logit(None, 'X Account is suspended, return ...')
             return True
-
         if self.args.ad_user:
             self.lst_ad_user = []
             lst_x_user = load_ad_user(self.file_ad_user)
@@ -1398,6 +1400,8 @@ class XWool():
                 if is_success:
                     n_proc_success += 1
 
+        pdb.set_trace()
+        
         if self.args.water:
             # 加载广告 URL
             self.load_ad_tw_urls()
