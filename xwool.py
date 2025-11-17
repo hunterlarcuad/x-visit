@@ -1396,6 +1396,8 @@ class XWool():
         if s_handler in self.set_user_black:
             self.logit(None, f'User {s_handler} is in black list, skip ...')  # noqa
             return (-1, 0)
+
+        tab = self.browser.latest_tab
         # s_info = ele_btn_follow.text
         # self.logit(None, f'Follow button text: {s_info}') # noqa
         if ele_btn_follow.wait.clickable(timeout=5) is not False:
@@ -1406,7 +1408,6 @@ class XWool():
             if not isinstance(ele_btn_confirm, NoneElement):
                 # s_info = ele_btn_confirm.text
                 # self.logit(None, f'Confirm button text: {s_info}') # noqa
-                self.logit(None, f'Unfollow {s_nickname} {s_handler} [Confirmed]') # noqa
                 if ele_btn_confirm.wait.clickable(timeout=5) is not False:  # noqa
                     ele_btn_confirm.click()
                     # 更新每日统计
@@ -1419,6 +1420,7 @@ class XWool():
                         s_status=DEF_INTERACTION_OK
                     )
                     n_unfollow = self.get_today_stats().get('unfollow', 0)  # noqa
+                    self.logit(None, f'Unfollow {s_nickname} {s_handler} [Confirmed][n_unfollow={n_unfollow}]') # noqa
                     if self.args.check_follow == -1:
                         pass
                     elif n_unfollow >= self.args.check_follow:
@@ -2102,4 +2104,6 @@ python xwool.py --auto_like --manual_exit --water --ad_user --profile=g07
 # 使用新的当日最大数量限制参数
 python xwool.py --no_auto_vpn --force --profile=g01 --max_follow=5 --max_like=10 --max_reply=3 --max_retweet=2
 python xwool.py --no_auto_vpn --force --ad_user --profile=g01 --max_follow=3 --max_like=8
+
+python xwool.py --no_auto_vpn --force --profile=g01 --max_follow=5 --max_like=10 --max_reply=3 --max_retweet=2 --water --check_follow=300 --max_follow_page=1000
 """
