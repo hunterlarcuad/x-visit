@@ -1403,7 +1403,7 @@ class XUtils():
                         tab.actions.move_to(ele_btn).click()
                         tab.wait(1)
                         tab.actions.type(s_text)
-                    
+
                     tab.wait(1)
 
                 if ele_btn.text.replace('\n', ' ') != s_text.replace('\n', ' '):
@@ -1426,7 +1426,13 @@ class XUtils():
 
                 ele_info = tab.ele('@@tag()=div@@aria-live=assertive', timeout=2)
                 if not isinstance(ele_info, NoneElement):
-                    self.logit(None, f'reply assertive: {ele_info.text}')
+                    s_info = ele_info.text
+                    self.logit(None, f'reply assertive: {s_info}')
+                    n_sleep = random.randint(3600, 3600*1.2)
+                    s_msg = f'[{self.args.s_profile}][Fail to reply] {s_info} [sleep {n_sleep} seconds ...]' # noqa
+                    ding_msg(s_msg, DEF_DING_TOKEN, msgtype='text')
+                    time.sleep(n_sleep)
+                    return False
 
                 self.logit(None, 'Reply Success ✅')
                 return True

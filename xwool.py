@@ -1620,7 +1620,7 @@ class XWool():
 
         self.check_follow(0, 2)
         self.check_follow(1, 1)
-        if self.args.check_follow >= -1:
+        if self.args.check_follow != 0:
             # self.check_follow(2, -1)
             self.check_follow(2, self.args.max_follow_page)
 
