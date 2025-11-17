@@ -18,6 +18,7 @@ from fun_utils import time_difference
 from fun_utils import get_index_from_header
 from fun_utils import load_advertising_urls
 from fun_utils import load_ad_user
+from fun_utils import load_to_set
 
 from fun_glm import gene_by_llm
 
@@ -114,6 +115,9 @@ class XWool():
         self.set_url_liked = set([])
         self.set_url_replied = set([])
         self.set_url_retweeted = set([])
+
+        self.set_user_white = set([])
+        self.set_user_black = set([])
 
         self.lst_advertise_url = []
         self.lst_attached_url = []
@@ -256,10 +260,21 @@ class XWool():
             f'{DEF_PATH_DATA_STATUS}/xwool/advertising.csv'
         )
         self.file_ad_user = f'{DEF_PATH_DATA_STATUS}/xwool/ad_user.csv'
+        self.file_user_white = f'{DEF_PATH_DATA_STATUS}/xwool/a_user_white.csv'
+        self.file_user_black = f'{DEF_PATH_DATA_STATUS}/xwool/a_user_black.csv'
 
         self.load_processed_url()
 
         self.n_follow = 0
+
+        self.set_user_white = set([])
+        self.set_user_black = set([])
+
+        self.set_user_white = load_to_set(self.file_ad_user, self.set_user_white)  # noqa
+        self.set_user_white = load_to_set(self.file_user_white, self.set_user_white)  # noqa
+        self.set_user_black = load_to_set(self.file_user_black, self.set_user_black)  # noqa
+        self.logit(None, f'set_user_white: {len(self.set_user_white)}')
+        self.logit(None, f'set_user_black: {len(self.set_user_black)}')
 
     def __del__(self):
         pass
@@ -613,10 +628,6 @@ class XWool():
             )
             s_reply += f' {s_random}'
 
-            # 使用已加载的广告 URL
-            if len(self.lst_attached_url) > 0:
-                s_reply += '\n'
-                s_reply += random.choice(self.lst_attached_url)
         else:
             # 调用大模型
             s_cont = s_tweet_text[:300]
@@ -737,6 +748,11 @@ class XWool():
                 s_reply += '\n'
                 s_reply += '#Cookie #SNAPS'
             """
+
+        # 使用已加载的广告 URL
+        if len(self.lst_attached_url) > 0:
+            s_reply += '\n'
+            s_reply += random.choice(self.lst_attached_url)
 
         if self.inst_x.x_reply(s_reply):
             s_msg = s_reply.replace('\n', ' ')
@@ -1326,16 +1342,27 @@ class XWool():
     def do_follow_back(self, ele_btn_follow, s_nickname, s_handler):
         """
         Follow back
+
+        Return:
+            -2: Failed to follow back
+            -1: User is in black list
+            0: Success
+            99: Follow num limit reached
+            (flag, n_total)
         """
+        if s_handler in self.set_user_black:
+            self.logit(None, f'User {s_handler} is in black list, skip ...')  # noqa
+            return (-1, 0)
+
         if self.get_today_stats().get('follow', 0) >= self.args.max_follow:
-            self.logit(None, f'Stop processing follow due to limit [{self.args.max_follow}]')  # noqa
-            return False
+            # self.logit(None, f'Stop processing follow due to limit [{self.args.max_follow}]')  # noqa
+            return (99, 0)
 
         tab = self.browser.latest_tab
         if ele_btn_follow.wait.clickable(timeout=5) is not False:
             ele_btn_follow.click()
             if self.check_rate_limit(s_type='follow'):
-                return False
+                return (0, 1)
 
             s_info = ele_btn_follow.text
             if s_info in ['Following', '正在关注']:
@@ -1351,11 +1378,68 @@ class XWool():
                 )
                 self.n_follow += 1
                 tab.wait(3)
-                return True
-        return False
+                return (0, 1)
+        return (-2, 0)
 
-    def check_page_follow(self, n_processed=0):
+    def do_unfollow(self, ele_btn_follow, s_nickname, s_handler):
         """
+        Unfollow
+
+        Return:
+            -2: Failed to unfollow
+            -1: User is in black list
+            0: Success
+            99: Unfollow num limit reached
+
+            (flag, n_total)
+        """
+        if s_handler in self.set_user_black:
+            self.logit(None, f'User {s_handler} is in black list, skip ...')  # noqa
+            return (-1, 0)
+        # s_info = ele_btn_follow.text
+        # self.logit(None, f'Follow button text: {s_info}') # noqa
+        if ele_btn_follow.wait.clickable(timeout=5) is not False:
+            ele_btn_follow.click()
+
+            # confirmationSheetConfirm
+            ele_btn_confirm = tab.ele('@@tag()=button@@data-testid=confirmationSheetConfirm', timeout=2) # noqa
+            if not isinstance(ele_btn_confirm, NoneElement):
+                # s_info = ele_btn_confirm.text
+                # self.logit(None, f'Confirm button text: {s_info}') # noqa
+                self.logit(None, f'Unfollow {s_nickname} {s_handler} [Confirmed]') # noqa
+                if ele_btn_confirm.wait.clickable(timeout=5) is not False:  # noqa
+                    ele_btn_confirm.click()
+                    # 更新每日统计
+                    today = format_ts(time.time(), style=1, tz_offset=TZ_OFFSET)  # noqa
+                    self.update_daily_stats(today, 'unfollow', 1)
+                    self.status_append(
+                        s_op_type='unfollow',
+                        s_url=f'https://x.com/{s_handler}',
+                        s_msg=f'{s_nickname}',
+                        s_status=DEF_INTERACTION_OK
+                    )
+                    n_unfollow = self.get_today_stats().get('unfollow', 0)  # noqa
+                    if self.args.check_follow == -1:
+                        pass
+                    elif n_unfollow >= self.args.check_follow:
+                        # self.logit(None, 'Stop processing unfollow due to limit [{self.args.check_follow}]')  # noqa
+                        return (99, 1)
+                    time.sleep(3)
+                    return (0, 1)
+            else:
+                self.logit(None, 'Warning: ele_btn_confirm is not clickable, skip ...')  # noqa
+        else:
+            self.logit(None, 'Warning: ele_btn_confirm is None, skip ...')  # noqa
+
+        return (-2, 0)
+
+    def check_page_follow(self, idx_tab, n_processed=0):
+        """
+        idx_tab:
+            0: Premium user followback
+            1: Free user followback
+            2: Following list
+
         Return:
             0: Success
             1: No following and followed list
@@ -1419,7 +1503,11 @@ class XWool():
                     s_info = ele_label_followed.text
                     self.logit(None, f'{s_id} Is Followed me? {s_nickname} {s_info} [Yes] ✅') # noqa
                     if s_follow_status == 'follow':
-                        self.do_follow_back(ele_btn_follow, s_nickname, s_handler)  # noqa
+                        (n_ret, n_num) = self.do_follow_back(ele_btn_follow, s_nickname, s_handler)  # noqa
+                        n_total += n_num
+                        if n_ret == 99:
+                            self.logit(None, f'Stop processing idx_tab={idx_tab} due to limit [{self.args.max_follow}]')  # noqa
+                            return (99, n_total)
                     continue
                 self.logit(None, f'{s_id} Is Followed me? {s_nickname} {s_handler} [No] ❌') # noqa
 
@@ -1427,41 +1515,12 @@ class XWool():
                     self.logit(None, f'Already unfollowed, skip ...') # noqa
                     continue
 
-                # s_info = ele_btn_follow.text
-                # self.logit(None, f'Follow button text: {s_info}') # noqa
-                if ele_btn_follow.wait.clickable(timeout=5) is not False:
-                    ele_btn_follow.click()
+                (n_ret, n_num) = self.do_unfollow(ele_btn_follow, s_nickname, s_handler)  # noqa
+                n_total += n_num
+                if n_ret == 99:
+                    self.logit(None, f'Stop processing idx_tab={idx_tab} due to limit [{self.args.check_follow}]')  # noqa
+                    return (99, n_total)
 
-                    # confirmationSheetConfirm
-                    ele_btn_confirm = tab.ele('@@tag()=button@@data-testid=confirmationSheetConfirm', timeout=2) # noqa
-                    if not isinstance(ele_btn_confirm, NoneElement):
-                        s_info = ele_btn_confirm.text
-                        # self.logit(None, f'Confirm button text: {s_info}') # noqa
-                        self.logit(None, f'Unfollow {s_nickname} {s_handler} [Confirmed]') # noqa
-                        if ele_btn_confirm.wait.clickable(timeout=5) is not False:  # noqa
-                            ele_btn_confirm.click()
-                            # 更新每日统计
-                            today = format_ts(time.time(), style=1, tz_offset=TZ_OFFSET)  # noqa
-                            self.update_daily_stats(today, 'unfollow', 1)
-                            self.status_append(
-                                s_op_type='unfollow',
-                                s_url=f'https://x.com/{s_handler}',
-                                s_msg=f'{s_nickname}',
-                                s_status=DEF_INTERACTION_OK
-                            )
-                            n_unfollow = self.get_today_stats().get('unfollow', 0)  # noqa
-                            if self.args.check_follow == -1:
-                                pass
-                            elif n_unfollow >= self.args.check_follow:
-                                # self.logit(None, 'Stop processing unfollow due to limit [{self.args.check_follow}]')  # noqa
-                                return (99, n_total)
-                            tab.wait(3)
-                    else:
-                        self.logit(None, 'Warning: ele_btn_confirm is not clickable, skip ...')  # noqa
-                        continue
-                else:
-                    self.logit(None, 'Warning: ele_btn_confirm is None, skip ...')  # noqa
-                    continue
             tab.wait(3)
         return (0, n_total)
 
@@ -1494,7 +1553,7 @@ class XWool():
                     ele_btn.click()
                     tab.wait(3)
 
-        self.logit(None, 'Switch to followback tab ...')
+        self.logit(None, f'Switch to followback/unfollow tab [idx_tab={idx_tab}] ...')  # noqa
         ele_blk_tab = tab.ele('@@tag()=div@@data-testid=ScrollSnap-List', timeout=2) # noqa
         if not isinstance(ele_btn, NoneElement):
             ele_btns = ele_blk_tab.eles('@@tag()=div@@role=presentation', timeout=2)  # noqa
@@ -1511,9 +1570,9 @@ class XWool():
         n_processed = 0
         for i in range(1, pages+1):
             self.logit(None, f'Check follow page {i}/{pages} ...')
-            (n_ret, n_processed) = self.check_page_follow(n_processed)
+            (n_ret, n_processed) = self.check_page_follow(idx_tab, n_processed)
             if n_ret == 99:
-                self.logit(None, f'Stop processing unfollow due to limit [{self.args.check_follow}]')  # noqa
+                # self.logit(None, f'Stop processing unfollow due to limit [{self.args.check_follow}]')  # noqa
                 break
             tab = self.browser.latest_tab
             tab.scroll.to_bottom()

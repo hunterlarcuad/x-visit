@@ -508,6 +508,47 @@ def load_ad_user(csv_file):
     return lst_ad_user
 
 
+def load_to_set(csv_file, set_user):
+    """
+    加载 X 账号列表
+
+    文件格式：
+    x_user,x_nickname
+    ablenavy,iGarlic
+    hunterlarcuad
+
+    只有一个字段，则赋值为 x_user
+
+    return set_user
+    set_user = set([])
+
+    """
+    # csv_file = 'datas/status/xwool/advertising.csv'
+    # set_user = set([])
+
+    if not os.path.exists(csv_file):
+        print(f'CSV file not found: {csv_file}')
+        return []
+    
+    try:
+        # 使用 load_file 函数加载 CSV 数据
+        dic_data = load_file(csv_file, idx_key=0)
+        
+        # 提取 URL（CSV 格式：date,project,url）
+        for key, fields in dic_data.items():
+            if len(fields) >= 1:
+                x_user = fields[0].strip()
+            else:
+                continue
+            set_user.add(x_user)
+
+    except Exception as e:
+        print(f'Failed to load x_user: {str(e)}')
+        # 加载失败，使用空列表
+
+    return set_user
+
+
 if __name__ == "__main__":
     """
     """
