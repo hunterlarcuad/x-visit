@@ -206,17 +206,13 @@ class XWool():
                    f'Retweet: {session_counts["retweet"]}')
 
         # 显示当日总计
-        total_today = {
-            'follow': today_counts['follow'] + session_counts['follow'],
-            'like': today_counts['like'] + session_counts['like'],
-            'reply': today_counts['reply'] + session_counts['reply'],
-            'retweet': today_counts['retweet'] + session_counts['retweet']
-        }
+        # today_counts 已经包含了历史数据（从CSV加载）和当前运行时的数据（通过update_daily_stats更新）
+        # 所以不需要再加上 session_counts，否则会重复统计
         self.logit(None,
-                   f'Today total - Follow: {total_today["follow"]}, '
-                   f'Like: {total_today["like"]}, '
-                   f'Reply: {total_today["reply"]}, '
-                   f'Retweet: {total_today["retweet"]}')
+                   f'Today total - Follow: {today_counts["follow"]}, '
+                   f'Like: {today_counts["like"]}, '
+                   f'Reply: {today_counts["reply"]}, '
+                   f'Retweet: {today_counts["retweet"]}')
 
     def check_daily_limits(self, op_type, current_count, max_limit):
         """
@@ -263,6 +259,7 @@ class XWool():
         self.file_user_white = f'{DEF_PATH_DATA_STATUS}/xwool/a_user_white.csv'
         self.file_user_black = f'{DEF_PATH_DATA_STATUS}/xwool/a_user_black.csv'
 
+        # load_processed_url 已经会更新统计，不需要再调用 load_daily_stats_from_csv
         self.load_processed_url()
 
         self.n_follow = 0
@@ -376,7 +373,7 @@ class XWool():
         self.logit(None, f'load_liked_url: {len(self.set_url_liked)}')  # noqa
         self.logit(None, f'load_replied_url: {len(self.set_url_replied)}')  # noqa
         self.logit(None, f'load_retweeted_url: {len(self.set_url_retweeted)}')  # noqa
-
+        
         # 显示每日统计信息
         self.print_daily_stats()
 

@@ -963,14 +963,24 @@ def get_account_stats(profile):
                 }
             })
 
-        # 获取今天的日期
-        today = date.today()
+        # 获取今天的日期（使用与xwool.py相同的时区逻辑）
+        from fun_utils import format_ts
+        from conf import TZ_OFFSET
 
-        # 统计今日数据
+        today_str = format_ts(time.time(), style=1, tz_offset=TZ_OFFSET)
+        today = datetime.strptime(today_str, '%Y-%m-%d').date()
+
+        # 统计今日数据（去重，与xwool.py保持一致）
         follow_count = 0
         like_count = 0
         reply_count = 0
         retweet_count = 0
+
+        # 用于去重的集合
+        followed_users = set()
+        liked_urls = set()
+        replied_urls = set()
+        retweeted_urls = set()
 
         with open(csv_file, 'r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
@@ -991,14 +1001,29 @@ def get_account_stats(profile):
                             if status == 'OK':
                                 # 使用 'op_type' 列来判断操作类型
                                 op_type = row.get('op_type', '').lower()
+                                url = row.get('url', '')
+
                                 if 'follow' in op_type:
-                                    follow_count += 1
+                                    # follow 操作使用用户名去重
+                                    name = row.get('msg', '')
+                                    if name and name not in followed_users:
+                                        followed_users.add(name)
+                                        follow_count += 1
                                 elif 'like' in op_type:
-                                    like_count += 1
+                                    # like 操作使用 URL 去重
+                                    if url and url not in liked_urls:
+                                        liked_urls.add(url)
+                                        like_count += 1
                                 elif 'reply' in op_type:
-                                    reply_count += 1
+                                    # reply 操作使用 URL 去重
+                                    if url and url not in replied_urls:
+                                        replied_urls.add(url)
+                                        reply_count += 1
                                 elif 'retweet' in op_type:
-                                    retweet_count += 1
+                                    # retweet 操作使用 URL 去重
+                                    if url and url not in retweeted_urls:
+                                        retweeted_urls.add(url)
+                                        retweet_count += 1
                 except (ValueError, TypeError) as e:
                     # 如果日期格式不正确，跳过这条记录
                     app.logger.debug(f"跳过无效记录: {row}, 错误: {e}")
