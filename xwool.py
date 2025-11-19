@@ -1766,6 +1766,7 @@ class XWool():
 
         if self.args.manual_exit and self.args.headless is False:
             s_msg = 'Press any key to exit! ⚠️'  # noqa
+            self.logit('xwool_run', f'[manual_exit={self.args.manual_exit}] {s_msg}')  # noqa
             input(s_msg)
 
         self.logit('xwool_run', 'Finished!')
