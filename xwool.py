@@ -373,7 +373,7 @@ class XWool():
         self.logit(None, f'load_liked_url: {len(self.set_url_liked)}')  # noqa
         self.logit(None, f'load_replied_url: {len(self.set_url_replied)}')  # noqa
         self.logit(None, f'load_retweeted_url: {len(self.set_url_retweeted)}')  # noqa
-        
+
         # 显示每日统计信息
         self.print_daily_stats()
 
@@ -814,9 +814,14 @@ class XWool():
                         tab.close()
                         return b_ret, counts
 
+                    is_following = self.is_following(name)
+
                     s_tweet_type = self.get_tweet_type_by_keyword(s_tweet_text)
-                    if is_all_reply:
-                        self.logit(None, f'is_all_reply: {is_all_reply}')
+                    if is_following:
+                        self.logit(None, f'is_following: {is_following}, ignore keyword filter ...')  # noqa
+                        pass
+                    elif is_all_reply:
+                        self.logit(None, f'is_all_reply: {is_all_reply}, reply all tweets ...')  # noqa
                         pass
                     else:
                         if s_tweet_type == 'other':
@@ -947,6 +952,24 @@ class XWool():
                     return True
         return False
 
+    def is_following(self, x_user):
+        tab = self.browser.latest_tab
+        ele_blk = tab.ele('@@tag()=aside@@role=complementary', timeout=3)
+        if not isinstance(ele_blk, NoneElement):
+            ele_items = ele_blk.eles('@@tag()=li@@role=listitem', timeout=3)
+            for ele_item in ele_items:
+                if ele_item.text.find(x_user) == -1:
+                    continue
+                ele_btn = ele_item.ele('@@tag()=button@@role=button', timeout=3)
+                if not isinstance(ele_btn, NoneElement):
+                    s_value = ele_btn.attr('data-testid')
+                    s_value = s_value.split('-')[-1]
+                    if s_value == 'unfollow':
+                        return True
+                    else:
+                        return False
+        return False
+
     def interaction(self, is_reply=True, is_all_reply=False,
                     is_like=True, is_retweet=False, is_follow=True,
                     max_num_proc=-1):
@@ -981,6 +1004,7 @@ class XWool():
 
         num_blk = 0
         n_proc_success = 0
+
         for ele_blk_top in ele_blks_top:
             num_blk += 1
             self.logit(None, f'num_blk={num_blk}/{n_blks_top}')
@@ -1504,8 +1528,11 @@ class XWool():
                     if s_follow_status == 'follow':
                         (n_ret, n_num) = self.do_follow_back(ele_btn_follow, s_nickname, s_handler)  # noqa
                         n_total += n_num
+                        if self.args.max_follow_back != -1 and n_total >= self.args.max_follow_back:  # noqa
+                            self.logit(None, f'Stop processing idx_tab={idx_tab} due to limit [max_follow_back={self.args.max_follow_back}]')  # noqa
+                            return (99, n_total)
                         if n_ret == 99:
-                            self.logit(None, f'Stop processing idx_tab={idx_tab} due to limit [{self.args.max_follow}]')  # noqa
+                            self.logit(None, f'Stop processing idx_tab={idx_tab} due to limit [max_follow={self.args.max_follow}]')  # noqa
                             return (99, n_total)
                     continue
                 self.logit(None, f'{s_id} Is Followed me? {s_nickname} {s_handler} [No] ❌') # noqa
@@ -1676,8 +1703,9 @@ class XWool():
             self.logit(None, 'X Account is suspended, return ...')
             return True
 
-        self.check_follow(0, 2)
-        self.check_follow(1, 1)
+        if self.args.max_follow_back != 0:
+            self.check_follow(0, self.args.max_follow_page)
+            self.check_follow(1, self.args.max_follow_page)
         if self.args.check_follow != 0:
             # self.check_follow(2, -1)
             self.check_follow(2, self.args.max_follow_page)
@@ -2059,6 +2087,11 @@ if __name__ == '__main__':
     parser.add_argument(
         '--max_retweet', required=False, default=-1, type=int,
         help='[默认为 -1] 当日最大转帖数量，-1表示无限制，0表示不转帖'
+    )
+
+    parser.add_argument(
+        '--max_follow_back', required=False, default=0, type=int,
+        help='[默认为 5] 回关数量，0表示不回关，-1表示无限制'
     )
 
     # 添加 --check_follow 参数，用于取消未关注的用户，回关已关注用户
