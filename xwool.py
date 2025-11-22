@@ -1411,7 +1411,7 @@ class XWool():
             (flag, n_total)
         """
         if s_handler in self.set_user_black:
-            self.logit(None, f'User {s_handler} is in black list, skip ...')  # noqa
+            self.logit('do_follow_back', f'User {s_handler} is in black list, skip ...')  # noqa
             return (-1, 0)
 
         if self.get_today_stats().get('follow', 0) >= self.args.max_follow:
@@ -1449,13 +1449,14 @@ class XWool():
             -2: Failed to unfollow
             -1: User is in black list
             0: Success
+            10: User is in white list
             99: Unfollow num limit reached
 
             (flag, n_total)
         """
-        if s_handler in self.set_user_black:
-            self.logit(None, f'User {s_handler} is in black list, skip ...')  # noqa
-            return (-1, 0)
+        if s_handler in self.set_user_white:
+            self.logit('do_unfollow', f'User {s_handler} is in white list, skip ...')  # noqa
+            return (10, 0)
 
         tab = self.browser.latest_tab
         # s_info = ele_btn_follow.text
@@ -1536,8 +1537,11 @@ class XWool():
                     # idx_handler: 2
                     # idx_description: 6
                     s_nickname = ele_label_handler[0].text
-                    s_handler = ele_label_handler[2].text
-                    # self.logit(None, f'Nickname: {s_nickname}, Handler: {s_handler}') # noqa
+                    s_handler = ele_label_handler[2].text.strip('@').strip()
+
+                    if len(ele_label_handler) >= 7:
+                        s_description = ele_label_handler[6].text
+                        self.update_blacklist_by_keywords(s_handler, s_description)  # noqa
                 else:
                     self.logit(None, 'Warning: len(ele_label_handler) < 6, skip ...')  # noqa
                     continue
@@ -1573,6 +1577,9 @@ class XWool():
                         if n_ret == 99:
                             self.logit(None, f'Stop processing idx_tab={idx_tab} due to limit [max_follow={self.args.max_follow}]')  # noqa
                             return (99, n_total)
+                    else:
+                        if s_handler in self.set_user_black:
+                            self.do_unfollow(ele_btn_follow, s_nickname, s_handler)  # noqa
                     continue
                 self.logit(None, f'{s_id} Is Followed me? {s_nickname} {s_handler} [No] ❌') # noqa
 
@@ -1588,6 +1595,24 @@ class XWool():
 
             tab.wait(3)
         return (0, n_total)
+
+    def update_blacklist_by_keywords(self, s_handler, s_description):
+        """
+        Update blacklist
+        """
+        set_keywords = set([
+            '包养',
+        ])
+
+        if s_handler in self.set_user_black:
+            return True
+
+        for s_keyword in set_keywords:
+            if s_keyword in s_description:
+                self.set_user_black.add(s_handler)
+                self.logit(None, f'Update blacklist: [user={s_handler}] [description={s_description}]') # noqa
+                return True
+        return False
 
     def check_follow(self, idx_tab=0, pages=20):
         """
