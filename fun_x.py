@@ -1406,11 +1406,16 @@ class XUtils():
 
                     tab.wait(1)
 
-                if ele_btn.text.replace('\n', ' ') != s_text.replace('\n', ' '):
+                if ele_btn.text.replace('\n', '').replace(' ', '') != s_text.replace('\n', '').replace(' ', ''):
                     self.logit(None, 'reply ele_btn.text != s_text')
                     self.logit(None, f'-- ele_btn.text: {ele_btn.text}')
                     self.logit(None, f'-- s_text: {s_text}')
+                    # 文本框输入内容后，刷新页面后，有确认对话框
+                    # 重新加载此网站？系统可能不会保存您所做的更改。取消 重新加载
                     tab.refresh()
+                    tab.wait(2)
+                    tab.handle_alert(accept=True, timeout=2)
+                    tab.wait(2)
                     continue
             else:
                 continue

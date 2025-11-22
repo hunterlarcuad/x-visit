@@ -600,34 +600,77 @@ class XWool():
             return s_info
         return None
 
+    def clean_reply(self, s_reply):
+        # 去掉换行符
+        s_reply = s_reply.replace('\n', ' ')
+
+        # 去掉 <|begin_of_box|> 和 <|end_of_box|> 标签
+        s_reply = re.sub(r'<\|begin_of_box\|>|<\|end_of_box\|>', '', s_reply)  # noqa
+
+        s_reply = s_reply.replace(' ', '')
+        s_reply = s_reply.replace(' ', '')
+
+        # 如果有多个空格，只保留1个空格
+        s_reply = re.sub(r'\s+', ' ', s_reply)
+        # 去掉前后的空格
+        s_reply = s_reply.strip()
+
+        return s_reply
+
     def reply_tweet(self, s_tweet_type, s_tweet_text):
         self.logit('reply_tweet', f's_tweet_type: {s_tweet_type}')
         s_reply = ''
+        s_cont = s_tweet_text
         if s_tweet_type == 'follow':
-            lst_reply = [
-                '来了！',
-                '来啦！',
-                '安排！',
-                '互关！',
-                '互粉！',
-                '互关互粉，冲！',
-                '来啦！互关！'
-            ]
-            s_reply = random.choice(lst_reply)
-
-            # 生成一个随机字符串，长度为 1 到 5 个字符(0-9,a-z,A-Z)
-            chars = (
-                '0123456789abcdefghijklmnopqrstuvwxyz'
-                'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+            # "回复尽量简短，一句话回复"
+            s_rules = (
+                "简短回复，一句话回复\n"
+                "幽默风趣，吸引对方关注\n"
+                "回复语言与推文一致\n"
+                "特别注意，不要出现回复如下之类的字眼，直接输出回复内容\n"
+                "特别注意，回复不要出现 <|begin_of_box|> 和 <|end_of_box|> 标签\n"
             )
-            s_random = ''.join(
-                random.choices(chars, k=random.randint(1, 5))
-            )
-            s_reply += f' {s_random}'
 
+            s_prompt = (
+                "# 【功能】\n"
+                "阅读给定帖子内容，生成回复\n"
+                "# 【要求】\n"
+                f"{s_rules}"
+                "# 【帖子内容如下】\n"
+                f"{s_cont}"
+            )
+            try:
+                s_reply = gene_by_llm(s_prompt)
+                if not s_reply:
+                    self.logit(None, 's_reply from llm is empty, skip ...')
+            except Exception as e:
+                self.logit(None, f'Error calling gene_by_llm: {e}')
+            s_reply = self.clean_reply(s_reply)
+
+            if not s_reply:
+                self.logit(None, 's_reply from llm is empty, use random reply ...')  # noqa
+                lst_reply = [
+                    '来了！',
+                    '来啦！',
+                    '安排！',
+                    '互关！',
+                    '互粉！',
+                    '互关互粉，冲！',
+                    '来啦！互关！'
+                ]
+                s_reply = random.choice(lst_reply)
+
+                # 生成一个随机字符串，长度为 1 到 5 个字符(0-9,a-z,A-Z)
+                chars = (
+                    '0123456789abcdefghijklmnopqrstuvwxyz'
+                    'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+                )
+                s_random = ''.join(
+                    random.choices(chars, k=random.randint(1, 5))
+                )
+                s_reply += f' {s_random}'
         else:
             # 调用大模型
-            s_cont = s_tweet_text[:300]
 
             # "回复尽量幽默风趣，使用小红书风格"
             # s_rules = (
@@ -678,17 +721,10 @@ class XWool():
                 return False
 
             # 尝试生成合格的回复，最多尝试次数
-            max_attempts = 8
+            max_attempts = 3
             for attempt in range(1, max_attempts + 1):
-
-                # 如果有多个空格，只保留1个空格
-                s_reply = re.sub(r'\s+', ' ', s_reply)
-                # 去掉前后的空格
-                s_reply = s_reply.strip()
-                # 去掉换行符
-                s_reply = s_reply.replace('\n', '')
-                # 去掉 <|begin_of_box|> 和 <|end_of_box|> 标签
-                s_reply = re.sub(r'<\|begin_of_box\|>|<\|end_of_box\|>', '', s_reply)  # noqa
+                self.logit(None, f'quality check attempt: {attempt}/{max_attempts}')  # noqa
+                s_reply = self.clean_reply(s_reply)
 
                 self.logit(None, f'[To Verify]reply_by_llm: {s_reply}')
                 # 验证回复内容是否合格
@@ -705,7 +741,7 @@ class XWool():
                         f'Attempt {attempt}/{max_attempts}: '
                         f'Reply not qualified: {reason}'
                     )
-                    if attempt < max_attempts:
+                    if attempt <= max_attempts:
                         # 修改 prompt，要求大模型根据错误原因进行改进
                         s_prompt = (
                             "# 【要求】\n"
@@ -723,8 +759,10 @@ class XWool():
                             self.logit(None, f'Error calling gene_by_llm: {e}')
                             return False
                     else:
-                        self.logit(None, 'All attempts failed, skip ...')
-                        return False
+                        if not s_reply:
+                            self.logit(None, 'All attempts failed, reply is empty, skip ...')
+                            return False
+                        self.logit(None, 'All attempts failed, ignore the check, use the reply ...')
 
             """
             s_reply += '\n'
