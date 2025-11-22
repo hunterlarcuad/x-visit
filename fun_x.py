@@ -1438,6 +1438,7 @@ class XUtils():
                         self.logit(None, f'reply assertive: {s_info}')
                         n_sleep = random.randint(3600, int(3600*1.2))
                         s_msg = f'[{self.args.s_profile}][Fail to reply] {s_info} [sleep {n_sleep} seconds ...]' # noqa
+                        self.logit('x_reply', f'ding_msg: {s_msg}')
                         ding_msg(s_msg, DEF_DING_TOKEN, msgtype='text')
                         time.sleep(n_sleep)
                         return False

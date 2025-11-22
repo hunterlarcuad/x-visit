@@ -645,7 +645,6 @@ class XWool():
                     self.logit(None, 's_reply from llm is empty, skip ...')
             except Exception as e:
                 self.logit(None, f'Error calling gene_by_llm: {e}')
-            s_reply = self.clean_reply(s_reply)
 
             if not s_reply:
                 self.logit(None, 's_reply from llm is empty, use random reply ...')  # noqa
@@ -741,7 +740,7 @@ class XWool():
                         f'Attempt {attempt}/{max_attempts}: '
                         f'Reply not qualified: {reason}'
                     )
-                    if attempt <= max_attempts:
+                    if attempt < max_attempts:
                         # 修改 prompt，要求大模型根据错误原因进行改进
                         s_prompt = (
                             "# 【要求】\n"
@@ -783,6 +782,8 @@ class XWool():
                 s_reply += '\n'
                 s_reply += '#Cookie #SNAPS'
             """
+
+        s_reply = self.clean_reply(s_reply)
 
         # 使用已加载的广告 URL
         if len(self.lst_attached_url) > 0:
