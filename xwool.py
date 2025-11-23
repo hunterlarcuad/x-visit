@@ -1609,8 +1609,8 @@ class XWool():
 
         for s_keyword in set_keywords:
             if s_keyword in s_description:
-                self.set_user_black.add(s_handler)
                 self.logit(None, f'Update blacklist: [user={s_handler}] [description={s_description}]') # noqa
+                self.set_user_black.add(s_handler)
                 return True
         return False
 
