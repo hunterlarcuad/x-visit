@@ -7,6 +7,7 @@ import copy
 import pdb # noqa
 import shutil
 import math
+import difflib
 import re # noqa
 from datetime import datetime # noqa
 import pyotp
@@ -1351,7 +1352,7 @@ class XUtils():
             if not isinstance(ele_btn, NoneElement):
                 self.logit(None, 'Try to input reply text ...')
                 tab.actions.move_to(ele_btn)
-                if ele_btn.text.replace('\n', ' ') != s_text.replace('\n', ' '):
+                if ele_btn.text.replace('\n', '').replace(' ', '') != s_text.replace('\n', '').replace(' ', ''):
                     # ele_btn.input(s_text)
                     # tab.wait(2)
 
@@ -1396,7 +1397,6 @@ class XUtils():
                                     self.logit(None, f'reply ele_btn.text != s_text[:j+1]')
                                     self.logit(None, f'-- ele_btn.text: {ele_btn.text}')
                                     self.logit(None, f'-- s_text[:j+1]: {s_text[:j+1]}')
-                                    is_input_ok = False
                                     break
 
                     except Exception as e:
@@ -1429,6 +1429,7 @@ class XUtils():
 
                 tab.wait(2)
 
+                self.get_toast_alert()
                 ele_info = tab.ele('@@tag()=div@@aria-live=assertive', timeout=2)
                 if not isinstance(ele_info, NoneElement):
                     s_info = ele_info.text
@@ -1436,6 +1437,16 @@ class XUtils():
                         pass
                     else:
                         self.logit(None, f'reply assertive: {s_info}')
+
+                        lst_assert = [
+                            'You already said that',
+                            '你已经发过了'
+                        ]
+                        for s_assert in lst_assert:
+                            if s_assert in s_info:
+                                self.logit(None, 'Reply Success ✅')
+                                return True
+
                         n_sleep = random.randint(3600, int(3600*1.2))
                         s_msg = f'[{self.args.s_profile}][Fail to reply] {s_info} [sleep {n_sleep} seconds ...]' # noqa
                         self.logit('x_reply', f'ding_msg: {s_msg}')
@@ -1443,17 +1454,145 @@ class XUtils():
                         time.sleep(n_sleep)
                         return False
 
-                self.logit(None, 'Reply Success ✅')
-                return True
+                tab.wait(2)
+                ele_blk_reply = None
+                ele_blks = tab.eles('@@tag()=article@@role=article@@data-testid=tweet', timeout=2)
+                for ele_blk in ele_blks:
+                    s_blk_text = ele_blk.text
+                    idx = get_index_from_header(DEF_HEADER_ACCOUNT, 'x_username')
+                    x_username = self.dic_account[self.args.s_profile][idx]
+                    if x_username in s_blk_text:
+                        ele_blk_reply = ele_blk
+                        break
+                if not ele_blk_reply:
+                    pass
+                else:
+                    ele_div = ele_blk_reply.ele('@@tag()=div@@data-testid=tweetText', timeout=2)
+                    if not isinstance(ele_div, NoneElement):
+                        s_div_text = ele_div.text
+                        s_src = s_text.replace('\n', '').replace(' ', '')
+                        s_dst = s_div_text.replace('\n', '').replace(' ', '')
+                        # 计算 s_dst 和 s_src 的相似度，达到 90% 则认为成功
+                        f_similarity = difflib.SequenceMatcher(None, s_src, s_dst).ratio()
+                        self.logit(None, f'f_similarity: {f_similarity}')
+                        if f_similarity >= 0.9:
+                            self.logit(None, 'Reply Success ✅')
+                            return True
+                        else:
+                            self.logit(None, f'reply not found: [s_dst={s_dst}] != [s_src={s_src}]')  # noqa
 
         self.logit(None, 'Fail to reply [ERROR]')
+        return False
+
+    def x_post(self, s_text):
+        max_try = 10
+        for i in range(1, max_try+1):
+            self.logit('x_post', f'try_i={i}/{max_try}')
+            tab = self.browser.latest_tab
+            tab.wait.doc_loaded()
+            self.check_need_login()
+
+            ele_btn = tab.ele('@@tag()=div@@data-testid=tweetTextarea_0_label', timeout=2)
+            if not isinstance(ele_btn, NoneElement):
+                self.logit(None, 'Try to input post text ...')
+                tab.actions.move_to(ele_btn)
+                if ele_btn.text.replace('\n', '').replace(' ', '') != s_text.replace('\n', '').replace(' ', ''):
+                    try:
+                        tab.actions.move_to(ele_btn).click()
+                        tab.wait(1)
+                        if i <= 3:
+                            tab.actions.type(s_text)
+                        else:
+                            n_len = len(s_text)
+                            for j in range(n_len):
+                                s_char = s_text[j]
+                                tab.actions.type(s_char)
+                                tab.wait(0.3)
+                                if s_char == ' ':
+                                    continue
+                                if ele_btn.text != s_text[:j+1]:
+                                    self.logit(None, f'post ele_btn.text != s_text[:j+1]')
+                                    self.logit(None, f'-- ele_btn.text: {ele_btn.text}')
+                                    self.logit(None, f'-- s_text[:j+1]: {s_text[:j+1]}')
+                                    break
+
+                    except Exception as e:
+                        tab.actions.move_to(ele_btn).click()
+                        tab.wait(1)
+                        tab.actions.type(s_text)
+
+                    tab.wait(1)
+
+                if ele_btn.text.replace('\n', '').replace(' ', '') != s_text.replace('\n', '').replace(' ', ''):
+                    self.logit(None, 'post ele_btn.text != s_text')
+                    self.logit(None, f'-- ele_btn.text: {ele_btn.text}')
+                    self.logit(None, f'-- s_text: {s_text}')
+                    # 文本框输入内容后，刷新页面后，有确认对话框
+                    # 重新加载此网站？系统可能不会保存您所做的更改。取消 重新加载
+                    tab.refresh()
+                    tab.wait(2)
+                    tab.handle_alert(accept=True, timeout=2)
+                    tab.wait(2)
+                    continue
+            else:
+                continue
+
+            ele_btn = tab.ele('@@tag()=button@@data-testid=tweetButtonInline', timeout=2)
+            if not isinstance(ele_btn, NoneElement):
+                self.logit(None, 'Try to click post button ...')
+                tab.actions.move_to(ele_btn)
+                if ele_btn.wait.clickable(timeout=5) is not False:
+                    ele_btn.click(by_js=True)
+
+                tab.wait(2)
+
+                self.get_toast_alert()
+                ele_info = tab.ele('@@tag()=div@@aria-live=assertive', timeout=2)
+                if not isinstance(ele_info, NoneElement):
+                    s_info = ele_info.text
+                    if not s_info:
+                        pass
+                    else:
+                        self.logit(None, f'post assertive: {s_info}')
+                        lst_assert = [
+                            'You already said that',
+                            '你已经发过了'
+                        ]
+                        for s_assert in lst_assert:
+                            if s_assert in s_info:
+                                self.logit(None, 'Post Success ✅')
+                                return True
+
+                        n_sleep = random.randint(3600, int(3600*1.2))
+                        s_msg = f'[{self.args.s_profile}][Fail to post] {s_info} [sleep {n_sleep} seconds ...]' # noqa
+                        self.logit('x_post', f'ding_msg: {s_msg}')
+                        ding_msg(s_msg, DEF_DING_TOKEN, msgtype='text')
+                        time.sleep(n_sleep)
+                        return False
+
+                tab.wait(2)
+                ele_div = tab.ele('@@tag()=div@@data-testid=tweetText', timeout=2)
+                if not isinstance(ele_div, NoneElement):
+                    s_div_text = ele_div.text
+                    s_src = s_text.replace('\n', '').replace(' ', '')
+                    s_dst = s_div_text.replace('\n', '').replace(' ', '')
+                    # 计算 s_dst 和 s_src 的相似度，达到 90% 则认为成功
+                    f_similarity = difflib.SequenceMatcher(None, s_src, s_dst).ratio()
+                    self.logit(None, f'f_similarity: {f_similarity}')
+                    if f_similarity >= 0.9:
+                        self.logit(None, 'Post Success ✅')
+                        return True
+                    else:
+                        self.logit(None, f'post not found: [s_dst={s_dst}] != [s_src={s_src}]')  # noqa
+
+        self.logit(None, 'Fail to post [ERROR]')
         return False
 
     def x_authorize_app(self):
         for i in range(1, DEF_NUM_TRY+1):
             self.logit('x_authorize_app', f'try_i={i}/{DEF_NUM_TRY}')
             tab = self.browser.latest_tab
-            ele_btn = tab.ele('@@tag()=button@@data-testid=OAuth_Consent_Button', timeout=2) # noqa
+            ele_btn = tab.ele('@@tag()=button@@data-testid=OAuth_Consent_Button', timeout=2)  # noqa
             if not isinstance(ele_btn, NoneElement):
                 s_info = ele_btn.text
                 self.logit(None, f'Click Authorize app button [{s_info}]') # noqa
@@ -2108,6 +2247,19 @@ class XUtils():
         self.logit(None, 'Need to login ...')
         self.twitter_run()
         return True
+
+    def get_toast_alert(self):
+        tab = self.browser.latest_tab
+        ele_div = tab.ele('@@tag()=div@@role=alert@@data-testid=toast', timeout=1)
+        if not isinstance(ele_div, NoneElement):
+            s_text = ele_div.text
+            self.logit(None, f'Toast Alert: {s_text}')
+            ele_btn = ele_div.ele('@@tag()=a@@role=link', timeout=1)
+            if not isinstance(ele_btn, NoneElement):
+                s_link = ele_btn.attr('href')
+                self.logit(None, f'Toast Alert Link: {s_link}')
+            return s_text
+        return None
 
 
 if __name__ == '__main__':

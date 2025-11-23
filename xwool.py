@@ -142,7 +142,8 @@ class XWool():
                 'like': 0,
                 'reply': 0,
                 'retweet': 0,
-                'unfollow': 0
+                'unfollow': 0,
+                'post': 0
             }
 
         if op_type in self.dic_date_count[date]:
@@ -163,7 +164,8 @@ class XWool():
             'like': 0,
             'reply': 0,
             'retweet': 0,
-            'unfollow': 0
+            'unfollow': 0,
+            'post': 0
         })
 
     def get_today_stats(self):
@@ -185,7 +187,9 @@ class XWool():
                 self.logit(None,
                            f'{date}: Follow={counts["follow"]}, '
                            f'Like={counts["like"]}, Reply={counts["reply"]}, '
-                           f'Retweet={counts["retweet"]}, Total={total}')
+                           f'Retweet={counts["retweet"]}, '
+                           f'Post={counts["post"]}, '
+                           f'Total={total}')
         else:
             self.logit(None, 'No daily operation counts found')
 
@@ -212,7 +216,8 @@ class XWool():
                    f'Today total - Follow: {today_counts["follow"]}, '
                    f'Like: {today_counts["like"]}, '
                    f'Reply: {today_counts["reply"]}, '
-                   f'Retweet: {today_counts["retweet"]}')
+                   f'Retweet: {today_counts["retweet"]}, '
+                   f'Post: {today_counts["post"]}')
 
     def check_daily_limits(self, op_type, current_count, max_limit):
         """
@@ -367,6 +372,9 @@ class XWool():
                         elif 'unfollow' == s_op_type:
                             if fields[2] == DEF_INTERACTION_OK:
                                 self.update_daily_stats(s_date, 'unfollow', 1)
+                        elif 'post' == s_op_type:
+                            if fields[2] == DEF_INTERACTION_OK:
+                                self.update_daily_stats(s_date, 'post', 1)
 
         self.logit(None, f'load_ignored_url: {len(self.set_url_ignored)}')  # noqa
         self.logit(None, f'load_followed_user: {len(self.set_user_followed)}')  # noqa
@@ -577,7 +585,9 @@ class XWool():
 
         if match1 or match2:
             problem_text = match1.group() if match1 else match2.group()
-            errors.append(f'中英文之间缺少空格，问题片段: "... {problem_text} ..."')
+
+            # 不提示中英文之间缺少空格
+            # errors.append(f'中英文之间缺少空格，问题片段: "... {problem_text} ..."')
 
         # 如果有错误，返回 False 和拼接的错误信息
         if errors:
@@ -759,9 +769,9 @@ class XWool():
                             return False
                     else:
                         if not s_reply:
-                            self.logit(None, 'All attempts failed, reply is empty, skip ...')
+                            self.logit(None, 'All attempts failed, reply is empty, skip ...')  # noqa
                             return False
-                        self.logit(None, 'All attempts failed, ignore the check, use the reply ...')
+                        self.logit(None, 'All attempts failed, ignore the check, use the reply ...')  # noqa
 
             """
             s_reply += '\n'
@@ -999,7 +1009,7 @@ class XWool():
             for ele_item in ele_items:
                 if ele_item.text.find(x_user) == -1:
                     continue
-                ele_btn = ele_item.ele('@@tag()=button@@role=button', timeout=3)
+                ele_btn = ele_item.ele('@@tag()=button@@role=button', timeout=3)  # noqa
                 if not isinstance(ele_btn, NoneElement):
                     s_value = ele_btn.attr('data-testid')
                     s_value = s_value.split('-')[-1]
@@ -1644,17 +1654,20 @@ class XWool():
                     tab.wait(3)
 
         self.logit(None, f'Switch to followback/unfollow tab [idx_tab={idx_tab}] ...')  # noqa
-        ele_blk_tab = tab.ele('@@tag()=div@@data-testid=ScrollSnap-List', timeout=2) # noqa
-        if not isinstance(ele_btn, NoneElement):
-            ele_btns = ele_blk_tab.eles('@@tag()=div@@role=presentation', timeout=2)  # noqa
-            if len(ele_btns) >= 3:
-                ele_btn = ele_btns[idx_tab]
-                if not isinstance(ele_btn, NoneElement):
-                    s_info = ele_btn.text
-                    self.logit(None, f'Click tab button [{s_info}]') # noqa
-                    if ele_btn.wait.clickable(timeout=5) is not False:
-                        ele_btn.click()
-                        tab.wait(3)
+        try:
+            ele_blk_tab = tab.ele('@@tag()=div@@data-testid=ScrollSnap-List', timeout=2) # noqa
+            if not isinstance(ele_btn, NoneElement):
+                ele_btns = ele_blk_tab.eles('@@tag()=div@@role=presentation', timeout=2)  # noqa
+                if len(ele_btns) >= 3:
+                    ele_btn = ele_btns[idx_tab]
+                    if not isinstance(ele_btn, NoneElement):
+                        s_info = ele_btn.text
+                        self.logit(None, f'Click tab button [{s_info}]') # noqa
+                        if ele_btn.wait.clickable(timeout=5) is not False:
+                            ele_btn.click()
+                            tab.wait(3)
+        except Exception as e:
+            self.logit(None, f'Error getting ele_blk_tab: {e}')
 
         pages = 100000 if pages == -1 else pages
         n_processed = 0
@@ -1681,6 +1694,111 @@ class XWool():
                 tab.wait(3)
                 return True
         return False
+
+    def gene_new_post_text_by_llm(self, n_len=120):
+        """
+        Generate new post text by LLM
+        普通用户在 Twitter（X）发布一条推文最多可输入 280 个英文字符（大约 140 个汉字）
+        """
+        s_rules = (
+            "币圈启示录，富有哲理，幽默风趣，能够给人以启发\n"
+            "请用中文输出\n"
+            "输出不要出现换行符\n"
+            "回复内容禁止出现 @\n"
+            "避免引用#话题，禁止出现 # \n"
+            f"回复不要超过 {n_len} 个汉字\n"
+            "特别注意，中文(汉字)与非中文(英文、数字、符号)之间要加一个空格，不要连在一起，增加可读性\n"
+            "特别注意，不要出现回复如下之类的字眼，直接输出回复内容\n"
+            "特别注意，回复不要出现 <|begin_of_box|> 和 <|end_of_box|> 标签\n"
+        )
+
+        s_prompt = (
+            "# 【功能】\n"
+            "生成一条推文\n"
+            "# 【要求】\n"
+            f"{s_rules}"
+        )
+        try:
+            s_text = gene_by_llm(s_prompt)
+            if not s_text:
+                self.logit(None, 's_text from llm is empty, skip ...')
+                return False
+        except Exception as e:
+            self.logit(None, f'Error calling gene_by_llm: {e}')
+            return False
+
+        # 尝试生成合格的回复，最多尝试次数
+        max_attempts = 3
+        for attempt in range(1, max_attempts + 1):
+            self.logit(None, f'quality check attempt: {attempt}/{max_attempts}')  # noqa
+            s_text = self.clean_reply(s_text)
+
+            self.logit(None, f'[To Verify]post_by_llm: {s_text}')
+            # 验证推文内容是否合格
+            is_ok, reason = self.is_reply_ok(s_text, n_max_len=n_len)
+            if is_ok:
+                self.logit(
+                    None,
+                    f'Post qualified on attempt {attempt}/{max_attempts}'
+                )
+                break
+            else:
+                self.logit(
+                    None,
+                    f'Attempt {attempt}/{max_attempts}: '
+                    f'Post not qualified: {reason}'
+                )
+                if attempt < max_attempts:
+                    # 修改 prompt，要求大模型根据错误原因进行改进
+                    s_prompt = (
+                        "# 【要求】\n"
+                        f"{s_rules}"
+                        f"# 【推文内容有问题，请根据错误原因进行修改】\n"
+                        f"{reason}\n"
+                        f"# 【推文内容】{s_text}"
+                    )
+                    try:
+                        s_text = gene_by_llm(s_prompt)
+                        if not s_text:
+                            self.logit(None, 's_text from llm is empty, skip ...')  # noqa
+                            return False
+                    except Exception as e:
+                        self.logit(None, f'Error calling gene_by_llm: {e}')
+                        return False
+                else:
+                    if not s_text:
+                        self.logit(None, 'All attempts failed, post is empty, skip ...')  # noqa
+                        return False
+                    self.logit(None, 'All attempts failed, ignore the check, use the post ...')  # noqa
+
+        return s_text
+
+    def tw_new_post(self):
+        if self.args.max_post <= 0:
+            self.logit(None, f'Max post is 0 (args.max_post={self.args.max_post}), skip ...')  # noqa
+            return False
+
+        if self.get_today_stats().get('post', 0) >= self.args.max_post:
+            self.logit(None, f'Stop processing post due to limit [{self.args.max_post}]')  # noqa
+            return False
+
+        s_text = self.gene_new_post_text_by_llm(n_len=120)
+        if not s_text:
+            self.logit(None, 'Failed to generate new post text, skip ...')
+            return False
+
+        b_ret = self.inst_x.x_post(s_text)
+        if b_ret:
+            self.status_append(
+                s_op_type='post',
+                s_url=f'https://x.com/{self.i_xuser}',
+                s_msg=f'{self.i_xuser}',
+                s_status=DEF_INTERACTION_OK
+            )
+            return True
+
+        if self.check_rate_limit(s_type='post'):
+            return False
 
     def xwool_run(self):
         self.browser = self.inst_dp.get_browser(self.args.s_profile)
@@ -1766,6 +1884,8 @@ class XWool():
         elif s_x_status != DEF_STATUS_OK:
             self.logit(None, 'X Account is suspended, return ...')
             return True
+        
+        self.tw_new_post()
 
         if self.args.max_follow_back != 0:
             self.check_follow(0, self.args.max_follow_page)
@@ -2153,9 +2273,13 @@ if __name__ == '__main__':
         '--max_retweet', required=False, default=-1, type=int,
         help='[默认为 -1] 当日最大转帖数量，-1表示无限制，0表示不转帖'
     )
+    parser.add_argument(
+        '--max_post', required=False, default=0, type=int,
+        help='[默认为 0] 当日最大发帖数量，0表示不发帖'
+    )
 
     parser.add_argument(
-        '--max_follow_back', required=False, default=0, type=int,
+        '--max_follow_back', required=False, default=5, type=int,
         help='[默认为 5] 回关数量，0表示不回关，-1表示无限制'
     )
 

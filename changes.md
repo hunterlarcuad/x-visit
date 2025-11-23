@@ -1,6 +1,8 @@
 # X-Assistant Change List
 
 ## TODO
+
+## 2025.11.23
 - 自动发帖
 
 ## 2025.11.22

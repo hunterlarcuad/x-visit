@@ -656,7 +656,12 @@ def get_running_info():
                 'auto_like': '自动点赞',
                 'auto_follow': '自动关注',
                 'auto_retweet': '自动转发',
-                'auto_reply': '自动回复'
+                'auto_reply': '自动回复',
+                'max_follow': '当日最大关注数量',
+                'max_like': '当日最大点赞数量',
+                'max_reply': '当日最大回复数量',
+                'max_retweet': '当日最大转帖数量',
+                'max_post': '当日最大发帖数量'
             }
 
             # 生成参数说明
@@ -959,6 +964,7 @@ def get_account_stats(profile):
                     'like': 0,
                     'reply': 0,
                     'retweet': 0,
+                    'post': 0,
                     'total': 0
                 }
             })
@@ -975,12 +981,14 @@ def get_account_stats(profile):
         like_count = 0
         reply_count = 0
         retweet_count = 0
+        post_count = 0
 
         # 用于去重的集合
         followed_users = set()
         liked_urls = set()
         replied_urls = set()
         retweeted_urls = set()
+        posted_urls = set()
 
         with open(csv_file, 'r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
@@ -1024,12 +1032,17 @@ def get_account_stats(profile):
                                     if url and url not in retweeted_urls:
                                         retweeted_urls.add(url)
                                         retweet_count += 1
+                                elif 'post' in op_type:
+                                    # post 操作使用 URL 去重
+                                    if url and url not in posted_urls:
+                                        posted_urls.add(url)
+                                        post_count += 1
                 except (ValueError, TypeError) as e:
                     # 如果日期格式不正确，跳过这条记录
                     app.logger.debug(f"跳过无效记录: {row}, 错误: {e}")
                     continue
 
-        total_count = follow_count + like_count + reply_count + retweet_count
+        total_count = follow_count + like_count + reply_count + retweet_count + post_count
 
         return jsonify({
             'success': True,
@@ -1040,6 +1053,7 @@ def get_account_stats(profile):
                 'like': like_count,
                 'reply': reply_count,
                 'retweet': retweet_count,
+                'post': post_count,
                 'total': total_count
             }
         })

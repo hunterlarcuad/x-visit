@@ -266,6 +266,19 @@
                                     <div class="form-text" data-i18n="config.max_follow_page_help">取值范围：1-1000，建议设置为1-10</div>
                                 </div>
                             </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="max_post" class="form-label">
+                                        <span data-i18n="config.max_post">当日最大发帖数量</span>
+                                        <i class="bi bi-info-circle text-muted ms-1" 
+                                           data-bs-toggle="tooltip" 
+                                           data-bs-placement="top" 
+                                           data-i18n-title="config.max_post_tooltip" title="设置当日最多发帖多少个，0表示不发帖，1-3表示发帖数量"></i>
+                                    </label>
+                                    <input type="number" class="form-control" id="max_post" name="max_post" value="0" min="0" max="3" style="width: 80px;">
+                                    <div class="form-text" data-i18n="config.max_post_help">0表示不发帖，1-3表示发帖数量</div>
+                                </div>
+                            </div>
                         </div>
                         
                         <h5 class="mt-4">
@@ -552,7 +565,13 @@
                                                 <small class="text-muted" data-i18n="control.retweet">转发</small>
                                             </div>
                                         </div>
-                                        <div class="col-md-4 col-12">
+                                        <div class="col-md-2 col-6">
+                                            <div class="text-center">
+                                                <div class="h4 text-secondary mb-1" id="stats-post">0</div>
+                                                <small class="text-muted" data-i18n="control.post">发帖</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-2 col-12">
                                             <div class="text-center">
                                                 <div class="h4 text-info mb-1" id="stats-total">0</div>
                                                 <small class="text-muted" data-i18n="control.total">总计</small>
@@ -4502,6 +4521,7 @@ function displayTodayStats(stats) {
         document.getElementById('stats-like').textContent = stats.like;
         document.getElementById('stats-reply').textContent = stats.reply;
         document.getElementById('stats-retweet').textContent = stats.retweet || 0;
+        document.getElementById('stats-post').textContent = stats.post || 0;
         document.getElementById('stats-total').textContent = stats.total;
         
         // 更新标题，显示日期
