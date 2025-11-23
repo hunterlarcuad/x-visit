@@ -485,7 +485,7 @@ def load_ad_user(csv_file):
 
     if not os.path.exists(csv_file):
         print(f'CSV file not found: {csv_file}')
-        return []
+        return lst_ad_user
     
     try:
         # 使用 load_file 函数加载 CSV 数据
@@ -528,7 +528,7 @@ def load_to_set(csv_file, set_user):
 
     if not os.path.exists(csv_file):
         print(f'CSV file not found: {csv_file}')
-        return []
+        return set_user
     
     try:
         # 使用 load_file 函数加载 CSV 数据
