@@ -178,7 +178,7 @@
                                            data-bs-placement="top" 
                                            data-i18n-title="config.max_follow_tooltip" title="设置当日最多关注多少个用户，-1表示无限制，0表示不关注"></i>
                                     </label>
-                                    <input type="number" class="form-control" id="max_follow" name="max_follow" value="-1" min="-1" max="1000">
+                                    <input type="number" class="form-control" id="max_follow" name="max_follow" value="-1" min="-1" max="1000" style="width: 80px;">
                                     <div class="form-text" data-i18n="config.max_follow_help">-1表示无限制，0表示不关注，建议设置为5-20</div>
                                 </div>
                             </div>
@@ -191,7 +191,7 @@
                                            data-bs-placement="top" 
                                            data-i18n-title="config.max_like_tooltip" title="设置当日最多点赞多少个帖子，-1表示无限制，0表示不点赞"></i>
                                     </label>
-                                    <input type="number" class="form-control" id="max_like" name="max_like" value="-1" min="-1" max="1000">
+                                    <input type="number" class="form-control" id="max_like" name="max_like" value="-1" min="-1" max="1000" style="width: 80px;">
                                     <div class="form-text" data-i18n="config.max_like_help">-1表示无限制，0表示不点赞，建议设置为10-50</div>
                                 </div>
                             </div>
@@ -206,7 +206,7 @@
                                            data-bs-placement="top" 
                                            data-i18n-title="config.max_reply_tooltip" title="设置当日最多回复多少个帖子，-1表示无限制，0表示不回复"></i>
                                     </label>
-                                    <input type="number" class="form-control" id="max_reply" name="max_reply" value="-1" min="-1" max="1000">
+                                    <input type="number" class="form-control" id="max_reply" name="max_reply" value="-1" min="-1" max="1000" style="width: 80px;">
                                     <div class="form-text" data-i18n="config.max_reply_help">-1表示无限制，0表示不回复，建议设置为3-10</div>
                                 </div>
                             </div>
@@ -219,8 +219,51 @@
                                            data-bs-placement="top" 
                                            data-i18n-title="config.max_retweet_tooltip" title="设置当日最多转帖多少个帖子，-1表示无限制，0表示不转帖"></i>
                                     </label>
-                                    <input type="number" class="form-control" id="max_retweet" name="max_retweet" value="-1" min="-1" max="1000">
+                                    <input type="number" class="form-control" id="max_retweet" name="max_retweet" value="-1" min="-1" max="1000" style="width: 80px;">
                                     <div class="form-text" data-i18n="config.max_retweet_help">-1表示无限制，0表示不转帖，建议设置为2-5</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="max_follow_back" class="form-label">
+                                        <span data-i18n="config.max_follow_back">当日最大回关数量</span>
+                                        <i class="bi bi-info-circle text-muted ms-1" 
+                                           data-bs-toggle="tooltip" 
+                                           data-bs-placement="top" 
+                                           data-i18n-title="config.max_follow_back_tooltip" title="设置当日最多回关多少个用户，-1表示无限制，0表示不回关"></i>
+                                    </label>
+                                    <input type="number" class="form-control" id="max_follow_back" name="max_follow_back" value="6" min="-1" max="1000" style="width: 80px;">
+                                    <div class="form-text" data-i18n="config.max_follow_back_help">-1表示无限制，0表示不回关，建议设置为5-20</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="check_follow" class="form-label">
+                                        <span data-i18n="config.check_follow">最大取关数量</span>
+                                        <i class="bi bi-info-circle text-muted ms-1" 
+                                           data-bs-toggle="tooltip" 
+                                           data-bs-placement="top" 
+                                           data-i18n-title="config.check_follow_tooltip" title="设置当日最多取关多少个用户，-1表示无限制，0表示不取关"></i>
+                                    </label>
+                                    <input type="number" class="form-control" id="check_follow" name="check_follow" value="0" min="-1" max="1000" style="width: 80px;">
+                                    <div class="form-text" data-i18n="config.check_follow_help">-1表示无限制，0表示不取关，建议设置为5-20</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="max_follow_page" class="form-label">
+                                        <span data-i18n="config.max_follow_page">最大关注页面数</span>
+                                        <i class="bi bi-info-circle text-muted ms-1" 
+                                           data-bs-toggle="tooltip" 
+                                           data-bs-placement="top" 
+                                           data-i18n-title="config.max_follow_page_tooltip" title="设置最多检查多少个关注页面"></i>
+                                    </label>
+                                    <input type="number" class="form-control" id="max_follow_page" name="max_follow_page" value="1" min="1" max="1000" style="width: 80px;">
+                                    <div class="form-text" data-i18n="config.max_follow_page_help">取值范围：1-1000，建议设置为1-10</div>
                                 </div>
                             </div>
                         </div>
@@ -306,19 +349,19 @@
                             <div class="col-md-4">
                                 <div class="mb-3">
                                     <label for="loop_interval" class="form-label" data-i18n="config.loop_interval_label">循环间隔 (秒)</label>
-                                    <input type="number" class="form-control" id="loop_interval" name="loop_interval" value="60">
+                                    <input type="number" class="form-control" id="loop_interval" name="loop_interval" value="60" style="width: 80px;">
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="mb-3">
                                     <label for="sleep_sec_min" class="form-label" data-i18n="config.sleep_min_label">最小休眠时间 (秒)</label>
-                                    <input type="number" class="form-control" id="sleep_sec_min" name="sleep_sec_min" value="3">
+                                    <input type="number" class="form-control" id="sleep_sec_min" name="sleep_sec_min" value="3" style="width: 80px;">
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="mb-3">
                                     <label for="sleep_sec_max" class="form-label" data-i18n="config.sleep_max_label">最大休眠时间 (秒)</label>
-                                    <input type="number" class="form-control" id="sleep_sec_max" name="sleep_sec_max" value="10">
+                                    <input type="number" class="form-control" id="sleep_sec_max" name="sleep_sec_max" value="10" style="width: 80px;">
                                 </div>
                             </div>
                         </div>
