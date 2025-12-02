@@ -22,6 +22,7 @@ from fun_utils import save2file
 from fun_utils import format_ts
 from fun_utils import generate_password
 from fun_utils import get_index_from_header
+from fun_utils import rm_url
 
 from fun_encode import decrypt
 from fun_gmail import get_verify_code_from_gmail
@@ -1473,7 +1474,7 @@ class XUtils():
                         s_src = s_text.replace('\n', '').replace(' ', '')
                         s_dst = s_div_text.replace('\n', '').replace(' ', '')
                         # 计算 s_dst 和 s_src 的相似度，达到 90% 则认为成功
-                        f_similarity = difflib.SequenceMatcher(None, s_src, s_dst).ratio()
+                        f_similarity = difflib.SequenceMatcher(None, rm_url(s_src), rm_url(s_dst)).ratio()
                         self.logit(None, f'f_similarity: {f_similarity}')
                         if f_similarity >= 0.9:
                             self.logit(None, 'Reply Success ✅')

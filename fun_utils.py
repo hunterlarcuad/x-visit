@@ -549,6 +549,23 @@ def load_to_set(csv_file, set_user):
     return set_user
 
 
+def rm_url(s_cont):
+    """
+    去掉 URL
+    """
+    if not s_cont:
+        return s_cont
+
+    # 匹配 http:// 或 https:// 开头的 URL
+    url_pattern = r'https?://[^\s]+'
+    s_ret = re.sub(url_pattern, '', s_cont)
+
+    # 清理多余的空格
+    s_ret = re.sub(r'\s+', ' ', s_ret).strip()
+
+    return s_ret
+
+
 if __name__ == "__main__":
     """
     """
