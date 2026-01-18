@@ -666,20 +666,29 @@ class XWool():
                 s_reply = gene_by_llm(s_prompt)
                 if not s_reply:
                     self.logit(None, 's_reply from llm is empty, skip ...')
+                if len(s_reply) > 60:
+                    s_reply = ''
             except Exception as e:
                 self.logit(None, f'Error calling gene_by_llm: {e}')
 
             if not s_reply:
                 self.logit(None, 's_reply from llm is empty, use random reply ...')  # noqa
-                lst_reply = [
-                    '来了！',
-                    '来啦！',
-                    '安排！',
-                    '互关！',
-                    '互粉！',
-                    '互关互粉，冲！',
-                    '来啦！互关！'
-                ]
+                if is_following:
+                    lst_reply = [
+                        '已是老朋友，多多互动！',
+                        '老粉前来互动！',
+                        '老铁前来助力！',
+                    ]
+                else:
+                    lst_reply = [
+                        '来了！',
+                        '来啦！',
+                        '安排！',
+                        '互关！',
+                        '互粉！',
+                        '互关互粉，冲！',
+                        '来啦！互关！'
+                    ]
                 s_reply = random.choice(lst_reply)
 
                 # 生成一个随机字符串，长度为 1 到 5 个字符(0-9,a-z,A-Z)
@@ -743,7 +752,7 @@ class XWool():
                 return False
 
             # 尝试生成合格的回复，最多尝试次数
-            if_reply_ok = False
+            is_reply_qualified = False
             max_attempts = 5
             for attempt in range(1, max_attempts + 1):
                 self.logit(None, f'quality check attempt: {attempt}/{max_attempts}')  # noqa
@@ -757,7 +766,7 @@ class XWool():
                         None,
                         f'Reply qualified on attempt {attempt}/{max_attempts}'
                     )
-                    if_reply_ok = True
+                    is_reply_qualified = True
                     break
                 else:
                     self.logit(
@@ -788,7 +797,7 @@ class XWool():
                             return False
                         self.logit(None, 'All attempts failed, ignore the check, use the reply ...')  # noqa
 
-            if not if_reply_ok:
+            if not is_reply_qualified:
                 self.logit(None, 'All attempts failed, reply is empty, skip ...')  # noqa
                 return False
 
