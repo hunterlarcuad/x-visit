@@ -661,7 +661,8 @@ def get_running_info():
                 'max_like': '当日最大点赞数量',
                 'max_reply': '当日最大回复数量',
                 'max_retweet': '当日最大转帖数量',
-                'max_post': '当日最大发帖数量'
+                'max_post': '当日最大发帖数量',
+                'only_certified_user': '纯蓝V互动'
             }
 
             # 生成参数说明

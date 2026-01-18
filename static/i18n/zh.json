@@ -64,6 +64,7 @@
         "manual_exit": "手动退出",
         "create": "创建模式",
         "reset": "重置模式",
+        "only_certified_user": "纯蓝V互动",
         "extension_check": "扩展检测",
         "extension_check_tooltip": "检测浏览器扩展是否正确安装，确保脚本正常运行",
         "enable_extension_check": "启用扩展检测",

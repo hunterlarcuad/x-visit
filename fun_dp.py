@@ -603,10 +603,10 @@ class DpUtils():
             ding_msg(d_cont, DEF_DING_TOKEN, msgtype="markdown")
             return False
 
-    def get_ele_btn(self, tab, lst_path):
+    def get_ele_btn(self, tab, lst_path, n_timeout=2):
         # tab = self.browser.latest_tab
         for s_path in lst_path:
-            ele_btn = tab.ele(s_path, timeout=2) # noqa
+            ele_btn = tab.ele(s_path, timeout=n_timeout) # noqa
             if not isinstance(ele_btn, NoneElement):
                 return ele_btn
         return NoneElement

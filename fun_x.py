@@ -2262,6 +2262,56 @@ class XUtils():
             return s_text
         return None
 
+    def review_your_email(self):
+        """
+        Review your email
+
+        EN: Yes, that's correct
+        ZH: ??? [中文待确认]
+        """
+        tab = self.browser.latest_tab
+
+        lst_path = [
+            '@@tag()=button@@text()=Yes, that\'s correct',
+            '@@tag()=button@@text()=是的，没错',
+        ]
+        ele_btn = self.inst_dp.get_ele_btn(tab, lst_path, n_timeout=1)
+        if not isinstance(ele_btn, NoneElement):
+            if ele_btn.wait.clickable(timeout=5) is not False:
+                ele_btn.click(by_js=True)
+                self.logit(None, 'Click Yes, that\'s correct button [Success ✅]')
+                tab.wait(2)
+                return True
+            self.logit(None, 'Click Yes, that\'s correct button [Fail ❌]')
+        return False
+
+    def is_verified_user(self, x_username=None):
+        """
+        当前帖子作者是否是 蓝V
+        Check if the user is a verified user (blueV)
+        """
+        tab = self.browser.latest_tab
+        ele_blk = tab.ele('@@tag()=article@@data-testid=tweet', timeout=1) # noqa
+        if not isinstance(ele_blk, NoneElement):
+            ele_svg = ele_blk.ele('@@tag()=svg@@data-testid=icon-verified', timeout=1) # noqa
+            if not isinstance(ele_svg, NoneElement):
+                ele_user = ele_blk.ele('.css-175oi2r r-18u37iz r-1wbh5a2', timeout=1) # noqa
+                if not isinstance(ele_user, NoneElement):
+                    ele_span = ele_user.ele('@@tag()=span', timeout=1) # noqa
+                    if not isinstance(ele_span, NoneElement):
+                        s_username = ele_span.text.split('@')[1]
+                        if not x_username:
+                            self.logit(None, 'Current user is the verified user')
+                            return True
+                        if s_username == x_username:
+                            self.logit(None, 'Current user is the verified user')
+                            return True
+                    else:
+                        self.logit(None, f'Verified user is {s_username}, but not the current user {x_username}')  # noqa
+                        return False
+
+        return False
+
 
 if __name__ == '__main__':
     """

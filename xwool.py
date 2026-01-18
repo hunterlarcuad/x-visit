@@ -461,8 +461,10 @@ class XWool():
 
         lst_keywords = [
             '互关',
+            '回关',
             '互粉',
             '有关必回',
+            '互动',
         ]
         for s_keyword in lst_keywords:
             # 不区分大小写
@@ -475,8 +477,6 @@ class XWool():
         分析贴，调用大模型回复
         """
         s_lower_text = s_tweet_text.lower()
-        # if 'cookie' not in s_lower_text:
-        #     return 'other'
 
         dic_keywords = {
             'yapper': 'Yapper',
@@ -496,9 +496,10 @@ class XWool():
         """
         if self.is_keyword_follow(s_tweet_text):
             return 'follow'
-        else:
-            s_analyze_type = self.get_analyze_type(s_tweet_text)
-            return s_analyze_type
+        # else:
+        #    s_analyze_type = self.get_analyze_type(s_tweet_text)
+        #    return s_analyze_type
+        return 'other'
 
     def follow_user(self, name):
         b_ret = False
@@ -821,13 +822,15 @@ class XWool():
         return False
 
     def proc_tw_url(self, tweet_url, is_reply=True, is_all_reply=False,
-                    is_like=True, is_retweet=False, is_follow=True):
+                    is_like=True, is_retweet=False, is_follow=True,
+                    s_tab_name=None):
         """
         is_reply: 是否回复
         is_all_reply: 是否回复所有帖子
         is_like: 是否点赞
         is_retweet: 是否转发
         is_follow: 是否关注
+        s_tab_name: 帖子所在标签页名称
         """
         b_ret = False
         counts = {'follow': 0, 'like': 0, 'reply': 0, 'retweet': 0}
@@ -837,6 +840,10 @@ class XWool():
         if tweet_url in self.set_url_ignored:
             self.logit(None, 'Already ignored before, skip ...')
             return b_ret, counts
+
+        is_todo_follow = False
+
+        lst_default_tabs = ['为你推荐', 'For you', '正在关注', 'Following']
 
         if tweet_url.startswith('https://x.com/'):
             name = tweet_url.split('com/')[-1].split('/')[0]
@@ -865,9 +872,19 @@ class XWool():
 
                     is_following = self.is_following(name)
 
-                    s_tweet_type = self.get_tweet_type_by_keyword(s_tweet_text)
+                    is_verified_user = self.inst_x.is_verified_user(name)
+
+                    if s_tab_name not in lst_default_tabs:
+                        s_tweet_type = 'follow'
+                        self.logit(None, f's_tab_name: {s_tab_name}, not default tab, set s_tweet_type: {s_tweet_type}')  # noqa
+                    else:
+                        s_tweet_type = self.get_tweet_type_by_keyword(s_tweet_text)
+
                     if is_following:
                         self.logit(None, f'is_following: {is_following}, ignore keyword filter ...')  # noqa
+                        pass
+                    elif is_verified_user:
+                        self.logit(None, f'is_verified_user: {is_verified_user}, ignore keyword filter ...')  # noqa
                         pass
                     elif is_all_reply:
                         self.logit(None, f'is_all_reply: {is_all_reply}, reply all tweets ...')  # noqa
@@ -893,6 +910,16 @@ class XWool():
                     if is_reply:
                         if self.reply_tweet(s_tweet_type, s_tweet_text):
                             counts['reply'] = 1
+                    
+                    if is_follow:
+                        if s_tweet_type == 'follow':
+                            is_todo_follow = True
+                        if is_following:
+                            is_todo_follow = False
+                        if self.args.only_certified_user and (not is_verified_user):
+                            is_todo_follow = False
+                    else:
+                        is_todo_follow = False
 
             # like
             if is_like:
@@ -929,7 +956,7 @@ class XWool():
             tab.close()
 
             # follow
-            if is_follow:
+            if is_todo_follow:
                 if name in self.set_user_followed:
                     self.logit(None, 'Already followed before, skip ...')
                 else:
@@ -998,6 +1025,27 @@ class XWool():
                     self.logit(None, f'select_tab[{s_tab_name}] [Success]')
                     tab.wait.doc_loaded()
                     tab.wait(5)
+
+                    # 再点击一次，选择排序方式
+                    ele_btn.click()
+                    tab.wait(3)
+                    ele_blk_dropdown = tab.ele('@@tag()=div@@data-testid=Dropdown', timeout=3)
+                    if not isinstance(ele_blk_dropdown, NoneElement):
+                        ele_sort_btns = ele_blk_dropdown.eles('@@tag()=div@@role=menuitem', timeout=3)
+                        # Relevance, Recency, Likes
+                        if len(ele_sort_btns) >= 3:
+                            ele_sort_btn = ele_sort_btns[1]
+                            ele_svg = ele_sort_btn.ele('@@tag()=svg', timeout=1)
+                            if not isinstance(ele_svg, NoneElement):
+                                # 当前已选中，忽略
+                                pass
+                            else:
+                                s_text = ele_sort_btn.text
+                                self.logit(None, f'Click Dropdown button text: {s_text}')
+                                if ele_sort_btn.wait.clickable(timeout=5) is not False:
+                                    ele_sort_btn.click(by_js=True)
+                                    tab.wait(5)
+
                     return True
         return False
 
@@ -1019,7 +1067,7 @@ class XWool():
                         return False
         return False
 
-    def interaction(self, is_reply=True, is_all_reply=False,
+    def interaction(self, s_tab_name=None, is_reply=True, is_all_reply=False,
                     is_like=True, is_retweet=False, is_follow=True,
                     max_num_proc=-1):
         b_ret = False
@@ -1123,7 +1171,8 @@ class XWool():
 
                 is_success, counts = self.proc_tw_url(
                     tweet_url, is_reply=is_reply, is_all_reply=is_all_reply,
-                    is_like=is_like, is_retweet=is_retweet, is_follow=is_follow
+                    is_like=is_like, is_retweet=is_retweet,
+                    is_follow=is_follow, s_tab_name=s_tab_name
                 )
                 if is_success:
                     b_ret = True
@@ -1226,7 +1275,7 @@ class XWool():
         n_max_proc = random.randint(1, 2)
         self.logit('proc_ad_user', f'interaction n_max_proc={n_max_proc}')
         is_success = self.interaction(
-            is_reply=True, is_all_reply=True,
+            s_tab_name=None, is_reply=True, is_all_reply=True,
             is_like=True, is_retweet=False, is_follow=True,
             max_num_proc=n_max_proc
         )
@@ -1506,7 +1555,7 @@ class XWool():
 
         return (-2, 0)
 
-    def check_page_follow(self, idx_tab, n_processed=0):
+    def check_page_follow(self, idx_tab, n_total=0, n_processed=0):
         """
         idx_tab:
             0: Premium user followback
@@ -1518,7 +1567,7 @@ class XWool():
             1: No following and followed list
             99: Unfollow num limit reached
 
-            (flag, n_total)
+            (flag, n_total, n_processed)
         """
         n_total = n_processed
         tab = self.browser.latest_tab
@@ -1530,12 +1579,12 @@ class XWool():
             n_items = len(ele_items)
             if n_items == 0:
                 self.logit(None, 'No following and followed, skip ...')
-                return (1, n_total)
+                return (1, n_total, n_processed)
             for idx_item in range(n_items):
                 if idx_item >= n_items:
                     break
                 n_total += 1
-                s_id = f'[{n_total}][{idx_item+1}/{n_items}]'
+                s_id = f'[{n_processed}][{idx_item+1}/{n_items}]'
                 ele_item = ele_items[idx_item]
                 # s_info = ele_item.text
                 # s_info = s_info.replace('\n', ' ')
@@ -1580,13 +1629,13 @@ class XWool():
                     self.logit(None, f'{s_id} Is Followed me? {s_nickname} {s_info} [Yes] ✅') # noqa
                     if s_follow_status == 'follow':
                         (n_ret, n_num) = self.do_follow_back(ele_btn_follow, s_nickname, s_handler)  # noqa
-                        n_total += n_num
-                        if self.args.max_follow_back != -1 and n_total >= self.args.max_follow_back:  # noqa
+                        n_processed += n_num
+                        if self.args.max_follow_back != -1 and n_processed >= self.args.max_follow_back:  # noqa
                             self.logit(None, f'Stop processing idx_tab={idx_tab} due to limit [max_follow_back={self.args.max_follow_back}]')  # noqa
-                            return (99, n_total)
+                            return (99, n_total, n_processed)
                         if n_ret == 99:
                             self.logit(None, f'Stop processing idx_tab={idx_tab} due to limit [max_follow={self.args.max_follow}]')  # noqa
-                            return (99, n_total)
+                            return (99, n_total, n_processed)
                     else:
                         if s_handler in self.set_user_black:
                             self.do_unfollow(ele_btn_follow, s_nickname, s_handler)  # noqa
@@ -1598,13 +1647,13 @@ class XWool():
                     continue
 
                 (n_ret, n_num) = self.do_unfollow(ele_btn_follow, s_nickname, s_handler)  # noqa
-                n_total += n_num
+                n_processed += n_num
                 if n_ret == 99:
                     self.logit(None, f'Stop processing idx_tab={idx_tab} due to limit [{self.args.check_follow}]')  # noqa
-                    return (99, n_total)
+                    return (99, n_total, n_processed)
 
             tab.wait(3)
-        return (0, n_total)
+        return (0, n_total, n_processed)
 
     def update_blacklist_by_keywords(self, s_handler, s_description):
         """
@@ -1670,13 +1719,21 @@ class XWool():
             self.logit(None, f'Error getting ele_blk_tab: {e}')
 
         pages = 100000 if pages == -1 else pages
+        n_total = 0
         n_processed = 0
+        n_pre_total = 0
+
         for i in range(1, pages+1):
             self.logit(None, f'Check follow page {i}/{pages} ...')
-            (n_ret, n_processed) = self.check_page_follow(idx_tab, n_processed)
+            (n_ret, n_total, n_processed) = self.check_page_follow(idx_tab, n_total, n_processed) # noqa
             if n_ret == 99:
                 # self.logit(None, f'Stop processing unfollow due to limit [{self.args.check_follow}]')  # noqa
                 break
+
+            if n_total == n_pre_total:
+                break
+            n_pre_total = n_total
+
             tab = self.browser.latest_tab
             tab.scroll.to_bottom()
             tab.wait(3)
@@ -1800,6 +1857,80 @@ class XWool():
         if self.check_rate_limit(s_type='post'):
             return False
 
+    def join_communities(self):
+        """
+        Join communities
+        """
+        tab = self.browser.latest_tab
+
+        # Welcome to Communities
+        # lst_btn_text = [
+        #    'Check it out',
+        # ]
+        ele_blk = tab.ele('.css-175oi2r r-13qz1uu', timeout=2)
+        if not isinstance(ele_blk, NoneElement):
+            ele_btn = ele_blk.ele('@@tag()=button@@role=button', timeout=2) # noqa
+            if not isinstance(ele_btn, NoneElement):
+                s_text = ele_btn.text
+                self.logit(None, f'First open Communities button text: {s_text}')
+                if ele_btn.wait.clickable(timeout=5) is not False:
+                    ele_btn.click(by_js=True)
+                    tab.wait(2)
+
+        # Click the Jion Button
+        ele_blk = tab.ele('.css-175oi2r r-16e1t0z', timeout=2)
+        if not isinstance(ele_blk, NoneElement):
+            ele_btn = ele_blk.ele('@@tag()=button@@role=button', timeout=2) # noqa
+            if not isinstance(ele_btn, NoneElement):
+                s_text = ele_btn.text
+                self.logit(None, f'Join Communities button text: {s_text}')
+                if s_text in ['Join', '加入']:
+                    if ele_btn.wait.clickable(timeout=5) is not False:
+                        ele_btn.click(by_js=True)
+                        tab.wait(2)
+                        # Agree and join
+
+                        lst_path = [
+                            '@@tag()=button@@text()=Agree and join',
+                            '@@tag()=button@@text()=同意并加入',
+                        ]
+                        ele_btn_agree = self.inst_dp.get_ele_btn(tab, lst_path)
+                        if not isinstance(ele_btn_agree, NoneElement):
+                            s_text = ele_btn_agree.text
+                            if ele_btn_agree.wait.clickable(timeout=5) is not False:
+                                ele_btn_agree.click(by_js=True)
+                                tab.wait(2)
+                else:
+                    self.logit(None, f'Unexpected button text: {s_text}')
+
+    def check_communities(self):
+        """
+        Check communities
+        """
+        self.click_home()
+        lst_tabs = self.list_tabs()
+        d_tab_communities = {
+            'https://x.com/i/communities/1605155181942841344': '推特互关',
+        }
+
+        b_joined = False
+        for s_url, s_tab_name in d_tab_communities.items():
+            if s_tab_name in lst_tabs:
+                continue
+            tab = self.browser.new_tab(s_url)
+            tab.wait.doc_loaded()
+            self.browser.wait(3)
+            self.join_communities()
+            tab.close()
+            b_joined = True
+
+        if b_joined:
+            # 重新加载页面，确保已加入的社区显示在列表中
+            tab = self.browser.latest_tab
+            tab.refresh()
+            tab.wait.doc_loaded()
+            self.browser.wait(3)
+
     def xwool_run(self):
         self.browser = self.inst_dp.get_browser(self.args.s_profile)
 
@@ -1884,12 +2015,15 @@ class XWool():
         elif s_x_status != DEF_STATUS_OK:
             self.logit(None, 'X Account is suspended, return ...')
             return True
-        
+
         self.tw_new_post()
 
         if self.args.max_follow_back != 0:
             self.check_follow(0, self.args.max_follow_page)
-            self.check_follow(1, self.args.max_follow_page)
+            if self.args.only_certified_user:
+                self.logit(None, 'Only interact with certified user (blueV), skip ...')  # noqa
+            else:
+                self.check_follow(1, self.args.max_follow_page)
         if self.args.check_follow != 0:
             # self.check_follow(2, -1)
             self.check_follow(2, self.args.max_follow_page)
@@ -1932,9 +2066,11 @@ class XWool():
             for s_url in self.lst_advertise_url[:5]:
                 self.water_by_url(s_url)
 
+        self.check_communities()
         n_max_run = self.args.max_interactions
         for i in range(1, n_max_run+1):
             self.logit(None, f'Run {i}/{n_max_run} times ...')
+            self.click_home()
 
             lst_tabs = self.list_tabs()
             # lst_tabs = ['X 推特华语区【蓝V互关】']
@@ -1942,7 +2078,7 @@ class XWool():
             for s_tab_name in lst_tabs:
                 self.click_home()
                 self.select_tab(s_tab_name)
-                self.interaction()
+                self.interaction(s_tab_name)
             self.browser.latest_tab.refresh()
             n_sleep = random.randint(60, 120)
             self.logit(None, f'Sleep {n_sleep} seconds ...')
@@ -2292,6 +2428,13 @@ if __name__ == '__main__':
         '--max_follow_page', required=False, default=1, type=int,
         help='[默认为 1] 最大关注列表翻页数量'
     )
+
+    # 只与认证用户(蓝V)交互，默认为 False
+    parser.add_argument(
+        '--only_certified_user', required=False, action='store_true',
+        help='Only interact with certified user (blueV)'
+    )
+
     args = parser.parse_args()
     show_msg(args)
     if args.loop_interval <= 0:

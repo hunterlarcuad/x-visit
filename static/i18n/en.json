@@ -64,6 +64,7 @@
         "manual_exit": "Manual Exit",
         "create": "Create Mode",
         "reset": "Reset Mode",
+        "only_certified_user": "Only Verified Users",
         "extension_check": "Extension Check",
         "extension_check_tooltip": "Check if browser extensions are properly installed to ensure script runs normally",
         "enable_extension_check": "Enable Extension Check",
