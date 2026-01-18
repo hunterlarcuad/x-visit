@@ -628,19 +628,31 @@ class XWool():
 
         return s_reply
 
-    def reply_tweet(self, s_tweet_type, s_tweet_text):
+    def reply_tweet(self, s_tweet_type, s_tweet_text, is_following=False):
+        """
+        is_following: 是否已经关注了对方
+        """
         self.logit('reply_tweet', f's_tweet_type: {s_tweet_type}')
         s_reply = ''
         s_cont = s_tweet_text
         if s_tweet_type == 'follow':
             # "回复尽量简短，一句话回复"
-            s_rules = (
-                "简短回复，一句话回复\n"
-                "幽默风趣，吸引对方关注\n"
-                "回复语言与推文一致\n"
-                "特别注意，不要出现回复如下之类的字眼，直接输出回复内容\n"
-                "特别注意，回复不要出现 <|begin_of_box|> 和 <|end_of_box|> 标签\n"
-            )
+            if is_following:
+                s_rules = (
+                    "简短回复，一句话回复\n"
+                    "幽默风趣，之前已经关注了对方，保持活跃，多多互动\n"
+                    "回复语言与推文一致\n"
+                    "特别注意，不要出现回复如下之类的字眼，直接输出回复内容\n"
+                    "特别注意，回复不要出现 <|begin_of_box|> 和 <|end_of_box|> 标签\n"
+                )
+            else:
+                s_rules = (
+                    "简短回复，一句话回复\n"
+                    "幽默风趣，提醒对方回关\n"
+                    "回复语言与推文一致\n"
+                    "特别注意，不要出现回复如下之类的字眼，直接输出回复内容\n"
+                    "特别注意，回复不要出现 <|begin_of_box|> 和 <|end_of_box|> 标签\n"
+                )
 
             s_prompt = (
                 "# 【功能】\n"
@@ -731,7 +743,8 @@ class XWool():
                 return False
 
             # 尝试生成合格的回复，最多尝试次数
-            max_attempts = 3
+            if_reply_ok = False
+            max_attempts = 5
             for attempt in range(1, max_attempts + 1):
                 self.logit(None, f'quality check attempt: {attempt}/{max_attempts}')  # noqa
                 s_reply = self.clean_reply(s_reply)
@@ -744,6 +757,7 @@ class XWool():
                         None,
                         f'Reply qualified on attempt {attempt}/{max_attempts}'
                     )
+                    if_reply_ok = True
                     break
                 else:
                     self.logit(
@@ -774,25 +788,9 @@ class XWool():
                             return False
                         self.logit(None, 'All attempts failed, ignore the check, use the reply ...')  # noqa
 
-            """
-            s_reply += '\n'
-            s_reply += '@sparkdotfi @cookiedotfun @cookiedotfuncn'
-
-            if s_tweet_type == 'Spark':
-                s_reply += '\n'
-                s_reply += '#SparkFi #Cookie #SNAPS'
-            elif s_tweet_type == 'Sapien':
-                s_reply += '\n'
-                s_reply += '#SapienFi #Cookie #SNAPS'
-            elif s_tweet_type == 'Openledger':
-                s_reply += '\n'
-                s_reply += '@OpenledgerHQ\n'
-                s_reply += '\n'
-                s_reply += '#SapienFi #Cookie #SNAPS'
-            else:
-                s_reply += '\n'
-                s_reply += '#Cookie #SNAPS'
-            """
+            if not if_reply_ok:
+                self.logit(None, 'All attempts failed, reply is empty, skip ...')  # noqa
+                return False
 
         s_reply = self.clean_reply(s_reply)
 
@@ -878,7 +876,7 @@ class XWool():
                         s_tweet_type = 'follow'
                         self.logit(None, f's_tab_name: {s_tab_name}, not default tab, set s_tweet_type: {s_tweet_type}')  # noqa
                     else:
-                        s_tweet_type = self.get_tweet_type_by_keyword(s_tweet_text)
+                        s_tweet_type = self.get_tweet_type_by_keyword(s_tweet_text)  # noqa
 
                     if is_following:
                         self.logit(None, f'is_following: {is_following}, ignore keyword filter ...')  # noqa
@@ -908,7 +906,7 @@ class XWool():
 
                     # reply
                     if is_reply:
-                        if self.reply_tweet(s_tweet_type, s_tweet_text):
+                        if self.reply_tweet(s_tweet_type, s_tweet_text, is_following):  # noqa
                             counts['reply'] = 1
                     
                     if is_follow:
@@ -2080,7 +2078,8 @@ class XWool():
                 self.select_tab(s_tab_name)
                 self.interaction(s_tab_name)
             self.browser.latest_tab.refresh()
-            n_sleep = random.randint(60, 120)
+
+            n_sleep = random.randint(600, 1200)
             self.logit(None, f'Sleep {n_sleep} seconds ...')
             time.sleep(n_sleep)
 
