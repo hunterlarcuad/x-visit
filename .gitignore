@@ -1,6 +1,7 @@
 venv
 conf.py
 *.log
+*.log.*
 *.pyc
 datas
 .DS_Store

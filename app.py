@@ -195,27 +195,17 @@ def stop_script():
                 spec.loader.exec_module(conf)
                 debug_port = conf.DEF_LOCAL_PORT
 
-                # 查找并终止Chromium进程
+                # 查找并终止Chromium进程（仅检查端口）
                 for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
                     try:
                         cmdline = proc.info['cmdline']
-                        if cmdline and any('chromium' in arg.lower() or 'chrome' in arg.lower() for arg in cmdline):
-                            # 检查是否是我们的调试端口或者包含用户数据目录
-                            is_target_process = False
-
-                            # 检查调试端口
-                            if any(f'--remote-debugging-port={debug_port}' in arg for arg in cmdline):
-                                is_target_process = True
-
-                            # 检查用户数据目录（chrome_profile）
-                            if any('chrome_profile' in arg for arg in cmdline):
-                                is_target_process = True
-
-                            # 检查是否包含我们的扩展路径
-                            if any('extensions/okx' in arg or 'extensions/YesCaptcha' in arg or 'extensions/CapMonster' in arg for arg in cmdline):
-                                is_target_process = True
-
-                            if is_target_process:
+                        if (cmdline and any(
+                                'chromium' in arg.lower() or
+                                'chrome' in arg.lower()
+                                for arg in cmdline)):
+                            # 仅检查调试端口
+                            if any(f'--remote-debugging-port={debug_port}'
+                                   in arg for arg in cmdline):
                                 app.logger.info(
                                     f"终止Chromium进程: {proc.info['pid']}")
                                 proc.terminate()
@@ -223,7 +213,8 @@ def stop_script():
                                     proc.wait(timeout=3)
                                 except psutil.TimeoutExpired:
                                     proc.kill()
-                    except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                    except (psutil.NoSuchProcess, psutil.AccessDenied,
+                            psutil.ZombieProcess):
                         pass
             except Exception as e:
                 app.logger.error(f"终止Chromium进程时出错: {e}")
@@ -516,36 +507,29 @@ def cleanup_processes():
         spec.loader.exec_module(conf)
         debug_port = conf.DEF_LOCAL_PORT
 
-        # 查找并终止Chromium进程
+        # 查找并终止Chromium进程（仅检查端口）
         for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
             try:
                 cmdline = proc.info['cmdline']
-                if cmdline and any('chromium' in arg.lower() or 'chrome' in arg.lower() for arg in cmdline):
-                    # 检查是否是我们的调试端口或者包含用户数据目录
-                    is_target_process = False
-
-                    # 检查调试端口
-                    if any(f'--remote-debugging-port={debug_port}' in arg for arg in cmdline):
-                        is_target_process = True
-
-                    # 检查用户数据目录（chrome_profile）
-                    if any('chrome_profile' in arg for arg in cmdline):
-                        is_target_process = True
-
-                    # 检查是否包含我们的扩展路径
-                    if any('extensions/okx' in arg or 'extensions/YesCaptcha' in arg or 'extensions/CapMonster' in arg for arg in cmdline):
-                        is_target_process = True
-
-                    if is_target_process:
-                        app.logger.info(f"清理Chromium进程: {proc.info['pid']}")
-                        app.logger.info(f"进程命令行: {' '.join(cmdline)}")
+                if (cmdline and any(
+                        'chromium' in arg.lower() or
+                        'chrome' in arg.lower()
+                        for arg in cmdline)):
+                    # 仅检查调试端口
+                    if any(f'--remote-debugging-port={debug_port}'
+                           in arg for arg in cmdline):
+                        app.logger.info(
+                            f"清理Chromium进程: {proc.info['pid']}")
+                        app.logger.info(
+                            f"进程命令行: {' '.join(cmdline)}")
                         proc.terminate()
                         try:
                             proc.wait(timeout=3)
                         except psutil.TimeoutExpired:
                             proc.kill()
                         killed_count += 1
-            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            except (psutil.NoSuchProcess, psutil.AccessDenied,
+                    psutil.ZombieProcess):
                 pass
 
         return jsonify({
@@ -570,29 +554,20 @@ def get_chromium_count():
         debug_port = conf.DEF_LOCAL_PORT
 
         count = 0
-        # 查找Chromium进程
+        # 查找Chromium进程（仅检查端口）
         for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
             try:
                 cmdline = proc.info['cmdline']
-                if cmdline and any('chromium' in arg.lower() or 'chrome' in arg.lower() for arg in cmdline):
-                    # 检查是否是我们的调试端口或者包含用户数据目录
-                    is_target_process = False
-
-                    # 检查调试端口
-                    if any(f'--remote-debugging-port={debug_port}' in arg for arg in cmdline):
-                        is_target_process = True
-
-                    # 检查用户数据目录（chrome_profile）
-                    if any('chrome_profile' in arg for arg in cmdline):
-                        is_target_process = True
-
-                    # 检查是否包含我们的扩展路径
-                    if any('extensions/okx' in arg or 'extensions/YesCaptcha' in arg or 'extensions/CapMonster' in arg for arg in cmdline):
-                        is_target_process = True
-
-                    if is_target_process:
+                if (cmdline and any(
+                        'chromium' in arg.lower() or
+                        'chrome' in arg.lower()
+                        for arg in cmdline)):
+                    # 仅检查调试端口
+                    if any(f'--remote-debugging-port={debug_port}'
+                           in arg for arg in cmdline):
                         count += 1
-            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            except (psutil.NoSuchProcess, psutil.AccessDenied,
+                    psutil.ZombieProcess):
                 pass
 
         return jsonify({
