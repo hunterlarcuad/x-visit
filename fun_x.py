@@ -611,6 +611,7 @@ class XUtils():
             tab.refresh()
             tab.wait.doc_loaded()
             self.browser.wait(3)
+            self.check_lock()
 
             # 检查是否登录成功
             if self.is_login_success():
@@ -624,6 +625,35 @@ class XUtils():
 
         return False
 
+    def check_lock(self):
+        self.browser.wait(3)
+
+        self.auto_verify_cloudflare()
+
+        # Your account has been locked
+        if self.x_locked():
+            self.verify_email()
+            self.enter_verification_code()
+            # 图形验证码
+            self.x_unlocked()
+
+        self.verify_email()
+        if self.enter_verification_code() is False:
+            return False
+
+        # This verification code is not valid. Please try again
+        tab = self.browser.latest_tab
+        ele_info = tab.ele('@@tag()=span@@text():This verification code is not valid. Please try again', timeout=2) # noqa
+        if not isinstance(ele_info, NoneElement):
+            self.logit(None, 'This verification code is not valid. Please try again') # noqa
+            self.browser.wait(10)
+            if self.enter_verification_code() is False:
+                return False
+
+        self.browser.wait(3)
+        self.x_unlocked()
+        return True
+
     def xutils_login_pwd(self):
         """
         """
@@ -635,19 +665,7 @@ class XUtils():
             s_url = 'https://x.com'
             tab.get(s_url, timeout=60, retry=1)
 
-            self.browser.wait(3)
-
-            self.x_locked()
-
-            # if self.verify_email():
-            #     self.enter_verification_code()
-
-            self.verify_email()
-            if self.enter_verification_code() is False:
-                continue
-
-            self.browser.wait(3)
-            self.x_unlocked()
+            self.check_lock()
 
             if self.twitter_login_pwd():
                 return True
