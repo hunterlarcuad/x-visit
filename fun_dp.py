@@ -215,7 +215,8 @@ class DpUtils():
                 break
             self.logit('wait_okx_popup', f'{i}/{max_wait_sec}') # noqa
 
-        tab = self.browser.new_tab()
+        # tab = self.browser.new_tab()
+        tab = self.browser.latest_tab
         self.browser.wait(1)
 
         self.browser.close_tabs(tab, others=True)
@@ -622,7 +623,9 @@ class DpUtils():
         try:
             # chrome://extensions/?id=mcohilncbfahbmgdjkbpemcciiolgcge
             s_url = f'chrome://extensions/?id={extension_id}'
-            tab = self.browser.new_tab(s_url)
+            # tab = self.browser.new_tab(s_url)
+            tab = self.browser.latest_tab
+            tab.get(s_url)
             tab.wait(2)
             ele_extension = tab.ele('tag=extensions-manager', timeout=2)
             if not isinstance(ele_extension, NoneElement):
@@ -635,10 +638,10 @@ class DpUtils():
                             s_text = ele_section.text
                             if extension_id in s_text:
                                 # self.logit(None, f'插件 {s_name} 已安装。')
-                                self.browser.close_tabs(tab)
+                                # self.browser.close_tabs(tab)
                                 return True
             # self.logit(None, f'插件 {s_name} 未安装。')
-            self.browser.close_tabs(tab)
+            # self.browser.close_tabs(tab)
             return False
         except Exception as e:
             self.logit(None, f'检查插件异常: {e}')
@@ -651,15 +654,17 @@ class DpUtils():
             None: Use self.args.extension_id
         """
         b_ret = True
+        tab = self.browser.latest_tab
+        tab.get('chrome://extensions/')
 
-        tab = self.browser.new_tab('chrome://extensions/')
+        # tab = self.browser.new_tab('chrome://extensions/')
         tab.wait(1)
         self.browser.close_tabs(tab, others=True)
 
         if lst_extension_id is None:
             try:
-                id = self.args.extension_id
-            except:
+                id = self.args.extension_id  # noqa
+            except:  # noqa
                 self.args.extension_id = ''
 
             if self.args.extension_id == '':

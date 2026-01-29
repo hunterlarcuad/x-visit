@@ -504,7 +504,11 @@ class XWool():
     def follow_user(self, name):
         b_ret = False
         user_url = f'https://x.com/{name}'  # noqa
-        tab = self.browser.new_tab(user_url)
+        # tab = self.browser.new_tab(user_url)
+        tab = self.browser.latest_tab
+        tab.get(user_url)
+        tab.wait.doc_loaded()
+        tab.wait(5)
         if self.is_followed(name):
             self.logit(None, 'Already followed, skip ...')
         else:
@@ -525,7 +529,10 @@ class XWool():
                 b_ret = True
             else:
                 self.logit(None, f'Follow x: {name} [Failed]')
-        tab.close()
+        # tab.close()
+        tab.back()
+        tab.wait.doc_loaded()
+        tab.wait(3)
 
         return b_ret
 
@@ -855,7 +862,11 @@ class XWool():
         if tweet_url.startswith('https://x.com/'):
             name = tweet_url.split('com/')[-1].split('/')[0]
 
-            tab = self.browser.new_tab(tweet_url)
+            # tab = self.browser.new_tab(tweet_url)
+            tab = self.browser.latest_tab
+            tab.get(tweet_url)
+            tab.wait.doc_loaded()
+            tab.wait(5)
             self.logit(None, f'Try to Like x: {tweet_url}')
 
             if tweet_url in self.set_url_replied:
@@ -908,7 +919,10 @@ class XWool():
                             )
                             self.set_url_ignored.add(tweet_url)
 
-                            tab.close()
+                            # tab.close()
+                            tab.back()
+                            tab.wait.doc_loaded()
+                            tab.wait(3)
 
                             return b_ret, counts
                         self.logit(None, f's_tweet_type: {s_tweet_type}')
@@ -960,7 +974,10 @@ class XWool():
                         counts['retweet'] = 1
                         b_ret = True
 
-            tab.close()
+            # tab.close()
+            tab.back()
+            tab.wait.doc_loaded()
+            tab.wait(3)
 
             # follow
             if is_todo_follow:
@@ -1074,6 +1091,19 @@ class XWool():
                         return False
         return False
 
+    def get_tweet_blks(self):
+        tab = self.browser.latest_tab
+        for i in range(1, 5):
+            ele_blks_top = tab.eles(
+                '@@tag()=div@@class=css-175oi2r@@data-testid=cellInnerDiv',
+                timeout=3
+            )
+            if len(ele_blks_top) > 0:
+                return ele_blks_top
+            self.inst_x.wrong_retry()
+            time.sleep(3)
+        return []
+
     def interaction(self, s_tab_name=None, is_reply=True, is_all_reply=False,
                     is_like=True, is_retweet=False, is_follow=True,
                     max_num_proc=-1):
@@ -1089,16 +1119,7 @@ class XWool():
 
         # 获取当日已执行的操作数量（通过统计函数获取）
 
-        for i in range(1, 5):
-            ele_blks_top = tab.eles(
-                '@@tag()=div@@class=css-175oi2r@@data-testid=cellInnerDiv',
-                timeout=3
-            )
-            if len(ele_blks_top) > 0:
-                time.sleep(3)
-                break
-            self.inst_x.wrong_retry()
-            time.sleep(3)
+        ele_blks_top = self.get_tweet_blks()
 
         n_blks_top = len(ele_blks_top)
         self.logit(None, f'len(ele_blks_top)={n_blks_top}')
@@ -1106,22 +1127,13 @@ class XWool():
             self.inst_x.wrong_retry()
             return False
 
-        num_blk = 0
         n_proc_success = 0
 
-        for ele_blk_top in ele_blks_top:
-            num_blk += 1
-            self.logit(None, f'num_blk={num_blk}/{n_blks_top}')
-            try:
-                ele_blk = ele_blk_top.ele(
-                    '@@tag()=article@@aria-labelledby:id', timeout=3
-                )
-                if isinstance(ele_blk, NoneElement):
-                    continue
-            except Exception:
-                # self.logit(None, f'An error occurred: {e}')
-                self.logit(None, 'An error occurred, continue ...')
-                continue
+        for i in range(n_blks_top):
+            ele_blks_top = self.get_tweet_blks()
+            if i >= len(ele_blks_top):
+                break
+            ele_blk = ele_blks_top[i]
 
             ele_tweet_url = ele_blk.ele(
                 '@@tag()=a@@href:status@@dir=ltr', timeout=3
@@ -1239,7 +1251,11 @@ class XWool():
             return False
 
         user_url = f'https://x.com/{x_user}'  # noqa
-        tab = self.browser.new_tab(user_url)
+        # tab = self.browser.new_tab(user_url)
+        tab = self.browser.latest_tab
+        tab.get(user_url)
+        tab.wait.doc_loaded()
+        tab.wait(5)
 
         if x_user in self.set_user_followed:
             self.logit(None, 'Already followed before, skip ...')
@@ -1290,7 +1306,10 @@ class XWool():
             b_ret = True
 
         if tab:
-            tab.close()
+            # tab.close()
+            tab.back()
+            tab.wait.doc_loaded()
+            tab.wait(3)
 
         return b_ret
 
@@ -1336,7 +1355,11 @@ class XWool():
             self.logit(None, f'Follow: {follow_msg}')
 
         # Like
-        tab = self.browser.new_tab(tweet_url)
+        # tab = self.browser.new_tab(tweet_url)
+        tab = self.browser.latest_tab
+        tab.get(tweet_url)
+        tab.wait.doc_loaded()
+        tab.wait(5)
 
         # Follow
         # Retweet
@@ -1411,7 +1434,10 @@ class XWool():
                 today = format_ts(time.time(), style=1, tz_offset=TZ_OFFSET)
                 self.update_daily_stats(today, 'retweet', 1)
 
-        tab.close()
+        # tab.close()
+        tab.back()
+        tab.wait.doc_loaded()
+        tab.wait(3)
 
         # follow
         self.logit(None, f'Try to Follow x: {tweet_url}')
@@ -1924,11 +1950,16 @@ class XWool():
         for s_url, s_tab_name in d_tab_communities.items():
             if s_tab_name in lst_tabs:
                 continue
-            tab = self.browser.new_tab(s_url)
+            # tab = self.browser.new_tab(s_url)
+            tab = self.browser.latest_tab
+            tab.get(s_url)
             tab.wait.doc_loaded()
             self.browser.wait(3)
             self.join_communities()
-            tab.close()
+            # tab.close()
+            tab.back()
+            tab.wait.doc_loaded()
+            tab.wait(3)
             b_joined = True
 
         if b_joined:
@@ -2013,6 +2044,10 @@ class XWool():
 
         if self.inst_dp.init_yescaptcha() is False:
             return False
+
+        if self.args.debug:
+            self.logit(None, 'Debug mode, pause ...')
+            pdb.set_trace()
 
         self.inst_x.twitter_run()
 
@@ -2441,6 +2476,12 @@ if __name__ == '__main__':
     parser.add_argument(
         '--only_certified_user', required=False, action='store_true',
         help='Only interact with certified user (blueV)'
+    )
+
+    # 添加 --debug 参数，用于调试
+    parser.add_argument(
+        '--debug', required=False, action='store_true',
+        help='Debug'
     )
 
     args = parser.parse_args()
