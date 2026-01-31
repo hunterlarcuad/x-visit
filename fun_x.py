@@ -919,6 +919,43 @@ class XUtils():
 
         return False
 
+    def get_x_username(self):
+        idx = get_index_from_header(DEF_HEADER_ACCOUNT, 'x_username')
+        x_username = self.dic_account[self.args.s_profile][idx]
+        return x_username
+
+    def get_email_by_username(self, s_username=None):
+        if s_username is None:
+            s_username = self.get_x_username()
+        # tonetrue115538 -> tonetrue@xxone.xyz
+        # 去掉 x_username 后面的数字串
+        username_without_numbers = re.sub(r'\d+$', '', s_username)
+        # 构造 email
+        email = f'{username_without_numbers}@xxone.xyz'
+        return email
+
+    def input_username_email(self, attr_name, attr_value, s_val):
+        """
+        attr_name: attr_value
+            Name: Screen_Name__c
+            Email: Form_Email__c
+        """
+        tab = self.browser.latest_tab
+        for i in range(1, DEF_NUM_TRY+1):
+            self.logit('input_username_email', f'try_i={i}/{DEF_NUM_TRY}')
+            ele_input = tab.ele(f'@@tag()=input@@name={attr_value}', timeout=2)
+            if not isinstance(ele_input, NoneElement):
+                s_info = ele_input.value
+                # self.logit(None, f'{attr_name}: {s_info}')
+                if s_info == s_val:
+                    self.logit(None, '{attr_name} is existed ...')
+                    return True
+                tab.actions.move_to(ele_input).click().type(s_val)
+                tab.wait(2)
+            self.browser.wait(1)
+
+        return False
+
     def do_appeal(self):
 
         s_cont_default = random.choice(DEF_LIST_APPEAL_DESC)
@@ -932,6 +969,8 @@ class XUtils():
         for i in range(1, DEF_NUM_TRY+1):
             self.logit('do_appeal', f'try_i={i}/{DEF_NUM_TRY}')
 
+            self.auto_verify_cloudflare()
+
             tab = self.browser.latest_tab
 
             s_url = 'https://help.x.com/en/forms/account-access/appeals'
@@ -942,6 +981,13 @@ class XUtils():
             ele_info = tab.ele('@@tag()=h2@@class:headline@@text()=Appeal a locked or suspended account', timeout=2) # noqa
             if isinstance(ele_info, NoneElement):
                 self.logit(None, 'Wait to load Help Center ...')
+                continue
+
+            s_username = self.get_x_username()
+            s_email = self.get_email_by_username(s_username)
+            if not self.input_username_email('Name', 'Screen_Name__c', s_username):
+                continue
+            if not self.input_username_email('Email', 'Form_Email__c', s_email):
                 continue
 
             ele_input = tab.ele('@@tag()=input@@name=Form_Email__c', timeout=2)
@@ -980,6 +1026,11 @@ class XUtils():
                         # <span id="feather-form-field-text-173">Your original case is already in the queue. Please wait to hear back from us on the original case.</span> # noqa
                         if self.get_tag_info('span', 'Your original case is already in the queue'): # noqa
                             return True
+
+                        # <span id="feather-form-field-text-726">Oops something went wrong, please try again later.</span>
+                        if self.get_tag_info('span', 'Oops something went wrong'):
+                            tab.wait(3)
+                            break
 
                         self.logit(None, f'Submiting appeal request ... {i}/{max_wait_sec}') # noqa
 

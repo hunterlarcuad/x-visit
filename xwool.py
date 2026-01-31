@@ -885,7 +885,10 @@ class XWool():
                         self.logit(None, f'tweet_text: {s_tweet_text[:50]} ...')  # noqa
                     else:
                         self.logit(None, 'tweet_text is not found')
-                        tab.close()
+                        # tab.close()
+                        tab.back()
+                        tab.wait.doc_loaded()
+                        tab.wait(3)
                         return b_ret, counts
 
                     is_following = self.is_following(name)
@@ -1380,7 +1383,10 @@ class XWool():
                 self.logit(None, f'tweet_text: {s_tweet_text[:50]} ...')
             else:
                 self.logit(None, 'tweet_text is not found')
-                tab.close()
+                # tab.close()
+                tab.back()
+                tab.wait.doc_loaded()
+                tab.wait(3)
                 return False
 
             s_tweet_type = self.get_tweet_type_by_keyword(s_tweet_text)
