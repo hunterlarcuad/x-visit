@@ -1400,6 +1400,8 @@ class XUtils():
 
     def x_reply(self, s_text):
         max_try = 10
+        n_max_fail = 2
+        n_fail = 0
         for i in range(1, max_try+1):
             self.logit('x_reply', f'try_i={i}/{max_try}')
             tab = self.browser.latest_tab
@@ -1422,37 +1424,11 @@ class XUtils():
             if not isinstance(ele_btn, NoneElement):
                 self.logit(None, 'Try to input reply text ...')
                 tab.actions.move_to(ele_btn)
-                if ele_btn.text.replace('\n', '').replace(' ', '') != s_text.replace('\n', '').replace(' ', ''):
-                    # ele_btn.input(s_text)
-                    # tab.wait(2)
-
-                    ########## 在 div text 中不起作用
-                    # ele_btn.click.multi(times=2)
-                    # tab.wait(1)
-                    # ele_btn.clear(by_js=True)
-                    # tab.wait(1)
-                    # tab.actions.move_to(ele_btn).click().type(s_text) # noqa
-
+                f_similarity = self.get_similarity(s_text, ele_btn.text)
+                if f_similarity < 0.9:
                     try:
                         tab.actions.move_to(ele_btn).click()
                         tab.wait(1)
-                        # if ele_btn.text != '发布你的回复' and ele_btn.text != '':
-                        #     # 清除 DraftJS 编辑器内容
-                        #     tab.run_js('''
-                        #         var element = arguments[0];
-                        #         var editor = element.querySelector('[data-testid="tweetTextarea_0"]');
-                        #         if (editor) {
-                        #             editor.focus();
-                        #             // 清除内容但保持结构
-                        #             var range = document.createRange();
-                        #             range.selectNodeContents(editor);
-                        #             var selection = window.getSelection();
-                        #             selection.removeAllRanges();
-                        #             selection.addRange(range);
-                        #             document.execCommand('delete');
-                        #         }
-                        #     ''', ele_btn)
-                        #     tab.wait(2)
                         if i <= 3:
                             tab.actions.type(s_text)
                         else:
@@ -1463,29 +1439,28 @@ class XUtils():
                                 tab.wait(0.3)
                                 if s_char == ' ':
                                     continue
-                                if ele_btn.text != s_text[:j+1]:
-                                    self.logit(None, f'reply ele_btn.text != s_text[:j+1]')
+                                f_similarity = self.get_similarity(s_text[:j+1], ele_btn.text)
+                                if f_similarity < 0.9:
+                                    self.logit(None, 'reply ele_btn.text != s_text[:j+1]')
                                     self.logit(None, f'-- ele_btn.text: {ele_btn.text}')
                                     self.logit(None, f'-- s_text[:j+1]: {s_text[:j+1]}')
                                     break
 
-                    except Exception as e:
+                    except Exception as e: # noqa
                         tab.actions.move_to(ele_btn).click()
                         tab.wait(1)
                         tab.actions.type(s_text)
 
                     tab.wait(1)
 
-                if ele_btn.text.replace('\n', '').replace(' ', '') != s_text.replace('\n', '').replace(' ', ''):
+                f_similarity = self.get_similarity(s_text, ele_btn.text)
+                if f_similarity < 0.9:
                     self.logit(None, 'reply ele_btn.text != s_text')
                     self.logit(None, f'-- ele_btn.text: {ele_btn.text}')
                     self.logit(None, f'-- s_text: {s_text}')
-                    # 文本框输入内容后，刷新页面后，有确认对话框
-                    # 重新加载此网站？系统可能不会保存您所做的更改。取消 重新加载
-                    tab.refresh()
-                    tab.wait(2)
-                    tab.handle_alert(accept=True, timeout=2)
-                    tab.wait(2)
+
+                    self.refresh_and_handle_alert()
+
                     continue
             else:
                 continue
@@ -1496,6 +1471,9 @@ class XUtils():
                 tab.actions.move_to(ele_btn)
                 if ele_btn.wait.clickable(timeout=5) is not False:
                     ele_btn.click(by_js=True)
+                else:
+                    self.logit(None, 'Reply button is not clickable [Retry]')
+                    continue
 
                 tab.wait(2)
 
@@ -1516,6 +1494,12 @@ class XUtils():
                             if s_assert in s_info:
                                 self.logit(None, 'Reply Success ✅')
                                 return True
+
+                        n_fail += 1
+                        if n_fail < n_max_fail:
+                            s_text = s_text[:-1]
+                            self.logit(None, f'Fail to post. Set s_text to [{s_text}]')
+                            continue
 
                         n_sleep = random.randint(3600, int(3600*1.2))
                         s_msg = f'[{self.args.s_profile}][Fail to reply] {s_info} [sleep {n_sleep} seconds ...]' # noqa
@@ -1556,6 +1540,8 @@ class XUtils():
 
     def x_post(self, s_text):
         max_try = 10
+        n_max_fail = 2
+        n_fail = 0
         for i in range(1, max_try+1):
             self.logit('x_post', f'try_i={i}/{max_try}')
             tab = self.browser.latest_tab
@@ -1580,29 +1566,28 @@ class XUtils():
                                 tab.wait(0.3)
                                 if s_char == ' ':
                                     continue
-                                if ele_btn.text != s_text[:j+1]:
+                                f_similarity = self.get_similarity(s_text[:j+1], ele_btn.text)
+                                if f_similarity < 0.9:
                                     self.logit(None, f'post ele_btn.text != s_text[:j+1]')
                                     self.logit(None, f'-- ele_btn.text: {ele_btn.text}')
                                     self.logit(None, f'-- s_text[:j+1]: {s_text[:j+1]}')
                                     break
 
-                    except Exception as e:
+                    except Exception as e:  # noqa
                         tab.actions.move_to(ele_btn).click()
                         tab.wait(1)
                         tab.actions.type(s_text)
 
                     tab.wait(1)
 
-                if ele_btn.text.replace('\n', '').replace(' ', '') != s_text.replace('\n', '').replace(' ', ''):
+                f_similarity = self.get_similarity(s_text, ele_btn.text)
+                if f_similarity < 0.9:
                     self.logit(None, 'post ele_btn.text != s_text')
                     self.logit(None, f'-- ele_btn.text: {ele_btn.text}')
                     self.logit(None, f'-- s_text: {s_text}')
-                    # 文本框输入内容后，刷新页面后，有确认对话框
-                    # 重新加载此网站？系统可能不会保存您所做的更改。取消 重新加载
-                    tab.refresh()
-                    tab.wait(2)
-                    tab.handle_alert(accept=True, timeout=2)
-                    tab.wait(2)
+
+                    self.refresh_and_handle_alert()
+
                     continue
             else:
                 continue
@@ -1633,6 +1618,12 @@ class XUtils():
                                 self.logit(None, 'Post Success ✅')
                                 return True
 
+                        n_fail += 1
+                        if n_fail < n_max_fail:
+                            s_text = s_text[:-1]
+                            self.logit(None, f'Fail to post. Set s_text to [{s_text}]')
+                            continue
+
                         n_sleep = random.randint(3600, int(3600*1.2))
                         s_msg = f'[{self.args.s_profile}][Fail to post] {s_info} [sleep {n_sleep} seconds ...]' # noqa
                         self.logit('x_post', f'ding_msg: {s_msg}')
@@ -1644,10 +1635,8 @@ class XUtils():
                 ele_div = tab.ele('@@tag()=div@@data-testid=tweetText', timeout=2)
                 if not isinstance(ele_div, NoneElement):
                     s_div_text = ele_div.text
-                    s_src = s_text.replace('\n', '').replace(' ', '')
-                    s_dst = s_div_text.replace('\n', '').replace(' ', '')
                     # 计算 s_dst 和 s_src 的相似度，达到 90% 则认为成功
-                    f_similarity = difflib.SequenceMatcher(None, s_src, s_dst).ratio()
+                    f_similarity = self.get_similarity(s_text, s_div_text)
                     self.logit(None, f'f_similarity: {f_similarity}')
                     if f_similarity >= 0.9:
                         self.logit(None, 'Post Success ✅')
@@ -1657,6 +1646,22 @@ class XUtils():
 
         self.logit(None, 'Fail to post [ERROR]')
         return False
+
+    def get_similarity(self, s_src, s_dst):
+        s_src = s_src.replace('\n', '').replace(' ', '')
+        s_dst = s_dst.replace('\n', '').replace(' ', '')
+        f_similarity = difflib.SequenceMatcher(None, s_src, s_dst).ratio()
+        return f_similarity
+
+    def refresh_and_handle_alert(self):
+        # 文本框输入内容后，刷新页面后，有确认对话框
+        # 重新加载此网站？系统可能不会保存您所做的更改。取消 重新加载
+        tab = self.browser.latest_tab
+        tab.refresh()
+        tab.wait.doc_loaded()
+        tab.wait(5)
+        tab.handle_alert(accept=True, timeout=2)
+        tab.wait(2)
 
     def x_authorize_app(self):
         for i in range(1, DEF_NUM_TRY+1):
