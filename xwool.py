@@ -124,10 +124,15 @@ class XWool():
 
         # 按日期统计 关注、点赞、回复、转发 数量
         self.dic_date_count = {}
+        # 全局连续计数：点赞、回复、关注任一达到阈值则三者清零并休息15-20分钟
+        self.n_session_follow = 0
+        self.n_session_like = 0
+        self.n_session_reply = 0
+        self.n_session_threshold = random.randint(10, 14)  # 下次重置时再更新
 
         self.n_follow = 0
 
-    def update_daily_stats(self, date, op_type, count=1):
+    def update_daily_stats(self, date, op_type, count=1, inc_session=True):
         """
         更新每日操作统计
 
@@ -135,6 +140,7 @@ class XWool():
             date (str): 日期字符串
             op_type (str): 操作类型 ('follow', 'like', 'reply', 'retweet', 'unfollow')  # noqa
             count (int): 操作数量，默认为1
+            inc_session (bool): 是否计入本次会话连续计数并可能触发休息，加载历史时为 False
         """
         if date not in self.dic_date_count:
             self.dic_date_count[date] = {
@@ -148,6 +154,39 @@ class XWool():
 
         if op_type in self.dic_date_count[date]:
             self.dic_date_count[date][op_type] += count
+
+        # 全局：连续点赞、回复、关注任意一种达到10-14，则三者清零并休息15-20分钟（仅本次会话操作）
+        if not inc_session or op_type not in ('follow', 'like', 'reply'):
+            return
+        if op_type == 'follow':
+            self.n_session_follow += count
+        elif op_type == 'like':
+            self.n_session_like += count
+        elif op_type == 'reply':
+            self.n_session_reply += count
+
+        reached = []
+        if self.n_session_follow >= self.n_session_threshold:
+            reached.append(f'follow({self.n_session_follow})')
+        if self.n_session_like >= self.n_session_threshold:
+            reached.append(f'like({self.n_session_like})')
+        if self.n_session_reply >= self.n_session_threshold:
+            reached.append(f'reply({self.n_session_reply})')
+        if reached:
+            n_threshold_reached = self.n_session_threshold
+            self.n_session_follow = 0
+            self.n_session_like = 0
+            self.n_session_reply = 0
+            self.n_session_threshold = random.randint(10, 14)  # 重置时生成下一次阈值
+            n_sleep_sec = random.uniform(15 * 60, 20 * 60)
+            next_ts = time.time() + n_sleep_sec
+            next_time_str = format_ts(next_ts, style=2, tz_offset=TZ_OFFSET)
+            msg = (f'Reached threshold[{n_threshold_reached}], '
+                   f'{", ".join(reached)}, '
+                   f'reset counts, sleeping {n_sleep_sec/60:.1f} min, '
+                   f'next at {next_time_str}')
+            self.logit(None, msg)
+            time.sleep(n_sleep_sec)
 
     def get_daily_stats(self, date):
         """
@@ -350,19 +389,22 @@ class XWool():
                                 continue
                             self.set_user_followed.add(name)
                             if fields[2] == DEF_INTERACTION_OK:
-                                self.update_daily_stats(s_date, 'follow', 1)
+                                self.update_daily_stats(
+                                    s_date, 'follow', 1, inc_session=False)
                         elif 'like' == s_op_type:
                             if s_url in self.set_url_liked:
                                 continue
                             self.set_url_liked.add(s_url)
                             if fields[2] == DEF_INTERACTION_OK:
-                                self.update_daily_stats(s_date, 'like', 1)
+                                self.update_daily_stats(
+                                    s_date, 'like', 1, inc_session=False)
                         elif 'reply' == s_op_type:
                             if s_url in self.set_url_replied:
                                 continue
                             self.set_url_replied.add(s_url)
                             if fields[2] == DEF_INTERACTION_OK:
-                                self.update_daily_stats(s_date, 'reply', 1)
+                                self.update_daily_stats(
+                                    s_date, 'reply', 1, inc_session=False)
                         elif 'retweet' == s_op_type:
                             if s_url in self.set_url_retweeted:
                                 continue
@@ -506,15 +548,20 @@ class XWool():
         user_url = f'https://x.com/{name}'  # noqa
         # tab = self.browser.new_tab(user_url)
         tab = self.browser.latest_tab
-        tab.get(user_url)
-        tab.wait.doc_loaded()
-        tab.wait(5)
+        if tab.url != user_url:
+            if self.args.debug:
+                self.logit(None, f'tab.url: {tab.url}, user_url: {user_url}')
+                pdb.set_trace()
+            tab.get(user_url)
+            tab.wait.doc_loaded()
+            tab.wait(5)
         if self.is_followed(name):
             self.logit(None, 'Already followed, skip ...')
         else:
             self.logit(None, f'Try to Follow x: {name}')
             if self.inst_x.x_follow(name):
                 if self.check_rate_limit(s_type='follow'):
+                    # 限制了，直接返回 False
                     return b_ret
 
                 self.status_append(
@@ -530,9 +577,7 @@ class XWool():
             else:
                 self.logit(None, f'Follow x: {name} [Failed]')
         # tab.close()
-        tab.back()
-        tab.wait.doc_loaded()
-        tab.wait(3)
+        self.click_back()
 
         return b_ret
 
@@ -592,10 +637,10 @@ class XWool():
         match2 = re.search(pattern2, s_reply)
 
         if match1 or match2:
-            problem_text = match1.group() if match1 else match2.group()
-
             # 不提示中英文之间缺少空格
-            # errors.append(f'中英文之间缺少空格，问题片段: "... {problem_text} ..."')
+            # _ = match1.group() if match1 else match2.group()
+            # errors.append(f'中英文之间缺少空格，问题片段: "... {_} ..."')
+            pass
 
         # 如果有错误，返回 False 和拼接的错误信息
         if errors:
@@ -642,10 +687,23 @@ class XWool():
         self.logit('reply_tweet', f's_tweet_type: {s_tweet_type}')
         s_reply = ''
         s_cont = s_tweet_text
+
+        # 预设 5 种回复风格，每次随机选一种
+        lst_reply_style = [
+            "小红书风格：亲切、有种草感、适度使用 emoji，口语化",
+            "幽默风格：轻松搞笑、适度玩梗、不刻意的幽默",
+            "温暖治愈风格：真诚、鼓励、共情、让人感到被理解",
+            "简洁干练风格：简短直接、不啰嗦、一语中的",
+            "活泼可爱风格：俏皮、年轻化、有活力、语气轻快",
+        ]
+        s_style = random.choice(lst_reply_style)
+        self.logit(None, f'Reply style: {s_style[:20]}...')
+
         if s_tweet_type == 'follow':
             # "回复尽量简短，一句话回复"
             if is_following:
                 s_rules = (
+                    f"回复风格：{s_style}\n"
                     "简短回复，一句话回复\n"
                     "幽默风趣，之前已经关注了对方，保持活跃，多多互动\n"
                     "回复语言与推文一致\n"
@@ -654,6 +712,7 @@ class XWool():
                 )
             else:
                 s_rules = (
+                    f"回复风格：{s_style}\n"
                     "简短回复，一句话回复\n"
                     "幽默风趣，提醒对方回关\n"
                     "回复语言与推文一致\n"
@@ -728,6 +787,7 @@ class XWool():
 
             # "回复尽量简短，一句话回复"
             s_rules = (
+                f"回复风格：{s_style}\n"
                 "简短回复，一句话回复\n"
                 "回复内容要符合给定帖子内容\n"
                 "回复内容要避开敏感信息\n"
@@ -864,9 +924,15 @@ class XWool():
 
             # tab = self.browser.new_tab(tweet_url)
             tab = self.browser.latest_tab
-            tab.get(tweet_url)
-            tab.wait.doc_loaded()
-            tab.wait(5)
+            if tab.url != tweet_url:
+                if self.args.debug:
+                    self.logit(
+                        None,
+                        f'tab.url: {tab.url}, tweet_url: {tweet_url}')
+                    pdb.set_trace()
+                tab.get(tweet_url)
+                tab.wait.doc_loaded()
+                tab.wait(5)
             self.logit(None, f'Try to Like x: {tweet_url}')
 
             if tweet_url in self.set_url_replied:
@@ -886,9 +952,7 @@ class XWool():
                     else:
                         self.logit(None, 'tweet_text is not found')
                         # tab.close()
-                        tab.back()
-                        tab.wait.doc_loaded()
-                        tab.wait(3)
+                        self.click_back()
                         return b_ret, counts
 
                     is_following = self.is_following(name)
@@ -923,35 +987,53 @@ class XWool():
                             self.set_url_ignored.add(tweet_url)
 
                             # tab.close()
-                            tab.back()
-                            tab.wait.doc_loaded()
-                            tab.wait(3)
+                            self.click_back()
 
                             return b_ret, counts
                         self.logit(None, f's_tweet_type: {s_tweet_type}')
 
+                    # 为已 follow 的推文回复增加随机是否操作
+                    b_random_reply = random.choice([True, False])
+                    if is_following and (not b_random_reply):
+                        is_reply = False
+                        self.logit(None, f'b_random_reply: {b_random_reply}, set is_reply: {is_reply}')  # noqa
+
                     # reply
                     if is_reply:
-                        if self.reply_tweet(s_tweet_type, s_tweet_text, is_following):  # noqa
+                        if self.reply_tweet(s_tweet_type, s_tweet_text,
+                                            is_following):
                             counts['reply'] = 1
-                    
+                            tab.wait(2)
+
                     if is_follow:
                         if s_tweet_type == 'follow':
                             is_todo_follow = True
                         if is_following:
                             is_todo_follow = False
-                        if self.args.only_certified_user and (not is_verified_user):
+                        if (self.args.only_certified_user and
+                                not is_verified_user):
                             is_todo_follow = False
                     else:
                         is_todo_follow = False
 
+            # 为点赞增加随机是否操作
+            b_random_like = random.choice([True, False])
+            if not b_random_like:
+                is_like = False
+                self.logit(None, f'b_random_like: {b_random_like}, set is_like: {is_like}')  # noqa
+
             # like
-            if is_like:
+            if b_random_like:
                 if tweet_url in self.set_url_liked:
                     self.logit(None, 'Already liked before, skip ...')
                 else:
-                    if self.inst_x.x_like():
-                        tab.wait(1)
+                    try:
+                        b_ret = self.inst_x.x_like()
+                    except Exception as e:
+                        self.logit(None, f'x_like error: {e}')
+                        b_ret = False
+                    if b_ret:
+                        tab.wait(2)
                         self.status_append(
                             s_op_type='like',
                             s_url=tweet_url,
@@ -966,7 +1048,12 @@ class XWool():
                 if tweet_url in self.set_url_retweeted:
                     self.logit(None, 'Already retweeted before, skip ...')
                 else:
-                    if self.inst_x.x_retweet():
+                    try:
+                        b_ret = self.inst_x.x_retweet()
+                    except Exception as e:
+                        self.logit(None, f'x_retweet error: {e}')
+                        b_ret = False
+                    if b_ret:
                         tab.wait(1)
                         self.status_append(
                             s_op_type='retweet',
@@ -977,22 +1064,44 @@ class XWool():
                         counts['retweet'] = 1
                         b_ret = True
 
-            # tab.close()
-            tab.back()
-            tab.wait.doc_loaded()
-            tab.wait(3)
+            self.click_back()
 
             # follow
             if is_todo_follow:
                 if name in self.set_user_followed:
                     self.logit(None, 'Already followed before, skip ...')
                 else:
-                    is_success = self.follow_user(name)
+                    try:
+                        ele_user = tab.ele(
+                            f'@@tag()=a@@href=/{name}', timeout=3)
+                        if not isinstance(ele_user, NoneElement):
+                            if ele_user.wait.clickable(timeout=5) is not False:
+                                ele_user.click()
+                                tab.wait.doc_loaded()
+                                tab.wait(3)
+                        is_success = self.follow_user(name)
+                    except Exception as e:
+                        self.logit(None, f'follow_user error: {e}')
+                        is_success = False
                     if is_success:
+                        tab.wait(2)
                         counts['follow'] = 1
                         b_ret = True
 
         return b_ret, counts
+
+    def click_back(self):
+        tab = self.browser.latest_tab
+        ele_btn = tab.ele(
+            '@@tag()=button@@data-testid=app-bar-back', timeout=2)
+        if not isinstance(ele_btn, NoneElement):
+            if ele_btn.wait.clickable(timeout=5) is not False:
+                # tab.actions.move_to(ele_btn).click()
+                tab.actions.move_to(ele_btn).wait(1).click()
+                tab.wait.doc_loaded()
+                tab.wait(3)
+                return True
+        return False
 
     def click_display_post(self):
         tab = self.browser.latest_tab
@@ -1010,7 +1119,7 @@ class XWool():
 
     def list_tabs(self):
         """
-        获取所有标签
+        获取所有标签，返回 [(序号, 文本), ...]
 
         为你推荐
         关注
@@ -1027,14 +1136,83 @@ class XWool():
             ele_btns = ele_blk.eles(
                 '@@tag()=div@@role=presentation', timeout=3
             )
-            for ele_btn in ele_btns:
-                self.logit(None, f'list_tabs: {ele_btn.text}')
+            for idx, ele_btn in enumerate(ele_btns):
+                self.logit(None, f'list_tabs: [{idx}] {ele_btn.text}')
                 if ele_btn.text in ['关注']:
                     continue
-                lst_tabs.append(ele_btn.text)
+                lst_tabs.append((idx, ele_btn.text))
         return lst_tabs
 
-    def select_tab(self, s_tab_name):
+    def select_tab_by_text(self, idx_tab, s_tab_name):
+        tab = self.browser.latest_tab
+        for i in range(1, 5):
+            ele_blk = tab.ele(
+                '@@tag()=div@@data-testid=ScrollSnap-List', timeout=3
+            )
+            if not isinstance(ele_blk, NoneElement):
+                ele_btns = ele_blk.eles(
+                    '@@tag()=div@@role=presentation', timeout=3
+                )
+                for idx, ele_btn in enumerate(ele_btns):
+                    if idx != idx_tab:
+                        continue
+                    ele_svg = ele_btn.ele(
+                        '@@tag()=svg', timeout=1)
+                    if not isinstance(ele_svg, NoneElement):
+                        n_selected_idx, s_selected_tab_text = (
+                            self.get_selected_tab_idx_text())
+                        self.logit(
+                            None,
+                            f'[selected_tab] idx={n_selected_idx} '
+                            f'text={s_selected_tab_text}')
+                        return True
+                    self.set_tab(idx_tab, s_tab_name)
+                    n_selected_idx, _ = self.get_selected_tab_idx_text()
+                    if n_selected_idx != idx_tab:
+                        self.scroll_tab()
+
+        return False
+
+    def get_selected_tab_idx_text(self):
+        tab = self.browser.latest_tab
+        for i in range(1, 5):
+            ele_blk = tab.ele(
+                '@@tag()=div@@data-testid=ScrollSnap-List', timeout=3
+            )
+            if not isinstance(ele_blk, NoneElement):
+                ele_btns = ele_blk.eles(
+                    '@@tag()=div@@role=presentation', timeout=3
+                )
+                for idx, ele_btn in enumerate(ele_btns):
+                    ele_bgcolor = ele_btn.ele(
+                        '@@tag()=div@@class:css@@style:background-color',
+                        timeout=1)
+                    if not isinstance(ele_bgcolor, NoneElement):
+                        return (idx, ele_btn.text)
+                    # ele_svg = ele_btn.ele(
+                    #    '@@tag()=svg', timeout=1)
+                    # if not isinstance(ele_svg, NoneElement):
+                    #    return (idx, ele_btn.text)
+
+        return (-1, 'NOTFOUND')
+
+    def scroll_tab(self):
+        tab = self.browser.latest_tab
+        ele_scroll_blk = tab.ele(
+            '@@tag()=div@@data-testid=ScrollSnap-nextButtonWrapper', timeout=3
+        )
+        if not isinstance(ele_scroll_blk, NoneElement):
+            ele_scroll_btn = ele_scroll_blk.ele(
+                '@@tag()=button@@aria-label', timeout=3)
+            if not isinstance(ele_scroll_btn, NoneElement):
+                tab.actions.move_to(ele_scroll_btn).click()
+                tab.wait.doc_loaded()
+                tab.wait(1)
+                self.logit(None, 'scroll_tab [Success]')
+                return True
+        return False
+
+    def set_tab(self, idx_tab, s_tab_name):
         tab = self.browser.latest_tab
         ele_blk = tab.ele(
             '@@tag()=div@@data-testid=ScrollSnap-List', timeout=3
@@ -1043,10 +1221,12 @@ class XWool():
             ele_btns = ele_blk.eles(
                 '@@tag()=div@@role=presentation', timeout=3
             )
-            for ele_btn in ele_btns:
-                # self.logit(None, f'list_tabs: {ele_btn.text}')
-                if ele_btn.text != s_tab_name:
+            for idx, ele_btn in enumerate(ele_btns):
+                if idx != idx_tab:
                     continue
+                # self.logit(None, f'list_tabs: {ele_btn.text}')
+                # if ele_btn.text != s_tab_name:
+                #    continue
                 if ele_btn.wait.clickable(timeout=3):
                     ele_btn.click()
                     self.logit(None, f'select_tab[{s_tab_name}] [Success]')
@@ -1056,21 +1236,28 @@ class XWool():
                     # 再点击一次，选择排序方式
                     ele_btn.click()
                     tab.wait(3)
-                    ele_blk_dropdown = tab.ele('@@tag()=div@@data-testid=Dropdown', timeout=3)
+                    ele_blk_dropdown = tab.ele(
+                        '@@tag()=div@@data-testid=Dropdown', timeout=3)
                     if not isinstance(ele_blk_dropdown, NoneElement):
-                        ele_sort_btns = ele_blk_dropdown.eles('@@tag()=div@@role=menuitem', timeout=3)
+                        ele_sort_btns = ele_blk_dropdown.eles(
+                            '@@tag()=div@@role=menuitem', timeout=3)
                         # Relevance, Recency, Likes
                         if len(ele_sort_btns) >= 3:
                             ele_sort_btn = ele_sort_btns[1]
-                            ele_svg = ele_sort_btn.ele('@@tag()=svg', timeout=1)
+                            ele_svg = ele_sort_btn.ele(
+                                '@@tag()=svg', timeout=1)
                             if not isinstance(ele_svg, NoneElement):
                                 # 当前已选中，忽略
                                 pass
                             else:
                                 s_text = ele_sort_btn.text
-                                self.logit(None, f'Click Dropdown button text: {s_text}')
-                                if ele_sort_btn.wait.clickable(timeout=5) is not False:
+                                self.logit(
+                                    None,
+                                    f'Click Dropdown button text: {s_text}')
+                                if ele_sort_btn.wait.clickable(
+                                        timeout=5) is not False:
                                     ele_sort_btn.click(by_js=True)
+                                    tab.wait.doc_loaded()
                                     tab.wait(5)
 
                     return True
@@ -1107,9 +1294,10 @@ class XWool():
             time.sleep(3)
         return []
 
-    def interaction(self, s_tab_name=None, is_reply=True, is_all_reply=False,
-                    is_like=True, is_retweet=False, is_follow=True,
-                    max_num_proc=-1):
+    def interaction(self, idx_tab=0, s_tab_name=None,
+                    is_reply=True, is_all_reply=False,
+                    is_like=True, is_retweet=False,
+                    is_follow=True, max_num_proc=-1):
         b_ret = False
         self.click_display_post()
         tab = self.browser.latest_tab
@@ -1133,6 +1321,22 @@ class XWool():
         n_proc_success = 0
 
         for i in range(n_blks_top):
+            n_selected_idx, s_selected_tab_text = (
+                self.get_selected_tab_idx_text())
+            if n_selected_idx != idx_tab:
+                if self.args.debug:
+                    self.logit(
+                        None,
+                        f'n_selected_idx: {n_selected_idx}, '
+                        f'idx_tab: {idx_tab}')
+                    pdb.set_trace()
+                b_set_tab = self.select_tab_by_text(idx_tab, s_tab_name)
+                if not b_set_tab:
+                    self.logit(
+                        None,
+                        f'select_tab_by_text [{idx_tab}] '
+                        f'[{s_tab_name}] [Failed]')
+                    continue
             ele_blks_top = self.get_tweet_blks()
             if i >= len(ele_blks_top):
                 break
@@ -1191,11 +1395,24 @@ class XWool():
                                'All operations reached max limit, skip ...')
                     break
 
+                # tab.actions.move_to(ele_blk).click()
+                if ele_tweet_url.wait.clickable(timeout=5) is not False:
+                    ele_tweet_url.click()
+                    tab.wait.doc_loaded()
+                    tab.wait(3)
+                if tab.url == 'https://x.com/home':
+                    self.logit(
+                        None,
+                        'tab.url is home, failed to click tweet url ...')
+                    continue
+
                 is_success, counts = self.proc_tw_url(
                     tweet_url, is_reply=is_reply, is_all_reply=is_all_reply,
                     is_like=is_like, is_retweet=is_retweet,
                     is_follow=is_follow, s_tab_name=s_tab_name
                 )
+                tab.wait(2)
+                self.click_back()
                 if is_success:
                     b_ret = True
                     # 更新计数器
@@ -1219,10 +1436,21 @@ class XWool():
                     if counts.get('retweet', 0) > 0:
                         self.update_daily_stats(today, 'retweet',
                                                 counts['retweet'])
+                    # 每条推文只打一次 session 日志，避免同条推文点赞+回复打两次
+                    if (counts.get('follow', 0) or counts.get('like', 0) or
+                            counts.get('reply', 0)):
+                        msg = (
+                            f'[Session] follow={self.n_session_follow}/'
+                            f'{self.n_session_threshold} '
+                            f'like={self.n_session_like}/'
+                            f'{self.n_session_threshold} '
+                            f'reply={self.n_session_reply}/'
+                            f'{self.n_session_threshold}')
+                        self.logit(None, msg)
             else:
                 self.logit(None, 'tweet_url is not found')
 
-            tab.wait(10)
+            tab.wait(3)
 
             n_proc_success += 1
             if max_num_proc > 0 and n_proc_success >= max_num_proc:
@@ -1310,9 +1538,7 @@ class XWool():
 
         if tab:
             # tab.close()
-            tab.back()
-            tab.wait.doc_loaded()
-            tab.wait(3)
+            self.click_back()
 
         return b_ret
 
@@ -1911,7 +2137,8 @@ class XWool():
             ele_btn = ele_blk.ele('@@tag()=button@@role=button', timeout=2) # noqa
             if not isinstance(ele_btn, NoneElement):
                 s_text = ele_btn.text
-                self.logit(None, f'First open Communities button text: {s_text}')
+                self.logit(
+                    None, f'First open Communities button text: {s_text}')
                 if ele_btn.wait.clickable(timeout=5) is not False:
                     ele_btn.click(by_js=True)
                     tab.wait(2)
@@ -1936,7 +2163,8 @@ class XWool():
                         ele_btn_agree = self.inst_dp.get_ele_btn(tab, lst_path)
                         if not isinstance(ele_btn_agree, NoneElement):
                             s_text = ele_btn_agree.text
-                            if ele_btn_agree.wait.clickable(timeout=5) is not False:
+                            if ele_btn_agree.wait.clickable(
+                                    timeout=5) is not False:
                                 ele_btn_agree.click(by_js=True)
                                 tab.wait(2)
                 else:
@@ -1953,8 +2181,9 @@ class XWool():
         }
 
         b_joined = False
+        lst_tab_texts = [t[1] for t in lst_tabs]
         for s_url, s_tab_name in d_tab_communities.items():
-            if s_tab_name in lst_tabs:
+            if s_tab_name in lst_tab_texts:
                 continue
             # tab = self.browser.new_tab(s_url)
             tab = self.browser.latest_tab
@@ -2123,10 +2352,20 @@ class XWool():
             lst_tabs = self.list_tabs()
             # lst_tabs = ['X 推特华语区【蓝V互关】']
             # lst_tabs = ['为你推荐']
-            for s_tab_name in lst_tabs:
+            random.shuffle(lst_tabs)  # 每次随机顺序，逐个处理直到全部完成
+            for tab_idx, s_tab_name in lst_tabs:
+                if self.args.debug:
+                    self.logit(None, f'select_tab_by_text [{tab_idx}] '
+                               f'[{s_tab_name}] [Debug]')
+                    pdb.set_trace()
                 self.click_home()
-                self.select_tab(s_tab_name)
-                self.interaction(s_tab_name)
+                if not self.select_tab_by_text(tab_idx, s_tab_name):
+                    self.logit(
+                        None,
+                        f'select_tab_by_text [{tab_idx}] '
+                        f'[{s_tab_name}] [Failed]')
+                    continue
+                self.interaction(tab_idx, s_tab_name)
             self.browser.latest_tab.refresh()
 
             n_sleep = random.randint(600, 1200)

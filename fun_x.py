@@ -1227,8 +1227,9 @@ class XUtils():
         return True
 
     def x_follow(self, name):
-        for i in range(1, DEF_NUM_TRY+1):
-            self.logit('x_follow', f'try_i={i}/{DEF_NUM_TRY}')
+        n_max_try = 5
+        for i in range(1, n_max_try+1):
+            self.logit('x_follow', f'try_i={i}/{n_max_try}')
             self.check_need_login()
 
             tab = self.browser.latest_tab
@@ -1255,6 +1256,7 @@ class XUtils():
                 # Status: following
                 if s_attr == 'unfollow':
                     self.logit(None, 'Follow Success ✅')
+                    tab.wait(1)
                     return True
                 self.logit(None, 'Try to Click Follow Button')
                 if ele_btn.wait.clickable(timeout=5) is not False:
@@ -1355,6 +1357,7 @@ class XUtils():
                 # Status: like / unlike
                 if s_attr == 'unlike':
                     self.logit(None, 'Like Success ✅')
+                    tab.wait(1)
                     return True
                 self.logit(None, 'Try to Click Like Button')
                 tab.actions.move_to(ele_btn)
@@ -1493,6 +1496,7 @@ class XUtils():
                         for s_assert in lst_assert:
                             if s_assert in s_info:
                                 self.logit(None, 'Reply Success ✅')
+                                tab.wait(1)
                                 return True
 
                         n_fail += 1
@@ -1528,7 +1532,7 @@ class XUtils():
                         s_dst = s_div_text.replace('\n', '').replace(' ', '')
                         # 计算 s_dst 和 s_src 的相似度，达到 90% 则认为成功
                         f_similarity = difflib.SequenceMatcher(None, rm_url(s_src), rm_url(s_dst)).ratio()
-                        self.logit(None, f'f_similarity: {f_similarity}')
+                        self.logit(None, f'f_similarity: {f_similarity:.2f}')
                         if f_similarity >= 0.9:
                             self.logit(None, 'Reply Success ✅')
                             return True
@@ -1637,7 +1641,7 @@ class XUtils():
                     s_div_text = ele_div.text
                     # 计算 s_dst 和 s_src 的相似度，达到 90% 则认为成功
                     f_similarity = self.get_similarity(s_text, s_div_text)
-                    self.logit(None, f'f_similarity: {f_similarity}')
+                    self.logit(None, f'f_similarity: {f_similarity:.2f}')
                     if f_similarity >= 0.9:
                         self.logit(None, 'Post Success ✅')
                         return True
