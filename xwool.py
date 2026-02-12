@@ -8,7 +8,7 @@ import pdb  # noqa
 import shutil
 import math
 import re  # noqa
-from datetime import datetime  # noqa
+from datetime import datetime, timedelta, timezone  # noqa
 
 from DrissionPage._elements.none_element import NoneElement
 
@@ -302,6 +302,10 @@ class XWool():
         self.file_ad_user = f'{DEF_PATH_DATA_STATUS}/xwool/ad_user.csv'
         self.file_user_white = f'{DEF_PATH_DATA_STATUS}/xwool/a_user_white.csv'
         self.file_user_black = f'{DEF_PATH_DATA_STATUS}/xwool/a_user_black.csv'
+
+        self.file_statistics = (
+            f'{DEF_PATH_DATA_STATUS}/xwool/statistics.csv'
+        )
 
         # load_processed_url 已经会更新统计，不需要再调用 load_daily_stats_from_csv
         self.load_processed_url()
@@ -2352,6 +2356,98 @@ class XWool():
 
         return True
 
+    def stat_data(self):
+        """
+        统计最近3天的互动数据，按天统计
+        统计最近12小时的互动数据，按小时统计
+        结果写入 self.file_statistics
+        日期与时间均以文件中的为准。
+        """
+        self.logit(None, 'Statistics mode, print daily stats ...')
+
+        op_types = ('follow', 'like', 'reply', 'retweet', 'unfollow', 'post')
+        tz_off = timezone(timedelta(hours=TZ_OFFSET))
+
+        # 按天：使用文件中出现的日期，取最近 3 天（即文件中实际存在的最后 3 个日期）
+        daily_dates = sorted(self.dic_date_count.keys())[-3:]
+        daily_rows = []
+        for date in daily_dates:
+            counts = self.get_daily_stats(date)
+            total = sum(counts.get(k, 0) for k in op_types)
+            daily_rows.append((date, counts, total))
+
+        # 按小时：使用文件中的时间，以文件中最新时间为基准取最近 12 小时
+        hour_buckets = {}  # hour_key -> { op_type: count }
+        if os.path.exists(self.file_status):
+            import csv
+            # 先收集所有有效行的 (文件内时间戳, 操作类型)，并得到文件中最新时间
+            parsed = []
+            with open(self.file_status, 'r', encoding='utf-8') as fp:
+                reader = csv.reader(fp)
+                for row in reader:
+                    if len(row) < 4:
+                        continue
+                    s_datetime, s_op_type, s_status = row[0].strip(), row[1].strip(), row[2].strip()
+                    if s_status not in [DEF_INTERACTION_OK, DEF_INTERACTION_IGNORE]:
+                        continue
+                    if s_op_type not in op_types:
+                        continue
+                    try:
+                        s_ts = s_datetime.split('+')[0] if '+' in s_datetime else s_datetime
+                        if 'T' in s_ts:
+                            dt = datetime.strptime(s_ts, '%Y-%m-%dT%H:%M:%S')
+                        else:
+                            continue
+                        utc_ts = dt.replace(tzinfo=tz_off).timestamp()
+                        parsed.append((utc_ts, s_op_type, dt))
+                    except Exception:
+                        continue
+            if parsed:
+                latest_ts = max(p[0] for p in parsed)
+                ts_12h_ago = latest_ts - 12 * 3600
+                for utc_ts, s_op_type, dt in parsed:
+                    if utc_ts < ts_12h_ago:
+                        continue
+                    # 使用文件里的日期和时间组成 hour_key（不重新 format_ts，直接用 dt）
+                    hour_key = dt.strftime('%Y-%m-%d') + ' ' + dt.strftime('%H:00')
+                    if hour_key not in hour_buckets:
+                        hour_buckets[hour_key] = {k: 0 for k in op_types}
+                    hour_buckets[hour_key][s_op_type] = (
+                        hour_buckets[hour_key].get(s_op_type, 0) + 1
+                    )
+
+        # 写入 self.file_statistics（覆盖）
+        dir_out = os.path.dirname(self.file_statistics)
+        if dir_out and not os.path.exists(dir_out):
+            os.makedirs(dir_out)
+
+        profile = getattr(self.args, 's_profile', '') or ''
+        header = 'profile,period_type,period,follow,like,reply,retweet,unfollow,post,total'
+        with open(self.file_statistics, 'w') as fp:
+            fp.write(header + '\n')
+            for date, counts, total in daily_rows:
+                row = (
+                    profile, 'daily', date,
+                    counts.get('follow', 0), counts.get('like', 0),
+                    counts.get('reply', 0), counts.get('retweet', 0),
+                    counts.get('unfollow', 0), counts.get('post', 0),
+                    total
+                )
+                fp.write(','.join(str(x) for x in row) + '\n')
+            for hour_key in sorted(hour_buckets.keys()):
+                counts = hour_buckets[hour_key]
+                total = sum(counts.get(k, 0) for k in op_types)
+                row = (
+                    profile, 'hourly', hour_key,
+                    counts.get('follow', 0), counts.get('like', 0),
+                    counts.get('reply', 0), counts.get('retweet', 0),
+                    counts.get('unfollow', 0), counts.get('post', 0),
+                    total
+                )
+                fp.write(','.join(str(x) for x in row) + '\n')
+
+        self.logit(None, f'Statistics written to {self.file_statistics}')
+
 
 def send_msg(x_wool, lst_success):
     if len(DEF_DING_TOKEN) > 0 and len(lst_success) > 0:
@@ -2489,6 +2585,11 @@ def main(args):
                     logger.info(f'⚠️ 正在重试，当前是第{j}次执行，最多尝试{max_try_except}次 [{s_profile}]')  # noqa
 
                 x_wool.set_args(args)
+
+                if args.only_statistics:
+                    x_wool.stat_data()
+                    return
+
                 x_wool.inst_dp.set_args(args)
                 x_wool.inst_x.set_args(args)
 
@@ -2691,6 +2792,10 @@ if __name__ == '__main__':
     parser.add_argument(
         '--only_certified_user', required=False, action='store_true',
         help='Only interact with certified user (blueV)'
+    )
+    parser.add_argument(
+        '--only_statistics', required=False, action='store_true',
+        help='Only statistics mode'
     )
 
     # 添加 --debug 参数，用于调试
