@@ -419,15 +419,16 @@ def load_advertising_urls(csv_file):
     if not os.path.exists(csv_file):
         print(f'CSV file not found: {csv_file}')
         return []
-    
+
     # 获取今天的日期
     today = format_ts(time.time(), style=1, tz_offset=TZ_OFFSET)
-    yesterday = format_ts(time.time() - 24 * 60 * 60, style=1, tz_offset=TZ_OFFSET)
-    
+    yesterday = format_ts(
+        time.time() - 24 * 60 * 60, style=1, tz_offset=TZ_OFFSET)
+
     try:
         # 使用 load_file 函数加载 CSV 数据
         dic_data = load_file(csv_file, idx_key=2)
-        
+
         # 提取 URL（CSV 格式：date,project,url）
         for key, fields in dic_data.items():
             if len(fields) >= 3:
@@ -449,16 +450,19 @@ def load_advertising_urls(csv_file):
             print(f'Loaded {len(lst_urls_today)} URLs for today')
             lst_ret = lst_urls_today
         elif lst_urls_yesterday:
-            print(f'No URLs for today, loaded {len(lst_urls_yesterday)} '
-                                'URLs for yesterday')
+            print(
+                f'No URLs for today, loaded {len(lst_urls_yesterday)} '
+                'URLs for yesterday')
             lst_ret = lst_urls_yesterday
         elif lst_urls_all:
-            print(f'No URLs for today and yesterday, loaded {len(lst_urls_all)} '
-                                'total URLs from CSV')
+            print(
+                f'No URLs for today and yesterday, loaded '
+                f'{len(lst_urls_all)} total URLs from CSV')
             lst_ret = lst_urls_yesterday
         else:
-            print(f'No URLs for today and yesterday, loaded {len(lst_urls_all)} '
-                                'total URLs from CSV')
+            print(
+                f'No URLs for today and yesterday, loaded '
+                f'{len(lst_urls_all)} total URLs from CSV')
             lst_ret = lst_urls_all
 
     except Exception as e:
@@ -486,11 +490,11 @@ def load_ad_user(csv_file):
     if not os.path.exists(csv_file):
         print(f'CSV file not found: {csv_file}')
         return lst_ad_user
-    
+
     try:
         # 使用 load_file 函数加载 CSV 数据
         dic_data = load_file(csv_file, idx_key=0)
-        
+
         # 提取 URL（CSV 格式：date,project,url）
         for key, fields in dic_data.items():
             if len(fields) >= 2:
@@ -529,11 +533,11 @@ def load_to_set(csv_file, set_user):
     if not os.path.exists(csv_file):
         print(f'CSV file not found: {csv_file}')
         return set_user
-    
+
     try:
         # 使用 load_file 函数加载 CSV 数据
         dic_data = load_file(csv_file, idx_key=0)
-        
+
         # 提取 URL（CSV 格式：date,project,url）
         for key, fields in dic_data.items():
             if len(fields) >= 1:

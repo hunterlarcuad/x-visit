@@ -680,195 +680,100 @@ class XWool():
 
         return s_reply
 
-    def reply_tweet(self, s_tweet_type, s_tweet_text, is_following=False):
+    def reply_tweet(
+            self, s_tweet_type, s_tweet_text,
+            is_following=False, is_follow_me=False):
         """
         is_following: 是否已经关注了对方
+        is_follow_me: 是否关注了我
         """
         self.logit('reply_tweet', f's_tweet_type: {s_tweet_type}')
         s_reply = ''
         s_cont = s_tweet_text
 
-        # 预设 5 种回复风格，每次随机选一种
+        # 预设 10 种回复风格，每次随机选一种
         lst_reply_style = [
             "小红书风格：亲切、有种草感、适度使用 emoji，口语化",
             "幽默风格：轻松搞笑、适度玩梗、不刻意的幽默",
             "温暖治愈风格：真诚、鼓励、共情、让人感到被理解",
             "简洁干练风格：简短直接、不啰嗦、一语中的",
             "活泼可爱风格：俏皮、年轻化、有活力、语气轻快",
+            "专业理性风格：有据可依、逻辑清晰、不情绪化",
+            "文艺走心风格：有画面感、留白、不直白说教",
+            "随性自然风格：像朋友聊天、不端着、接地气",
+            "热情捧场风格：认同感强、会接话、有共鸣",
+            "沉稳内敛风格：话不多但到位、不夸张、有分寸",
         ]
         s_style = random.choice(lst_reply_style)
-        self.logit(None, f'Reply style: {s_style[:20]}...')
+        self.logit(None, f'Reply style: {s_style[:30]}...')
+
+        s_rules = (
+            f"回复风格：{s_style}\n"
+            "简短回复，一句话回复\n"
+            "回复语言与推文一致\n"
+            "回复不要超过 30 字\n"
+            "特别注意，中文(汉字)与非中文(英文、数字、符号)之间要加一个空格，不要连在一起，增加可读性\n"
+            "特别注意，不要出现回复如下之类的字眼，直接输出回复内容\n"
+            "特别注意，回复不要出现 <|begin_of_box|> 和 <|end_of_box|> 标签\n"
+        )
 
         if s_tweet_type == 'follow':
             # "回复尽量简短，一句话回复"
-            if is_following:
-                s_rules = (
-                    f"回复风格：{s_style}\n"
-                    "简短回复，一句话回复\n"
-                    "幽默风趣，之前已经关注了对方，保持活跃，多多互动\n"
-                    "回复语言与推文一致\n"
-                    "特别注意，不要出现回复如下之类的字眼，直接输出回复内容\n"
-                    "特别注意，回复不要出现 <|begin_of_box|> 和 <|end_of_box|> 标签\n"
-                )
-            else:
-                s_rules = (
-                    f"回复风格：{s_style}\n"
-                    "简短回复，一句话回复\n"
-                    "幽默风趣，提醒对方回关\n"
-                    "回复语言与推文一致\n"
-                    "特别注意，不要出现回复如下之类的字眼，直接输出回复内容\n"
-                    "特别注意，回复不要出现 <|begin_of_box|> 和 <|end_of_box|> 标签\n"
-                )
-
-            s_prompt = (
-                "# 【功能】\n"
-                "阅读给定帖子内容，生成回复\n"
-                "# 【要求】\n"
-                f"{s_rules}"
-                "# 【帖子内容如下】\n"
-                f"{s_cont}"
-            )
-            try:
-                s_reply = gene_by_llm(s_prompt)
-                if not s_reply:
-                    self.logit(None, 's_reply from llm is empty, skip ...')
-                if len(s_reply) > 60:
-                    s_reply = ''
-            except Exception as e:
-                self.logit(None, f'Error calling gene_by_llm: {e}')
-
-            if not s_reply:
-                self.logit(None, 's_reply from llm is empty, use random reply ...')  # noqa
+            if is_follow_me:
+                # 对方已经关注了我
                 if is_following:
-                    lst_reply = [
-                        '已是老朋友，多多互动！',
-                        '老粉前来互动！',
-                        '老铁前来助力！',
-                    ]
+                    # 双方都已经回关
+                    s_rules += (
+                        "双方都已经回关，别再要求对方回关\n"
+                    )
                 else:
-                    lst_reply = [
-                        '来了！',
-                        '来啦！',
-                        '安排！',
-                        '互关！',
-                        '互粉！',
-                        '互关互粉，冲！',
-                        '来啦！互关！'
-                    ]
-                s_reply = random.choice(lst_reply)
-
-                # 生成一个随机字符串，长度为 1 到 5 个字符(0-9,a-z,A-Z)
-                chars = (
-                    '0123456789abcdefghijklmnopqrstuvwxyz'
-                    'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-                )
-                s_random = ''.join(
-                    random.choices(chars, k=random.randint(1, 5))
-                )
-                s_reply += f' {s_random}'
+                    # 还没有关注对方，由于关注受限，正在努力回关中
+                    s_rules += (
+                        "还没有关注对方，由于关注受限，正在努力回关中\n"
+                    )
+            else:
+                # 对方还没有关注我
+                if is_following:
+                    s_rules += (
+                        "之前已经关注了对方，请求对方回关\n"
+                    )
+                else:
+                    s_rules += (
+                        "刚刚关注对方，请求对方回关\n"
+                    )
         else:
-            # 调用大模型
+            pass
 
-            # "回复尽量幽默风趣，使用小红书风格"
-            # s_rules = (
-            #     "回复内容要符合给定帖子内容\n"
-            #     "回复内容要避开敏感信息\n"
-            #     "请用中文输出\n"
-            #     "输出不要出现换行符\n"
-            #     "回复内容 @ 不要超过1个\n"
-            #     "避免引用#话题，禁止出现 # \n"
-            #     "回复内容积极向上，不要出现负面情绪\n"
-            #     "输出不要超过 50 字\n"
-            #     "特别注意，中文(汉字)与非中文(英文、数字、符号)之间要加一个空格，不要连在一起，增加可读性\n"
-            #     "特别注意，不要出现回复如下之类的字眼，直接输出回复内容\n"
-            # )
+        s_prompt = (
+            "# 【功能】\n"
+            "阅读给定帖子内容，生成回复\n"
+            "# 【要求】\n"
+            f"{s_rules}"
+            "# 【帖子内容如下】\n"
+            f"{s_cont}"
+        )
 
-            # <|begin_of_box|>双方合作助力链上 AI 信任度与数据利用效率提升。<|end_of_box|>
-
-            # "回复尽量简短，一句话回复"
-            s_rules = (
-                f"回复风格：{s_style}\n"
-                "简短回复，一句话回复\n"
-                "回复内容要符合给定帖子内容\n"
-                "回复内容要避开敏感信息\n"
-                "请用中文输出\n"
-                "输出不要出现换行符\n"
-                "回复内容禁止出现 @\n"
-                "避免引用#话题，禁止出现 # \n"
-                "回复不要超过 30 字\n"
-                "特别注意，中文(汉字)与非中文(英文、数字、符号)之间要加一个空格，不要连在一起，增加可读性\n"
-                "特别注意，不要出现回复如下之类的字眼，直接输出回复内容\n"
-                "特别注意，回复不要出现 <|begin_of_box|> 和 <|end_of_box|> 标签\n"
-            )
-
-            s_prompt = (
-                "# 【功能】\n"
-                "阅读给定帖子内容，生成回复\n"
-                "# 【要求】\n"
-                f"{s_rules}"
-                "# 【帖子内容如下】\n"
-                f"{s_cont}"
-            )
+        # 尝试生成合格的回复，最多尝试次数
+        is_reply_qualified = False
+        max_attempts = 8
+        for attempt in range(1, max_attempts + 1):
+            self.logit(None, f'generate reply attempt: {attempt}/{max_attempts}')  # noqa
             try:
                 s_reply = gene_by_llm(s_prompt)
                 if not s_reply:
                     self.logit(None, 's_reply from llm is empty, skip ...')
-                    return False
             except Exception as e:
                 self.logit(None, f'Error calling gene_by_llm: {e}')
-                return False
+                continue
 
-            # 尝试生成合格的回复，最多尝试次数
-            is_reply_qualified = False
-            max_attempts = 5
-            for attempt in range(1, max_attempts + 1):
-                self.logit(None, f'quality check attempt: {attempt}/{max_attempts}')  # noqa
-                s_reply = self.clean_reply(s_reply)
+            is_reply_qualified, s_reply = self.get_qualified_reply(
+                s_reply, s_rules)
+            if is_reply_qualified:
+                break
 
-                self.logit(None, f'[To Verify]reply_by_llm: {s_reply}')
-                # 验证回复内容是否合格
-                is_ok, reason = self.is_reply_ok(s_reply, n_max_len=69)
-                if is_ok:
-                    self.logit(
-                        None,
-                        f'Reply qualified on attempt {attempt}/{max_attempts}'
-                    )
-                    is_reply_qualified = True
-                    break
-                else:
-                    self.logit(
-                        None,
-                        f'Attempt {attempt}/{max_attempts}: '
-                        f'Reply not qualified: {reason}'
-                    )
-                    if attempt < max_attempts:
-                        # 修改 prompt，要求大模型根据错误原因进行改进
-                        s_prompt = (
-                            "# 【要求】\n"
-                            f"{s_rules}"
-                            f"# 【回复内容有问题，请根据错误原因进行修改】\n"
-                            f"{reason}\n"
-                            f"# 【回复内容】{s_reply}"
-                        )
-                        try:
-                            s_reply = gene_by_llm(s_prompt)
-                            if not s_reply:
-                                self.logit(None, 's_reply from llm is empty, skip ...')  # noqa
-                                return False
-                        except Exception as e:
-                            self.logit(None, f'Error calling gene_by_llm: {e}')
-                            return False
-                    else:
-                        if not s_reply:
-                            self.logit(None, 'All attempts failed, reply is empty, skip ...')  # noqa
-                            return False
-                        self.logit(None, 'All attempts failed, ignore the check, use the reply ...')  # noqa
-
-            if not is_reply_qualified:
-                self.logit(None, 'All attempts failed, reply is empty, skip ...')  # noqa
-                return False
-
-        s_reply = self.clean_reply(s_reply)
+        if not is_reply_qualified:
+            self.logit(None, 'All attempts failed, reply is not qualified, skip ...')  # noqa
+            return False
 
         # 使用已加载的广告 URL
         if len(self.lst_attached_url) > 0:
@@ -895,6 +800,52 @@ class XWool():
             return True
         return False
 
+    def get_qualified_reply(self, s_reply, s_rules):
+        """
+        检查回复内容是否合格，返回符合要求的回复内容
+        """
+        is_reply_qualified = False
+        max_attempts = 8
+        for attempt in range(1, max_attempts + 1):
+            self.logit(None, f'quality check attempt: {attempt}/{max_attempts}')  # noqa
+            s_reply = self.clean_reply(s_reply)
+
+            self.logit(None, f'[To Verify]reply_by_llm: {s_reply}')
+            # 验证回复内容是否合格
+            is_ok, reason = self.is_reply_ok(s_reply, n_max_len=69)
+            if is_ok:
+                self.logit(
+                    None,
+                    f'Reply qualified on attempt {attempt}/{max_attempts}'
+                )
+                is_reply_qualified = True
+                break
+            else:
+                self.logit(
+                    None,
+                    f'Attempt {attempt}/{max_attempts}: '
+                    f'Reply not qualified: {reason}'
+                )
+                # 修改 prompt，要求大模型根据错误原因进行改进
+                s_prompt = (
+                    "# 【要求】\n"
+                    f"{s_rules}"
+                    f"# 【回复内容有问题，请根据错误原因进行修改】\n"
+                    f"{reason}\n"
+                    f"# 【回复内容】{s_reply}"
+                )
+                try:
+                    s_reply = gene_by_llm(s_prompt)
+                    if not s_reply:
+                        self.logit(None, 's_reply from llm is empty, skip ...')  # noqa
+                except Exception as e:
+                    self.logit(None, f'Error calling gene_by_llm: {e}')
+
+        # if not is_reply_qualified:
+        #    self.logit(None, 'All attempts failed, reply is empty, skip ...')  # noqa
+
+        return (is_reply_qualified, s_reply)
+
     def proc_tw_url(self, tweet_url, is_reply=True, is_all_reply=False,
                     is_like=True, is_retweet=False, is_follow=True,
                     s_tab_name=None):
@@ -906,6 +857,8 @@ class XWool():
         is_follow: 是否关注
         s_tab_name: 帖子所在标签页名称
         """
+        if self.args.debug:
+            pdb.set_trace()
         b_ret = False
         counts = {'follow': 0, 'like': 0, 'reply': 0, 'retweet': 0}
         if not tweet_url:
@@ -956,6 +909,7 @@ class XWool():
                         return b_ret, counts
 
                     is_following = self.is_following(name)
+                    is_follow_me = self.is_follow_me(name)
 
                     is_verified_user = self.inst_x.is_verified_user(name)
 
@@ -992,16 +946,16 @@ class XWool():
                             return b_ret, counts
                         self.logit(None, f's_tweet_type: {s_tweet_type}')
 
-                    # 为已 follow 的推文回复增加随机是否操作
-                    b_random_reply = random.choice([True, False])
-                    if is_following and (not b_random_reply):
-                        is_reply = False
-                        self.logit(None, f'b_random_reply: {b_random_reply}, set is_reply: {is_reply}')  # noqa
+                    if s_tweet_type == 'follow':
+                        # 来自 互关频道 的推文，已经互相关注，不回复
+                        if is_following and is_follow_me:
+                            is_reply = False
+                            self.logit(None, f'is_following and is_follow_me, set is_reply: {is_reply}')  # noqa
 
                     # reply
                     if is_reply:
                         if self.reply_tweet(s_tweet_type, s_tweet_text,
-                                            is_following):
+                                            is_following, is_follow_me):
                             counts['reply'] = 1
                             tab.wait(2)
 
@@ -1281,6 +1235,20 @@ class XWool():
                         return False
         return False
 
+    def is_follow_me(self, x_user):
+        """
+        检查是否关注了我
+        """
+        tab = self.browser.latest_tab
+        ele_blk = tab.ele('@@tag()=aside@@role=complementary', timeout=3)
+        if not isinstance(ele_blk, NoneElement):
+            ele_div = ele_blk.ele('@@tag()=div@@data-testid=userFollowIndicator', timeout=3)  # noqa
+            if not isinstance(ele_div, NoneElement):
+                s_value = ele_div.text
+                self.logit(None, f'is_follow_me: {s_value}')
+                return True
+        return False
+
     def get_tweet_blks(self):
         tab = self.browser.latest_tab
         for i in range(1, 5):
@@ -1321,6 +1289,8 @@ class XWool():
         n_proc_success = 0
 
         for i in range(n_blks_top):
+            if self.args.debug:
+                pdb.set_trace()
             n_selected_idx, s_selected_tab_text = (
                 self.get_selected_tab_idx_text())
             if n_selected_idx != idx_tab:
