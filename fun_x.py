@@ -1539,6 +1539,13 @@ class XUtils():
                                 tab.wait(1)
                                 return True
 
+                        lst_ignore = [
+                            '你尝试回复的帖子已被删除或对你不可见'
+                        ]
+                        for s_ignore in lst_ignore:
+                            if s_ignore in s_info:
+                                return True
+
                         n_fail += 1
                         if n_fail < n_max_fail:
                             s_text = s_text[:-1]
