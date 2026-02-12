@@ -1,19 +1,13 @@
 import os # noqa
 import sys # noqa
-import argparse
 import random
 import time
-import copy
 import pdb # noqa
-import shutil
-import math
 import difflib
 import re # noqa
 from datetime import datetime # noqa
 import pyotp
 
-from DrissionPage import ChromiumOptions
-from DrissionPage import Chromium
 from DrissionPage._elements.none_element import NoneElement
 
 from fun_utils import ding_msg
@@ -385,12 +379,12 @@ class XUtils():
         Process Error popup window
 
         Error
-        Oops, something went wrong. Please try again later. 
+        Oops, something went wrong. Please try again later.
         """
         tab = self.browser.latest_tab
         ele_btn = tab.ele('@@tag()=button@@data-testid=confirmationSheetConfirm', timeout=2) # noqa
         if not isinstance(ele_btn, NoneElement):
-            self.logit(None, 'Oops, something went wrong, click OK to continue ...')
+            self.logit(None, 'Oops, something went wrong, click OK to continue ...')  # noqa: E501
             if ele_btn.wait.clickable(timeout=3) is not False:
                 ele_btn.click()
             tab.wait(2)
@@ -401,8 +395,8 @@ class XUtils():
         tab = self.browser.latest_tab
 
         lst_path = [
-            '@@tag()=span@@class=css-1jxf684 r-bcqeeo r-1ttztb7 r-qvutc0 r-poiln3@@text()=Sign in to X',
-            '@@tag()=span@@class:css-1jxf684 r-dnmrzs r-1udh08x@@text()=Sign in',  # noqa
+            '@@tag()=span@@class=css-1jxf684 r-bcqeeo r-1ttztb7 r-qvutc0 r-poiln3@@text()=Sign in to X',  # noqa: E501
+            '@@tag()=span@@class:css-1jxf684 r-dnmrzs r-1udh08x@@text()=Sign in',  # noqa: E501
         ]
         ele_info = self.inst_dp.get_ele_btn(tab, lst_path)
         if ele_info is not NoneElement:
@@ -623,6 +617,9 @@ class XUtils():
             if self.x_is_wrong():
                 return False
 
+            if self.confirm_error():
+                continue
+
         return False
 
     def check_lock(self):
@@ -737,7 +734,7 @@ class XUtils():
 
                         try:
                             s_code = get_verify_code_from_gmail(s_in_title)
-                        except:
+                        except Exception:
                             continue
 
                         if s_code is not None:
@@ -765,8 +762,10 @@ class XUtils():
                     try:
                         tab.actions.move_to(ele_input).click().type(s_code)
                         tab.wait(3)
-                    except Exception as e: # noqa
-                        self.logit('register_verification_code', f'Type verification code Exception: {e}')
+                    except Exception as e:  # noqa
+                        self.logit(
+                            'register_verification_code',
+                            f'Type verification code Exception: {e}')
                         return False
 
                     ele_btn = tab.ele('@@tag()=div@@class=css-175oi2r r-b9tw7p', timeout=2) # noqa
@@ -901,14 +900,16 @@ class XUtils():
         """
         Home 主页 被封时，会提示：
         你的账号已被冻结
-        经过仔细审查，我们认定你的账号违反了 X 规则。你的账号将永远处于只读模式，这意味着你无法发帖、转帖或点赞内容。你将无法创建新的账号。如果你认为是我们搞错了，则可以提交申述。
+        经过仔细审查，我们认定你的账号违反了 X 规则。
+        你的账号将永远处于只读模式，这意味着你无法发帖、转帖或点赞内容。
+        你将无法创建新的账号。如果你认为是我们搞错了，则可以提交申述。
 
         like 时，如果账号被封，会提示：
         Your account is suspended and is not permitted to perform this action.
         """
         tab = self.browser.latest_tab
 
-        # <span class="css-1jxf684 r-bcqeeo r-1ttztb7 r-qvutc0 r-poiln3">Your account is suspended and is not permitted to perform this action.</span> # noqa
+        # <span class="...">Your account is suspended...</span>
         for s_text in ['Your account is suspended', '你的账号已被冻结']:
             ele_input = tab.ele(f'@@tag()=span@@text():{s_text}', timeout=2)
             if not isinstance(ele_input, NoneElement):
@@ -985,26 +986,30 @@ class XUtils():
 
             s_username = self.get_x_username()
             s_email = self.get_email_by_username(s_username)
-            if not self.input_username_email('Name', 'Screen_Name__c', s_username):
+            if not self.input_username_email(
+                    'Name', 'Screen_Name__c', s_username):
                 continue
-            if not self.input_username_email('Email', 'Form_Email__c', s_email):
+            if not self.input_username_email(
+                    'Email', 'Form_Email__c', s_email):
                 continue
 
             ele_input = tab.ele('@@tag()=input@@name=Form_Email__c', timeout=2)
             if not isinstance(ele_input, NoneElement):
                 s_text = ele_input.value
                 if len(s_text) == 0:
-                    self.logit(None, 'Fail to load email, retry ...') # noqa
+                    self.logit(None, 'Fail to load email, retry ...')
                     continue
 
-            ele_input = tab.ele('@@tag()=textarea@@name=DescriptionText', timeout=2) # noqa
+            ele_input = tab.ele(
+                '@@tag()=textarea@@name=DescriptionText', timeout=2)
             if not isinstance(ele_input, NoneElement):
                 # s_text = input('Tell us if you’re having a problem accessing your account:') # noqa
-                tab.actions.move_to(ele_input).click().type(s_cont_appeal) # noqa
+                tab.actions.move_to(ele_input).click().type(s_cont_appeal)
                 self.logit(None, f'{s_cont_appeal}') # noqa
                 tab.wait(2)
 
-                ele_btn = tab.ele('@@tag()=button@@type=submit@@class:submit', timeout=2) # noqa
+                ele_btn = tab.ele(
+                    '@@tag()=button@@type=submit@@class:submit', timeout=2)
                 if not isinstance(ele_btn, NoneElement):
                     if ele_btn.wait.clickable(timeout=30) is not False:
                         ele_btn.click(by_js=True)
@@ -1015,20 +1020,28 @@ class XUtils():
                     while i < max_wait_sec:
                         i += 1
                         tab = self.browser.latest_tab
-                        ele_info = tab.ele('@@tag()=h2@@class:headline@@text()=Thank you!', timeout=2) # noqa
+                        ele_info = tab.ele(
+                            '@@tag()=h2@@class:headline@@text()=Thank you!',
+                            timeout=2)
                         if not isinstance(ele_info, NoneElement):
-                            self.logit(None, 'We’ve received your request. We’ll review, and take further action if appropriate.') # noqa
-                            self.update_status(self.IDX_STATUS, self.DEF_STATUS_APPEALED) # noqa
+                            self.logit(None, 'We’ve received your request. We’ll review, and take further action if appropriate.')  # noqa: E501
+                            self.update_status(
+                                self.IDX_STATUS, self.DEF_STATUS_APPEALED)
                             return True
 
                         self.browser.wait(1)
 
-                        # <span id="feather-form-field-text-173">Your original case is already in the queue. Please wait to hear back from us on the original case.</span> # noqa
-                        if self.get_tag_info('span', 'Your original case is already in the queue'): # noqa
+                        # Your original case is already in the queue.
+                        # Please wait to hear back from us on the original
+                        # case.
+                        if self.get_tag_info(
+                                'span',
+                                'Your original case is already in the queue'):
                             return True
 
-                        # <span id="feather-form-field-text-726">Oops something went wrong, please try again later.</span>
-                        if self.get_tag_info('span', 'Oops something went wrong'):
+                        # Oops something went wrong, please try again later.
+                        if self.get_tag_info(
+                                'span', 'Oops something went wrong'):
                             tab.wait(3)
                             break
 
@@ -1038,17 +1051,21 @@ class XUtils():
 
     def wrong_retry(self):
         """
-        # noqa
-        <span class="css-1jxf684 r-bcqeeo r-1ttztb7 r-qvutc0 r-poiln3">Something went wrong. Try reloading.</span>
-        <span class="css-1jxf684 r-bcqeeo r-1ttztb7 r-qvutc0 r-poiln3">Retry</span>
+        <span class="css-1jxf684 r-bcqeeo r-1ttztb7 r-qvutc0 r-poiln3">
+        Something went wrong. Try reloading.</span>
+        <span class="css-1jxf684 r-bcqeeo r-1ttztb7 r-qvutc0 r-poiln3">
+        Retry</span>
         """
         tab = self.browser.latest_tab
-        ele_info = tab.ele('@@tag()=span@@text()=Something went wrong. Try reloading.', timeout=2) # noqa
+        ele_info = tab.ele(
+            '@@tag()=span@@text()=Something went wrong. Try reloading.',
+            timeout=2)
         if not isinstance(ele_info, NoneElement):
             s_info = ele_info.text
             self.logit(None, f'{s_info}') # noqa
             for s_text in ['重试', 'Retry']:
-                ele_btn = tab.ele(f'@@tag()=span@@text()={s_text}', timeout=2) # noqa
+                ele_btn = tab.ele(
+                    f'@@tag()=span@@text()={s_text}', timeout=2)
                 if not isinstance(ele_btn, NoneElement):
                     if ele_btn.wait.clickable(timeout=30) is not False:
                         ele_btn.click(by_js=True)
@@ -1063,10 +1080,12 @@ class XUtils():
         你已超过允许尝试次数，请稍后再试。
 
         Something went wrong.
-        You have exceeded the number of allowed attempts. Please try again later.
+        You have exceeded the number of allowed attempts.
+        Please try again later.
         """
         tab = self.browser.latest_tab
-        ele_div = tab.ele('@@tag()=div@@class=PageHeader Edge', timeout=2)
+        ele_div = tab.ele(
+            '@@tag()=div@@class=PageHeader Edge', timeout=2)
         if not isinstance(ele_div, NoneElement):
             s_info = ele_div.text
             self.logit(None, f'{s_info}') # noqa
@@ -1204,8 +1223,8 @@ class XUtils():
             is_like = 'n'
             print(f'[{self.args.s_profile}] Success to log in !')
             # s_msg = 'Press any key to continue! ⚠️' # noqa
-            #s_msg = 'Will you Like a post ? [y/n]' # noqa
-            #is_like = input(s_msg)
+            # s_msg = 'Will you Like a post ? [y/n]' # noqa
+            # is_like = input(s_msg)
 
         if is_like == 'y':
             if not self.click_like():
@@ -1233,7 +1252,9 @@ class XUtils():
             self.check_need_login()
 
             tab = self.browser.latest_tab
-            ele_btn = tab.ele('@@tag()=button@@data-testid=confirmationSheetCancel', timeout=2) # noqa
+            ele_btn = tab.ele(
+                '@@tag()=button@@data-testid=confirmationSheetCancel',
+                timeout=2)
             if not isinstance(ele_btn, NoneElement):
                 s_info = ele_btn.text
                 self.logit(None, f'Click Cancel button [{s_info}]') # noqa
@@ -1287,7 +1308,9 @@ class XUtils():
             tab.wait.doc_loaded()
 
             # Cancel
-            ele_btn = tab.ele('@@tag()=button@@data-testid=confirmationSheetCancel', timeout=2) # noqa
+            ele_btn = tab.ele(
+                '@@tag()=button@@data-testid=confirmationSheetCancel',
+                timeout=2)
             if not isinstance(ele_btn, NoneElement):
                 s_info = ele_btn.text
                 self.logit('x_retweet', f'Click Cancel button [{s_info}]') # noqa
@@ -1336,7 +1359,9 @@ class XUtils():
             self.check_need_login()
 
             # Cancel
-            ele_btn = tab.ele('@@tag()=button@@data-testid=confirmationSheetCancel', timeout=2) # noqa
+            ele_btn = tab.ele(
+                '@@tag()=button@@data-testid=confirmationSheetCancel',
+                timeout=2)
             if not isinstance(ele_btn, NoneElement):
                 s_info = ele_btn.text
                 self.logit('x_like', f'Click Cancel button [{s_info}]') # noqa
@@ -1381,7 +1406,8 @@ class XUtils():
         tab.wait.doc_loaded()
         tab.wait(3)
 
-        ele_btn = tab.ele('@@tag()=div@@data-testid=tweetTextarea_0_label', timeout=2)
+        ele_btn = tab.ele(
+            '@@tag()=div@@data-testid=tweetTextarea_0_label', timeout=2)
         if not isinstance(ele_btn, NoneElement):
             try:
                 tab.actions.move_to(ele_btn).click()
@@ -1391,9 +1417,11 @@ class XUtils():
                 # 如果点击失败，则认为已回复
                 return True
 
-        ele_block = tab.ele('@@tag()=div@@data-testid=primaryColumn', timeout=2)
+        ele_block = tab.ele(
+            '@@tag()=div@@data-testid=primaryColumn', timeout=2)
         if not isinstance(ele_block, NoneElement):
-            ele_reply = ele_block.eles(f'@@tag()=a@@href=/{x_username}', timeout=2)
+            ele_reply = ele_block.eles(
+                f'@@tag()=a@@href=/{x_username}', timeout=2)
             # 未回复，出现一次
             # 回复一次，出现三次
             if len(ele_reply) >= 4:
@@ -1412,10 +1440,12 @@ class XUtils():
             self.check_need_login()
 
             # Cancel
-            ele_btn = tab.ele('@@tag()=button@@data-testid=confirmationSheetCancel', timeout=2) # noqa
+            ele_btn = tab.ele(
+                '@@tag()=button@@data-testid=confirmationSheetCancel',
+                timeout=2)
             if not isinstance(ele_btn, NoneElement):
                 s_info = ele_btn.text
-                self.logit('x_reply', f'Click Cancel button [{s_info}]') # noqa
+                self.logit('x_reply', f'Click Cancel button [{s_info}]')
                 if ele_btn.wait.clickable(timeout=5) is not False:
                     ele_btn.click(by_js=True)
 
@@ -1423,7 +1453,8 @@ class XUtils():
             if self.jump_to_new_tweet():
                 continue
 
-            ele_btn = tab.ele('@@tag()=div@@data-testid=tweetTextarea_0_label', timeout=2)
+            ele_btn = tab.ele(
+                '@@tag()=div@@data-testid=tweetTextarea_0_label', timeout=2)
             if not isinstance(ele_btn, NoneElement):
                 self.logit(None, 'Try to input reply text ...')
                 tab.actions.move_to(ele_btn)
@@ -1442,11 +1473,18 @@ class XUtils():
                                 tab.wait(0.3)
                                 if s_char == ' ':
                                     continue
-                                f_similarity = self.get_similarity(s_text[:j+1], ele_btn.text)
+                                f_similarity = self.get_similarity(
+                                    s_text[:j+1], ele_btn.text)
                                 if f_similarity < 0.9:
-                                    self.logit(None, 'reply ele_btn.text != s_text[:j+1]')
-                                    self.logit(None, f'-- ele_btn.text: {ele_btn.text}')
-                                    self.logit(None, f'-- s_text[:j+1]: {s_text[:j+1]}')
+                                    self.logit(
+                                        None,
+                                        'reply ele_btn.text != s_text[:j+1]')
+                                    self.logit(
+                                        None,
+                                        f'-- ele_btn.text: {ele_btn.text}')
+                                    self.logit(
+                                        None,
+                                        f'-- s_text[:j+1]: {s_text[:j+1]}')
                                     break
 
                     except Exception as e: # noqa
@@ -1468,7 +1506,8 @@ class XUtils():
             else:
                 continue
 
-            ele_btn = tab.ele('@@tag()=button@@data-testid=tweetButtonInline', timeout=2)
+            ele_btn = tab.ele(
+                '@@tag()=button@@data-testid=tweetButtonInline', timeout=2)
             if not isinstance(ele_btn, NoneElement):
                 self.logit(None, 'Try to click reply button ...')
                 tab.actions.move_to(ele_btn)
@@ -1481,7 +1520,8 @@ class XUtils():
                 tab.wait(2)
 
                 self.get_toast_alert()
-                ele_info = tab.ele('@@tag()=div@@aria-live=assertive', timeout=2)
+                ele_info = tab.ele(
+                    '@@tag()=div@@aria-live=assertive', timeout=2)
                 if not isinstance(ele_info, NoneElement):
                     s_info = ele_info.text
                     if not s_info:
@@ -1502,11 +1542,15 @@ class XUtils():
                         n_fail += 1
                         if n_fail < n_max_fail:
                             s_text = s_text[:-1]
-                            self.logit(None, f'Fail to post. Set s_text to [{s_text}]')
+                            self.logit(
+                                None,
+                                f'Fail to post. Set s_text to [{s_text}]')
                             continue
 
                         n_sleep = random.randint(3600, int(3600*1.2))
-                        s_msg = f'[{self.args.s_profile}][Fail to reply] {s_info} [sleep {n_sleep} seconds ...]' # noqa
+                        s_msg = (
+                            f'[{self.args.s_profile}][Fail to reply] '
+                            f'{s_info} [sleep {n_sleep} seconds ...]')
                         self.logit('x_reply', f'ding_msg: {s_msg}')
                         ding_msg(s_msg, DEF_DING_TOKEN, msgtype='text')
                         time.sleep(n_sleep)
@@ -1514,10 +1558,13 @@ class XUtils():
 
                 tab.wait(2)
                 ele_blk_reply = None
-                ele_blks = tab.eles('@@tag()=article@@role=article@@data-testid=tweet', timeout=2)
+                ele_blks = tab.eles(
+                    '@@tag()=article@@role=article@@data-testid=tweet',
+                    timeout=2)
                 for ele_blk in ele_blks:
                     s_blk_text = ele_blk.text
-                    idx = get_index_from_header(DEF_HEADER_ACCOUNT, 'x_username')
+                    idx = get_index_from_header(
+                        DEF_HEADER_ACCOUNT, 'x_username')
                     x_username = self.dic_account[self.args.s_profile][idx]
                     if x_username in s_blk_text:
                         ele_blk_reply = ele_blk
@@ -1525,19 +1572,24 @@ class XUtils():
                 if not ele_blk_reply:
                     pass
                 else:
-                    ele_div = ele_blk_reply.ele('@@tag()=div@@data-testid=tweetText', timeout=2)
+                    ele_div = ele_blk_reply.ele(
+                        '@@tag()=div@@data-testid=tweetText', timeout=2)
                     if not isinstance(ele_div, NoneElement):
                         s_div_text = ele_div.text
                         s_src = s_text.replace('\n', '').replace(' ', '')
                         s_dst = s_div_text.replace('\n', '').replace(' ', '')
                         # 计算 s_dst 和 s_src 的相似度，达到 90% 则认为成功
-                        f_similarity = difflib.SequenceMatcher(None, rm_url(s_src), rm_url(s_dst)).ratio()
+                        f_similarity = difflib.SequenceMatcher(
+                            None, rm_url(s_src), rm_url(s_dst)).ratio()
                         self.logit(None, f'f_similarity: {f_similarity:.2f}')
                         if f_similarity >= 0.9:
                             self.logit(None, 'Reply Success ✅')
                             return True
                         else:
-                            self.logit(None, f'reply not found: [s_dst={s_dst}] != [s_src={s_src}]')  # noqa
+                            self.logit(
+                                None,
+                                f'reply not found: [s_dst={s_dst}] '
+                                f'!= [s_src={s_src}]')
 
         self.logit(None, 'Fail to reply [ERROR]')
         return False
@@ -1552,11 +1604,13 @@ class XUtils():
             tab.wait.doc_loaded()
             self.check_need_login()
 
-            ele_btn = tab.ele('@@tag()=div@@data-testid=tweetTextarea_0_label', timeout=2)
+            ele_btn = tab.ele(
+                '@@tag()=div@@data-testid=tweetTextarea_0_label', timeout=2)
             if not isinstance(ele_btn, NoneElement):
                 self.logit(None, 'Try to input post text ...')
                 tab.actions.move_to(ele_btn)
-                if ele_btn.text.replace('\n', '').replace(' ', '') != s_text.replace('\n', '').replace(' ', ''):
+                cond = ele_btn.text.replace('\n', '').replace(' ', '')
+                if cond != s_text.replace('\n', '').replace(' ', ''):
                     try:
                         tab.actions.move_to(ele_btn).click()
                         tab.wait(1)
@@ -1570,11 +1624,18 @@ class XUtils():
                                 tab.wait(0.3)
                                 if s_char == ' ':
                                     continue
-                                f_similarity = self.get_similarity(s_text[:j+1], ele_btn.text)
+                                f_similarity = self.get_similarity(
+                                    s_text[:j+1], ele_btn.text)
                                 if f_similarity < 0.9:
-                                    self.logit(None, f'post ele_btn.text != s_text[:j+1]')
-                                    self.logit(None, f'-- ele_btn.text: {ele_btn.text}')
-                                    self.logit(None, f'-- s_text[:j+1]: {s_text[:j+1]}')
+                                    self.logit(
+                                        None,
+                                        'post ele_btn.text != s_text[:j+1]')
+                                    self.logit(
+                                        None,
+                                        f'-- ele_btn.text: {ele_btn.text}')
+                                    self.logit(
+                                        None,
+                                        f'-- s_text[:j+1]: {s_text[:j+1]}')
                                     break
 
                     except Exception as e:  # noqa
@@ -1596,7 +1657,8 @@ class XUtils():
             else:
                 continue
 
-            ele_btn = tab.ele('@@tag()=button@@data-testid=tweetButtonInline', timeout=2)
+            ele_btn = tab.ele(
+                '@@tag()=button@@data-testid=tweetButtonInline', timeout=2)
             if not isinstance(ele_btn, NoneElement):
                 self.logit(None, 'Try to click post button ...')
                 tab.actions.move_to(ele_btn)
@@ -1606,7 +1668,8 @@ class XUtils():
                 tab.wait(2)
 
                 self.get_toast_alert()
-                ele_info = tab.ele('@@tag()=div@@aria-live=assertive', timeout=2)
+                ele_info = tab.ele(
+                    '@@tag()=div@@aria-live=assertive', timeout=2)
                 if not isinstance(ele_info, NoneElement):
                     s_info = ele_info.text
                     if not s_info:
@@ -1625,18 +1688,23 @@ class XUtils():
                         n_fail += 1
                         if n_fail < n_max_fail:
                             s_text = s_text[:-1]
-                            self.logit(None, f'Fail to post. Set s_text to [{s_text}]')
+                            self.logit(
+                                None,
+                                f'Fail to post. Set s_text to [{s_text}]')
                             continue
 
                         n_sleep = random.randint(3600, int(3600*1.2))
-                        s_msg = f'[{self.args.s_profile}][Fail to post] {s_info} [sleep {n_sleep} seconds ...]' # noqa
-                        self.logit('x_post', f'ding_msg: {s_msg}')
+                        s_msg = (
+                            f'[{self.args.s_profile}][Fail to post] '
+                            f'{s_info} [sleep {n_sleep} seconds ...]')
+                        self.logit('x_post', f'ding_msg: {s_msg}')  # noqa
                         ding_msg(s_msg, DEF_DING_TOKEN, msgtype='text')
                         time.sleep(n_sleep)
                         return False
 
                 tab.wait(2)
-                ele_div = tab.ele('@@tag()=div@@data-testid=tweetText', timeout=2)
+                ele_div = tab.ele(
+                    '@@tag()=div@@data-testid=tweetText', timeout=2)
                 if not isinstance(ele_div, NoneElement):
                     s_div_text = ele_div.text
                     # 计算 s_dst 和 s_src 的相似度，达到 90% 则认为成功
@@ -1646,7 +1714,10 @@ class XUtils():
                         self.logit(None, 'Post Success ✅')
                         return True
                     else:
-                        self.logit(None, f'post not found: [s_dst={s_dst}] != [s_src={s_src}]')  # noqa
+                        self.logit(
+                            None,
+                            f'post not found: [s_dst={s_div_text}] '
+                            f'!= [s_src={s_text}]')
 
         self.logit(None, 'Fail to post [ERROR]')
         return False
@@ -1671,7 +1742,9 @@ class XUtils():
         for i in range(1, DEF_NUM_TRY+1):
             self.logit('x_authorize_app', f'try_i={i}/{DEF_NUM_TRY}')
             tab = self.browser.latest_tab
-            ele_btn = tab.ele('@@tag()=button@@data-testid=OAuth_Consent_Button', timeout=2)  # noqa
+            ele_btn = tab.ele(
+                '@@tag()=button@@data-testid=OAuth_Consent_Button',
+                timeout=2)
             if not isinstance(ele_btn, NoneElement):
                 s_info = ele_btn.text
                 self.logit(None, f'Click Authorize app button [{s_info}]') # noqa
@@ -1868,18 +1941,22 @@ class XUtils():
 
     def set_interest(self, max_wait_sec=6):
         # What do you want to see on X?
-        # Select at least 1 interest to personalize your X experience. It will be visible on your profile.
+        # Select at least 1 interest to personalize your X experience.
+        # It will be visible on your profile.
         i = 0
         while i < max_wait_sec:
             i += 1
             self.logit('set_interest', f'trying ... {i}/{max_wait_sec}')
             tab = self.browser.latest_tab
-            ele_items = tab.eles('@@tag()=li@@role=listitem@@id:verticalGridItem', timeout=2) # noqa
+            ele_items = tab.eles(
+                '@@tag()=li@@role=listitem@@id:verticalGridItem', timeout=2)
             if not ele_items:
                 tab.wait(1)
                 continue
             n_to_select = random.randint(2, 5)
-            self.logit(None, f'Select {n_to_select} interest from {len(ele_items)}')
+            self.logit(
+                None,
+                f'Select {n_to_select} interest from {len(ele_items)}')
             for i in range(0, n_to_select):
                 ele_item = random.choice(ele_items)
                 tab.actions.move_to(ele_item)
@@ -1895,7 +1972,10 @@ class XUtils():
                 if ele_item in ele_items:
                     ele_items.remove(ele_item)
 
-            ele_btn = tab.ele('x://*[@id="layers"]/div[2]/div/div/div/div/div/div[2]/div[2]/div/div/div[2]/div[2]/div[2]/div/div/button', timeout=2) # noqa
+            xpath = (
+                'x://*[@id="layers"]/div[2]/div/div/div/div/div/div[2]/'
+                'div[2]/div/div/div[2]/div[2]/div[2]/div/div/button')
+            ele_btn = tab.ele(xpath, timeout=2)
             if not isinstance(ele_btn, NoneElement):
                 btn_text = ele_btn.text
                 self.logit(None, f'set_interest Button text: {btn_text}')
@@ -1908,19 +1988,26 @@ class XUtils():
 
     def follow_some_accounts(self, max_wait_sec=60):
         # Don’t miss out
-        # When you follow someone, you’ll see their posts in your Timeline. You’ll also get more relevant recommendations.
+        # When you follow someone, you'll see their posts in your Timeline.
+        # You'll also get more relevant recommendations.
         # Follow 1 or more accounts
         i = 0
         while i < max_wait_sec:
             i += 1
-            self.logit('follow_some_accounts', f'trying ... {i}/{max_wait_sec}')
+            self.logit(
+                'follow_some_accounts',
+                f'trying ... {i}/{max_wait_sec}')
             tab = self.browser.latest_tab
-            ele_items = tab.eles('@@tag()=div@@data-testid=cellInnerDiv@@text():Click', timeout=2) # noqa
+            ele_items = tab.eles(
+                '@@tag()=div@@data-testid=cellInnerDiv@@text():Click',
+                timeout=2)
             if not ele_items:
                 tab.wait(1)
                 continue
             n_to_follow = random.randint(3, 6)
-            self.logit(None, f'Follow {n_to_follow} accounts from {len(ele_items)}')
+            self.logit(
+                None,
+                f'Follow {n_to_follow} accounts from {len(ele_items)}')
             for i in range(0, n_to_follow):
                 ele_item = random.choice(ele_items)
                 try:
@@ -1935,10 +2022,15 @@ class XUtils():
                 if ele_item in ele_items:
                     ele_items.remove(ele_item)
 
-            ele_btn = tab.ele('x://*[@id="layers"]/div[2]/div/div/div/div/div/div[2]/div[2]/div/div/div[2]/div[2]/div[2]/div/div/div/button', timeout=2) # noqa
+            xpath = (
+                'x://*[@id="layers"]/div[2]/div/div/div/div/div/div[2]/'
+                'div[2]/div/div/div[2]/div[2]/div[2]/div/div/div/button')
+            ele_btn = tab.ele(xpath, timeout=2)
             if not isinstance(ele_btn, NoneElement):
                 btn_text = ele_btn.text
-                self.logit(None, f'follow_some_accounts Button text: {btn_text}')
+                self.logit(
+                    None,
+                    f'follow_some_accounts Button text: {btn_text}')
                 if ele_btn.wait.clickable(timeout=30) is not False:
                     ele_btn.click(by_js=True)
                 tab.wait(8)
@@ -1952,7 +2044,8 @@ class XUtils():
             i += 1
             tab = self.browser.latest_tab
             # Password
-            ele_input = tab.ele('@@tag()=input@@name=password', timeout=1) # noqa
+            ele_input = tab.ele(
+                '@@tag()=input@@name=password', timeout=1)
             if not isinstance(ele_input, NoneElement):
                 self.logit(None, 'Password window is loaded')
                 return True
@@ -1998,21 +2091,29 @@ class XUtils():
     def enter_confirmation_code(self, max_wait_sec=60):
         """
         Enter the confirmation code
-        Follow the instructions on the authentication app to link your X account. Once the authentication app generates a confirmation code, enter it here. 
+        Follow the instructions on the authentication app to link your X
+        account. Once the authentication app generates a confirmation code,
+        enter it here.
         """
         i = 0
         while i < max_wait_sec:
             i += 1
-            self.logit('enter_confirmation_code', f'trying ... {i}/{max_wait_sec}')
+            self.logit(
+                'enter_confirmation_code',
+                f'trying ... {i}/{max_wait_sec}')
             tab = self.browser.latest_tab
-            ele_input = tab.ele('@@tag()=input@@data-testid=ocfEnterTextTextInput', timeout=1) # noqa
+            ele_input = tab.ele(
+                '@@tag()=input@@data-testid=ocfEnterTextTextInput',
+                timeout=1)
             if not isinstance(ele_input, NoneElement):
                 s_2fa_show = pyotp.TOTP(self.qr_code).now()
                 self.logit(None, f's_2fa_show: {s_2fa_show}')
                 ele_input.input(s_2fa_show)
                 tab.wait(1)
 
-                ele_btn = tab.ele('@@tag()=button@@data-testid=ocfEnterTextNextButton', timeout=2) # noqa
+                ele_btn = tab.ele(
+                    '@@tag()=button@@data-testid=ocfEnterTextNextButton',
+                    timeout=2)
                 if not isinstance(ele_btn, NoneElement):
                     btn_text = ele_btn.text
                     self.logit(None, f'Button text: {btn_text}')
@@ -2037,15 +2138,18 @@ class XUtils():
             self.logit('save_backup_code', f'trying ... {i}/{max_wait_sec}')
             tab = self.browser.latest_tab
 
-            ele_info = tab.ele('@@tag()=span@@text():Save this single-use backup code in a safe place', timeout=2) # noqa
+            ele_info = tab.ele(
+                '@@tag()=span@@text():Save this single-use backup code '
+                'in a safe place', timeout=2)
             if not isinstance(ele_info, NoneElement):
                 s_info = ele_info.text.replace('\n', ' ')
                 self.logit(None, f'backup code: {s_info}')
                 self.backup_code = s_info.split(' ')[29]
                 self.update_create(self.IDX_C_BACKUPCODE, self.backup_code)
 
-
-                ele_btn = tab.ele('@@tag()=button@@data-testid=OCF_CallToAction_Button', timeout=2) # noqa
+                ele_btn = tab.ele(
+                    '@@tag()=button@@data-testid=OCF_CallToAction_Button',
+                    timeout=2)
                 if not isinstance(ele_btn, NoneElement):
                     btn_text = ele_btn.text
                     self.logit(None, f'Button text: {btn_text}')
@@ -2062,15 +2166,19 @@ class XUtils():
 
     def set_confirmation_code(self, max_wait_sec=120):
         # More -> Settings and privacy
-        # Select at least 1 interest to personalize your X experience. It will be visible on your profile.
+        # Select at least 1 interest to personalize your X experience.
+        # It will be visible on your profile.
         i = 0
         while i < max_wait_sec:
             i += 1
-            self.logit('set_confirmation_code', f'trying ... {i}/{max_wait_sec}')
+            self.logit(
+                'set_confirmation_code',
+                f'trying ... {i}/{max_wait_sec}')
             tab = self.browser.latest_tab
 
             # More
-            ele_btn = tab.ele('@@tag()=button@@data-testid=AppTabBar_More_Menu', timeout=2) # noqa
+            ele_btn = tab.ele(
+                '@@tag()=button@@data-testid=AppTabBar_More_Menu', timeout=2)
             if not isinstance(ele_btn, NoneElement):
                 btn_text = ele_btn.text
                 self.logit(None, f'[SC1] {btn_text}')
@@ -2307,7 +2415,9 @@ class XUtils():
         success, result = get_country_info()
         if success:
             country_name, country_code, ip = result
-            self.logit(None, f'VPN Location: [{country_name}] [{country_code}] [{ip}]')
+            self.logit(
+                None,
+                f'VPN Location: [{country_name}] [{country_code}] [{ip}]')
         else:
             self.logit(None, f'Failed to get VPN location: {result}')
             s_msg = f'Failed to get VPN location: {result}'
@@ -2329,7 +2439,8 @@ class XUtils():
 
     def get_toast_alert(self):
         tab = self.browser.latest_tab
-        ele_div = tab.ele('@@tag()=div@@role=alert@@data-testid=toast', timeout=1)
+        ele_div = tab.ele(
+            '@@tag()=div@@role=alert@@data-testid=toast', timeout=1)
         if not isinstance(ele_div, NoneElement):
             s_text = ele_div.text
             self.logit(None, f'Toast Alert: {s_text}')
@@ -2357,10 +2468,12 @@ class XUtils():
         if not isinstance(ele_btn, NoneElement):
             if ele_btn.wait.clickable(timeout=5) is not False:
                 ele_btn.click(by_js=True)
-                self.logit(None, 'Click Yes, that\'s correct button [Success ✅]')
+                self.logit(
+                    None,
+                    "Click Yes, that's correct button [Success ✅]")
                 tab.wait(2)
                 return True
-            self.logit(None, 'Click Yes, that\'s correct button [Fail ❌]')
+            self.logit(None, "Click Yes, that's correct button [Fail ❌]")
         return False
 
     def is_verified_user(self, x_username=None):
@@ -2369,23 +2482,33 @@ class XUtils():
         Check if the user is a verified user (blueV)
         """
         tab = self.browser.latest_tab
-        ele_blk = tab.ele('@@tag()=article@@data-testid=tweet', timeout=1) # noqa
+        ele_blk = tab.ele(
+            '@@tag()=article@@data-testid=tweet', timeout=1)
         if not isinstance(ele_blk, NoneElement):
-            ele_svg = ele_blk.ele('@@tag()=svg@@data-testid=icon-verified', timeout=1) # noqa
+            ele_svg = ele_blk.ele(
+                '@@tag()=svg@@data-testid=icon-verified', timeout=1)
             if not isinstance(ele_svg, NoneElement):
-                ele_user = ele_blk.ele('.css-175oi2r r-18u37iz r-1wbh5a2', timeout=1) # noqa
+                ele_user = ele_blk.ele(
+                    '.css-175oi2r r-18u37iz r-1wbh5a2', timeout=1)
                 if not isinstance(ele_user, NoneElement):
-                    ele_span = ele_user.ele('@@tag()=span', timeout=1) # noqa
+                    ele_span = ele_user.ele('@@tag()=span', timeout=1)
                     if not isinstance(ele_span, NoneElement):
                         s_username = ele_span.text.split('@')[1]
                         if not x_username:
-                            self.logit(None, 'Current user is the verified user')
+                            self.logit(
+                                None,
+                                'Current user is the verified user')
                             return True
                         if s_username == x_username:
-                            self.logit(None, 'Current user is the verified user')
+                            self.logit(
+                                None,
+                                'Current user is the verified user')
                             return True
                     else:
-                        self.logit(None, f'Verified user is {s_username}, but not the current user {x_username}')  # noqa
+                        self.logit(
+                            None,
+                            f'Verified user is {s_username}, but not '
+                            f'the current user {x_username}')
                         return False
 
         return False
