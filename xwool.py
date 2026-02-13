@@ -646,6 +646,10 @@ class XWool():
             # errors.append(f'中英文之间缺少空格，问题片段: "... {_} ..."')
             pass
 
+        # 检查英文连续字母过长（无空格连写）
+        if re.search(r'[a-zA-Z]{16,}', s_reply):
+            errors.append('英文单词之间应有空格，发现过长连续字母')
+
         # 如果有错误，返回 False 和拼接的错误信息
         if errors:
             error_msg = '; '.join(errors)
@@ -674,10 +678,7 @@ class XWool():
         # 去掉 <|begin_of_box|> 和 <|end_of_box|> 标签
         s_reply = re.sub(r'<\|begin_of_box\|>|<\|end_of_box\|>', '', s_reply)  # noqa
 
-        s_reply = s_reply.replace(' ', '')
-        s_reply = s_reply.replace(' ', '')
-
-        # 如果有多个空格，只保留1个空格
+        # 如果有多个空格，只保留1个空格（不删除空格，避免英文单词连写）
         s_reply = re.sub(r'\s+', ' ', s_reply)
         # 去掉前后的空格
         s_reply = s_reply.strip()
@@ -717,6 +718,7 @@ class XWool():
             "回复语言与推文一致\n"
             "回复不要超过 30 字\n"
             "特别注意，中文(汉字)与非中文(英文、数字、符号)之间要加一个空格，不要连在一起，增加可读性\n"
+            "英文回复中单词之间必须用空格分隔，不要将多个英文单词连写在一起\n"
             "特别注意，不要出现回复如下之类的字眼，直接输出回复内容\n"
             "特别注意，回复不要出现 <|begin_of_box|> 和 <|end_of_box|> 标签\n"
         )
@@ -2004,6 +2006,7 @@ class XWool():
             "避免引用#话题，禁止出现 # \n"
             f"回复不要超过 {n_len} 个汉字\n"
             "特别注意，中文(汉字)与非中文(英文、数字、符号)之间要加一个空格，不要连在一起，增加可读性\n"
+            "英文单词之间必须用空格分隔，不要将多个英文单词连写在一起\n"
             "特别注意，不要出现回复如下之类的字眼，直接输出回复内容\n"
             "特别注意，回复不要出现 <|begin_of_box|> 和 <|end_of_box|> 标签\n"
         )
@@ -2387,13 +2390,19 @@ class XWool():
                 for row in reader:
                     if len(row) < 4:
                         continue
-                    s_datetime, s_op_type, s_status = row[0].strip(), row[1].strip(), row[2].strip()
-                    if s_status not in [DEF_INTERACTION_OK, DEF_INTERACTION_IGNORE]:
+                    s_datetime = row[0].strip()
+                    s_op_type = row[1].strip()
+                    s_status = row[2].strip()
+                    if s_status not in [
+                            DEF_INTERACTION_OK, DEF_INTERACTION_IGNORE]:
                         continue
                     if s_op_type not in op_types:
                         continue
                     try:
-                        s_ts = s_datetime.split('+')[0] if '+' in s_datetime else s_datetime
+                        s_ts = (
+                            s_datetime.split('+')[0]
+                            if '+' in s_datetime else s_datetime
+                        )
                         if 'T' in s_ts:
                             dt = datetime.strptime(s_ts, '%Y-%m-%dT%H:%M:%S')
                         else:
@@ -2409,7 +2418,9 @@ class XWool():
                     if utc_ts < ts_12h_ago:
                         continue
                     # 使用文件里的日期和时间组成 hour_key（不重新 format_ts，直接用 dt）
-                    hour_key = dt.strftime('%Y-%m-%d') + ' ' + dt.strftime('%H:00')
+                    hour_key = (
+                        dt.strftime('%Y-%m-%d') + ' ' + dt.strftime('%H:00')
+                    )
                     if hour_key not in hour_buckets:
                         hour_buckets[hour_key] = {k: 0 for k in op_types}
                     hour_buckets[hour_key][s_op_type] = (
@@ -2422,7 +2433,10 @@ class XWool():
             os.makedirs(dir_out)
 
         profile = getattr(self.args, 's_profile', '') or ''
-        header = 'profile,period_type,period,follow,like,reply,retweet,unfollow,post,total'
+        header = (
+            'profile,period_type,period,follow,like,reply,'
+            'retweet,unfollow,post,total'
+        )
         with open(self.file_statistics, 'w') as fp:
             fp.write(header + '\n')
             for date, counts, total in daily_rows:
