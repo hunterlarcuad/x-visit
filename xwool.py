@@ -40,6 +40,10 @@ from conf import DEF_HEADER_ACCOUNT
 from conf import TZ_OFFSET
 from conf import DEL_PROFILE_DIR
 
+from conf import WHITELIST_USER_NEW_POST_HOUR
+from conf import WHITELIST_USER_MAX_NUM_POST_PER_ROUND
+# from conf import SILENCE_TIME_RANGE
+
 from conf import FILENAME_LOG
 from conf import logger
 
@@ -682,8 +686,47 @@ class XWool():
         s_reply = re.sub(r'\s+', ' ', s_reply)
         # 去掉前后的空格
         s_reply = s_reply.strip()
+        # 去掉末尾的标点符号（中英文）
+        s_reply = re.sub(r'[.,!?;:~\s。，！？；：…]+$', '', s_reply)
 
         return s_reply
+
+    def verify_reply_by_llm(self, s_tweet_text, s_reply):
+        """
+        使用 LLM 验证回复内容与推文的语义相关性及得体性
+        Args:
+            s_tweet_text: 推文内容
+            s_reply: 回复内容
+
+        Returns:
+            tuple: (bool, str) - (是否合格, 不合格原因或 DEF_INTERACTION_OK)
+        """
+        s_prompt = (
+            "# 【功能】\n"
+            "判断以下回复是否适合作为该推文的评论。\n"
+            "# 【推文】\n"
+            f"{s_tweet_text}\n"
+            "# 【回复】\n"
+            f"{s_reply}\n"
+            "# 【要求】\n"
+            "仅输出一行：合格 或 不合格: 具体原因\n"
+        )
+        try:
+            s_rsp = gene_by_llm(s_prompt)
+            if not s_rsp:
+                return False, 'LLM 验证调用失败'
+        except Exception as e:
+            self.logit(None, f'verify_reply_by_llm error: {e}')
+            return False, str(e)
+
+        s_rsp = s_rsp.strip()
+        if s_rsp.startswith('合格'):
+            return True, DEF_INTERACTION_OK
+        if s_rsp.startswith('不合格'):
+            reason = s_rsp.split(':', 1)[-1].strip() if ':' in s_rsp else s_rsp
+            return False, reason or 'LLM 判定不合格'
+
+        return False, f'LLM 返回格式异常: {s_rsp[:50]}'
 
     def reply_tweet(
             self, s_tweet_type, s_tweet_text,
@@ -781,6 +824,12 @@ class XWool():
             self.logit(None, 'All attempts failed, reply is not qualified, skip ...')  # noqa
             return False
 
+        is_reply_qualified, reason = self.verify_reply_by_llm(
+            s_tweet_text, s_reply)
+        if not is_reply_qualified:
+            self.logit(None, f'Reply not qualified: {reason}')
+            return False
+
         # 使用已加载的广告 URL
         if len(self.lst_attached_url) > 0:
             s_reply += '\n'
@@ -854,7 +903,7 @@ class XWool():
 
     def proc_tw_url(self, tweet_url, is_reply=True, is_all_reply=False,
                     is_like=True, is_retweet=False, is_follow=True,
-                    s_tab_name=None):
+                    s_tab_name=None, s_post_src=''):
         """
         is_reply: 是否回复
         is_all_reply: 是否回复所有帖子
@@ -919,47 +968,74 @@ class XWool():
 
                     is_verified_user = self.inst_x.is_verified_user(name)
 
-                    if s_tab_name not in lst_default_tabs:
-                        s_tweet_type = 'follow'
-                        self.logit(None, f's_tab_name: {s_tab_name}, not default tab, set s_tweet_type: {s_tweet_type}')  # noqa
+                    if s_post_src == 'ad_user':
+                        s_tweet_type = 'other'
                     else:
-                        s_tweet_type = self.get_tweet_type_by_keyword(s_tweet_text)  # noqa
-
-                    if is_following:
-                        self.logit(None, f'is_following: {is_following}, ignore keyword filter ...')  # noqa
-                        pass
-                    elif is_verified_user:
-                        self.logit(None, f'is_verified_user: {is_verified_user}, ignore keyword filter ...')  # noqa
-                        pass
-                    elif is_all_reply:
-                        self.logit(None, f'is_all_reply: {is_all_reply}, reply all tweets ...')  # noqa
-                        pass
-                    else:
-                        if s_tweet_type == 'other':
-                            self.logit(None, 'other tweet, skip ...')
-
+                        # only interact with certified user (blueV)
+                        if (self.args.only_certified_user and
+                                not is_verified_user):
                             self.status_append(
                                 s_op_type='reply',
                                 s_url=tweet_url,
-                                s_msg='[NotReply] other tweet, ignore',
+                                s_msg='[NotReply] not certified user, ignore',  # noqa
                                 s_status=DEF_INTERACTION_IGNORE,
                             )
                             self.set_url_ignored.add(tweet_url)
-
-                            # tab.close()
-                            self.click_back()
-
                             return b_ret, counts
-                        self.logit(None, f's_tweet_type: {s_tweet_type}')
 
-                    if s_tweet_type == 'follow':
-                        # 来自 互关频道 的推文，已经互相关注，不回复
-                        if is_following and is_follow_me:
-                            is_reply = False
-                            self.logit(None, f'is_following and is_follow_me, set is_reply: {is_reply}')  # noqa
+                        if s_tab_name not in lst_default_tabs:
+                            s_tweet_type = 'follow'
+                            self.logit(None, f's_tab_name: {s_tab_name}, not default tab, set s_tweet_type: {s_tweet_type}')  # noqa
+                        else:
+                            s_tweet_type = self.get_tweet_type_by_keyword(s_tweet_text)  # noqa
+
+                        if is_following:
+                            self.logit(None, f'is_following: {is_following}, ignore keyword filter ...')  # noqa
+                            pass
+                        elif is_verified_user:
+                            self.logit(None, f'is_verified_user: {is_verified_user}, ignore keyword filter ...')  # noqa
+                            pass
+                        elif is_all_reply:
+                            self.logit(None, f'is_all_reply: {is_all_reply}, reply all tweets ...')  # noqa
+                            pass
+                        else:
+                            if s_tweet_type == 'other':
+                                self.logit(None, 'other tweet, skip ...')
+
+                                self.status_append(
+                                    s_op_type='reply',
+                                    s_url=tweet_url,
+                                    s_msg='[NotReply] other tweet, ignore',
+                                    s_status=DEF_INTERACTION_IGNORE,
+                                )
+                                self.set_url_ignored.add(tweet_url)
+
+                                # tab.close()
+                                # self.click_back()
+
+                                return b_ret, counts
+                            self.logit(None, f's_tweet_type: {s_tweet_type}')
+
+                        if s_tweet_type == 'follow':
+                            # 来自 互关频道 的推文，已经互相关注，不回复
+                            if is_following and is_follow_me:
+                                is_reply = False
+                                self.logit(None, f'is_following and is_follow_me, set is_reply: {is_reply}')  # noqa
+
+                                self.status_append(
+                                    s_op_type='reply',
+                                    s_url=tweet_url,
+                                    s_msg='[NotReply] is_following and is_follow_me, ignore',  # noqa
+                                    s_status=DEF_INTERACTION_IGNORE,
+                                )
+                                self.set_url_ignored.add(tweet_url)
+                                return b_ret, counts
 
                     # reply
                     if is_reply:
+                        if s_post_src == 'ad_user':
+                            # 不是互关频道，避免在提示词中求回关，设置为 other 类型
+                            s_tweet_type = 'other'
                         if self.reply_tweet(s_tweet_type, s_tweet_text,
                                             is_following, is_follow_me):
                             counts['reply'] = 1
@@ -976,32 +1052,35 @@ class XWool():
                     else:
                         is_todo_follow = False
 
-            # 为点赞增加随机是否操作
-            b_random_like = random.choice([True, False])
-            if not b_random_like:
-                is_like = False
-                self.logit(None, f'b_random_like: {b_random_like}, set is_like: {is_like}')  # noqa
+            if s_post_src == 'ad_user':
+                pass
+            else:
+                # 为点赞增加随机是否操作
+                b_random_like = random.choice([True, False])
+                if not b_random_like:
+                    is_like = False
+                    self.logit(None, f'b_random_like: {b_random_like}, set is_like: {is_like}')  # noqa
 
-            # like
-            if b_random_like:
-                if tweet_url in self.set_url_liked:
-                    self.logit(None, 'Already liked before, skip ...')
-                else:
-                    try:
-                        b_ret = self.inst_x.x_like()
-                    except Exception as e:
-                        self.logit(None, f'x_like error: {e}')
-                        b_ret = False
-                    if b_ret:
-                        tab.wait(2)
-                        self.status_append(
-                            s_op_type='like',
-                            s_url=tweet_url,
-                            s_msg='',
-                            s_status=DEF_INTERACTION_OK,
-                        )
-                        counts['like'] = 1
-                        b_ret = True
+                # like
+                if b_random_like:
+                    if tweet_url in self.set_url_liked:
+                        self.logit(None, 'Already liked before, skip ...')
+                    else:
+                        try:
+                            b_ret = self.inst_x.x_like()
+                        except Exception as e:
+                            self.logit(None, f'x_like error: {e}')
+                            b_ret = False
+                        if b_ret:
+                            tab.wait(2)
+                            self.status_append(
+                                s_op_type='like',
+                                s_url=tweet_url,
+                                s_msg='',
+                                s_status=DEF_INTERACTION_OK,
+                            )
+                            counts['like'] = 1
+                            b_ret = True
 
             # retweet
             if is_retweet:
@@ -1024,7 +1103,7 @@ class XWool():
                         counts['retweet'] = 1
                         b_ret = True
 
-            self.click_back()
+            # self.click_back()
 
             # follow
             if is_todo_follow:
@@ -1101,6 +1180,17 @@ class XWool():
                 if ele_btn.text in ['关注']:
                     continue
                 lst_tabs.append((idx, ele_btn.text))
+        return lst_tabs
+
+    def set_ignore_tab_id(self, lst_tabs):
+        if self.args.ignore_tab_id:
+            lst_ignore_tab_id = [
+                int(x.strip()) for x in self.args.ignore_tab_id.split(',')]
+            to_remove = [
+                lst_tabs[i] for i in lst_ignore_tab_id
+                if 0 <= i < len(lst_tabs)]
+            for item in to_remove:
+                lst_tabs.remove(item)
         return lst_tabs
 
     def select_tab_by_text(self, idx_tab, s_tab_name):
@@ -1268,10 +1358,68 @@ class XWool():
             time.sleep(3)
         return []
 
+    def is_new_post(self, ele_blk):
+        """
+        检查是否为新帖子，N小时内发的帖子视为新帖子
+
+        参数:
+            ele_blk: 帖子元素
+
+            <time datetime="2025-11-12T03:00:02.000Z">2025年11月12日</time>
+
+        返回:
+            bool: True 表示为新帖子，False 表示为旧帖子
+
+        # 2 分钟
+        # 3 小时
+        # 2月26日
+
+        """
+        ele_div_time = ele_blk.ele(
+            '@@tag()=time@@datetime', timeout=2)
+        if isinstance(ele_div_time, NoneElement):
+            return False
+        val_time = ele_div_time.attr('datetime')
+        s_time = ele_div_time.text or ''
+        s_time = s_time.strip()
+        self.logit(None, f'create-time: {s_time}')
+
+        if not val_time or val_time == '--':
+            tab = self.browser.latest_tab
+            tab.refresh()
+            tab.wait.doc_loaded()
+            return False
+
+        # 判断是否是 n 小时内的帖子
+        # val_time 格式为 "2025-11-12T03:00:02.000Z" (UTC)
+        try:
+            s_normalized = val_time.replace('Z', '+00:00')
+            dt_post = datetime.fromisoformat(s_normalized)
+            if dt_post.tzinfo is None:
+                dt_post = dt_post.replace(tzinfo=timezone.utc)
+            else:
+                dt_post = dt_post.astimezone(timezone.utc)
+            now_utc = datetime.now(timezone.utc)
+            delta_hours = int((now_utc - dt_post).total_seconds() / 3600)
+            return delta_hours <= WHITELIST_USER_NEW_POST_HOUR
+        except (ValueError, AttributeError):
+            return False
+
     def interaction(self, idx_tab=0, s_tab_name=None,
                     is_reply=True, is_all_reply=False,
                     is_like=True, is_retweet=False,
-                    is_follow=True, max_num_proc=-1):
+                    is_follow=True, max_num_proc=-1,
+                    s_post_src=''):
+        """
+        Args:
+            is_reply: 是否回复
+            is_all_reply: 是否全部回复
+            is_like: 是否点赞
+            is_retweet: 是否转发
+            is_follow: 是否关注
+            max_num_proc: 最大处理帖子数量
+            s_post_src: 帖子来源，ad_user 表示广告用户
+        """
         b_ret = False
         self.click_display_post()
         tab = self.browser.latest_tab
@@ -1336,40 +1484,55 @@ class XWool():
                     self.logit(None, 'Already ignored before, skip ...')
                     continue
 
-                # 检查是否已达到最大限制
-                if is_follow:
-                    is_limit_reached, _, limit_msg = self.check_daily_limits(
-                        'follow', n_follow_count, self.args.max_follow)
-                    if is_limit_reached:
-                        is_follow = False
-                        self.logit(None, limit_msg)
+                b_is_new_post = self.is_new_post(ele_blk)
+                if (s_post_src == 'ad_user') and (not b_is_new_post):
+                    self.logit(None, 'Not a new post, skip')
+                    continue
 
-                if is_like:
-                    is_limit_reached, _, limit_msg = self.check_daily_limits(
-                        'like', n_like_count, self.args.max_like)
-                    if is_limit_reached:
-                        is_like = False
-                        self.logit(None, limit_msg)
+                if s_post_src == 'ad_user':
+                    pass
+                else:
+                    # 检查是否已达到最大限制
+                    if is_follow:
+                        is_limit_reached, _, limit_msg = (
+                            self.check_daily_limits(
+                                'follow', n_follow_count,
+                                self.args.max_follow))
+                        if is_limit_reached:
+                            is_follow = False
+                            self.logit(None, limit_msg)
 
-                if is_reply:
-                    is_limit_reached, _, limit_msg = self.check_daily_limits(
-                        'reply', n_reply_count, self.args.max_reply)
-                    if is_limit_reached:
-                        is_reply = False
-                        self.logit(None, limit_msg)
+                    if is_like:
+                        is_limit_reached, _, limit_msg = (
+                            self.check_daily_limits(
+                                'like', n_like_count,
+                                self.args.max_like))
+                        if is_limit_reached:
+                            is_like = False
+                            self.logit(None, limit_msg)
 
-                if is_retweet:
-                    is_limit_reached, _, limit_msg = self.check_daily_limits(
-                        'retweet', n_retweet_count, self.args.max_retweet)
-                    if is_limit_reached:
-                        is_retweet = False
-                        self.logit(None, limit_msg)
+                    if is_reply:
+                        is_limit_reached, _, limit_msg = (
+                            self.check_daily_limits(
+                                'reply', n_reply_count,
+                                self.args.max_reply))
+                        if is_limit_reached:
+                            is_reply = False
+                            self.logit(None, limit_msg)
 
-                # 如果所有操作都被限制，则跳过
-                if not (is_reply or is_like or is_retweet or is_follow):
-                    self.logit(None,
-                               'All operations reached max limit, skip ...')
-                    break
+                    if is_retweet:
+                        is_limit_reached, _, limit_msg = (
+                            self.check_daily_limits(
+                                'retweet', n_retweet_count,
+                                self.args.max_retweet))
+                        if is_limit_reached:
+                            is_retweet = False
+                            self.logit(None, limit_msg)
+
+                    # 如果所有操作都被限制，则跳过
+                    if not (is_reply or is_like or is_retweet or is_follow):
+                        self.logit(None, 'All operations reached max limit, skip ...')  # noqa
+                        break
 
                 # tab.actions.move_to(ele_blk).click()
                 if ele_tweet_url.wait.clickable(timeout=5) is not False:
@@ -1385,10 +1548,12 @@ class XWool():
                 is_success, counts = self.proc_tw_url(
                     tweet_url, is_reply=is_reply, is_all_reply=is_all_reply,
                     is_like=is_like, is_retweet=is_retweet,
-                    is_follow=is_follow, s_tab_name=s_tab_name
+                    is_follow=is_follow, s_tab_name=s_tab_name,
+                    s_post_src=s_post_src
                 )
                 tab.wait(2)
                 self.click_back()
+                tab.wait(2)
                 if is_success:
                     b_ret = True
                     # 更新计数器
@@ -1431,6 +1596,9 @@ class XWool():
             n_proc_success += 1
             if max_num_proc > 0 and n_proc_success >= max_num_proc:
                 break
+            if s_post_src == 'ad_user':
+                if n_proc_success >= WHITELIST_USER_MAX_NUM_POST_PER_ROUND:
+                    break
 
         self.logit(None, f'n_proc_success={n_proc_success}')
 
@@ -1501,13 +1669,14 @@ class XWool():
                     else:
                         self.logit(None, f'Follow x: {x_user} [Failed]')
 
-        # 生成一个 1-2 随机数
-        n_max_proc = random.randint(1, 2)
+        # 生成一个 4-7 随机数
+        n_max_proc = random.randint(4, 7)
         self.logit('proc_ad_user', f'interaction n_max_proc={n_max_proc}')
         is_success = self.interaction(
             s_tab_name=None, is_reply=True, is_all_reply=True,
             is_like=True, is_retweet=False, is_follow=True,
-            max_num_proc=n_max_proc
+            max_num_proc=n_max_proc,
+            s_post_src='ad_user'
         )
         if is_success:
             b_ret = True
@@ -2327,6 +2496,7 @@ class XWool():
             self.click_home()
 
             lst_tabs = self.list_tabs()
+            lst_tabs = self.set_ignore_tab_id(lst_tabs)
             # lst_tabs = ['X 推特华语区【蓝V互关】']
             # lst_tabs = ['为你推荐']
             random.shuffle(lst_tabs)  # 每次随机顺序，逐个处理直到全部完成
@@ -2810,6 +2980,12 @@ if __name__ == '__main__':
     parser.add_argument(
         '--only_statistics', required=False, action='store_true',
         help='Only statistics mode'
+    )
+
+    # 忽略的 tab_id [0,1] 分别为 为你推荐 和 正在关注
+    parser.add_argument(
+        '--ignore_tab_id', required=False, default='',
+        help='Ignore tab id, multiple use comma to separate, like 0,1'
     )
 
     # 添加 --debug 参数，用于调试

@@ -45,7 +45,17 @@ TZ_OFFSET = 8
 DEL_PROFILE_DIR = False
 
 FILENAME_LOG = 'run.log'
-
+############################################################
+# 只针对白名单用户，n小时内发的帖子，进行回复
+WHITELIST_USER_NEW_POST_HOUR = 6
+# 白名单用户每轮处理帖子数量
+WHITELIST_USER_MAX_NUM_POST_PER_ROUND = 1
+############################################################
+# 静默时间段列表，每项为 "开始-结束"（小时:分钟），时区与 TZ_OFFSET 一致
+# (如 8 为东八区)。区间左闭右开 [start,end)，支持跨天如 '16:30-00:50'
+# SILENCE_TIME_RANGE = ['16:30-00:50', '04:00-05:10']
+SILENCE_TIME_RANGE = ['04:00-05:10']
+############################################################
 # Chrome 插件所在的目录
 DEF_OKX_EXTENSION_PATH = 'extensions/okx'
 EXTENSION_ID_OKX = 'mcohilncbfahbmgdjkbpemcciiolgcge'

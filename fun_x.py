@@ -1398,6 +1398,19 @@ class XUtils():
 
         return False
 
+    def is_send_success(self, s_info):
+        """
+        Toast Alert: 你的帖子已发送。
+        """
+        lst_info = [
+            '帖子已发送',
+            'sent',
+        ]
+        for s_info in lst_info:
+            if s_info in s_info:
+                return True
+        return False
+
     def x_is_replied(self):
         idx = get_index_from_header(DEF_HEADER_ACCOUNT, 'x_username')
         x_username = self.dic_account[self.args.s_profile][idx]
@@ -1430,7 +1443,7 @@ class XUtils():
         return False
 
     def x_reply(self, s_text):
-        max_try = 10
+        max_try = 1  # 10 -> 1
         n_max_fail = 2
         n_fail = 0
         for i in range(1, max_try+1):
@@ -1519,7 +1532,12 @@ class XUtils():
 
                 tab.wait(2)
 
-                self.get_toast_alert()
+                s_toast = self.get_toast_alert()
+                if self.is_send_success(s_toast):
+                    self.logit(None, '[toast] Reply Success ✅')
+                    tab.wait(1)
+                    return True
+
                 ele_info = tab.ele(
                     '@@tag()=div@@aria-live=assertive', timeout=2)
                 if not isinstance(ele_info, NoneElement):
@@ -1535,7 +1553,7 @@ class XUtils():
                         ]
                         for s_assert in lst_assert:
                             if s_assert in s_info:
-                                self.logit(None, 'Reply Success ✅')
+                                self.logit(None, '[assertive] Reply Success ✅')
                                 tab.wait(1)
                                 return True
 
@@ -1590,7 +1608,7 @@ class XUtils():
                             None, rm_url(s_src), rm_url(s_dst)).ratio()
                         self.logit(None, f'f_similarity: {f_similarity:.2f}')
                         if f_similarity >= 0.9:
-                            self.logit(None, 'Reply Success ✅')
+                            self.logit(None, '[get_reply] Reply Success ✅')
                             return True
                         else:
                             self.logit(
