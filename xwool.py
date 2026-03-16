@@ -2516,7 +2516,11 @@ class XWool():
             self.browser.latest_tab.refresh()
 
             n_sleep = random.randint(600, 1200)
-            self.logit(None, f'Sleep {n_sleep} seconds ...')
+            # 输出下次执行的时间
+            next_exec_time = datetime.now() + timedelta(seconds=n_sleep)
+            self.logit(None, f'[{i}/{n_max_run}]Sleep {n_sleep} seconds')
+            next_exec_str = next_exec_time.strftime("%Y-%m-%d %H:%M:%S")
+            self.logit(None, f'[{i}/{n_max_run}]Next run at: {next_exec_str}')
             time.sleep(n_sleep)
 
         if self.args.manual_exit and self.args.headless is False:
