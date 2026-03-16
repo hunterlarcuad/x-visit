@@ -1398,7 +1398,7 @@ class XUtils():
 
         return False
 
-    def is_send_success(self, s_info):
+    def is_send_success(self, s_toast):
         """
         Toast Alert: 你的帖子已发送。
         """
@@ -1406,9 +1406,13 @@ class XUtils():
             '帖子已发送',
             'sent',
         ]
+        if not s_toast:
+            return False
+
         for s_info in lst_info:
-            if s_info in s_info:
+            if s_info in s_toast:
                 return True
+
         return False
 
     def x_is_replied(self):
