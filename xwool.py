@@ -1053,7 +1053,7 @@ class XWool():
                         is_todo_follow = False
 
             if s_post_src == 'ad_user':
-                pass
+                b_random_like = True
             else:
                 # 为点赞增加随机是否操作
                 b_random_like = random.choice([True, False])
@@ -1061,26 +1061,26 @@ class XWool():
                     is_like = False
                     self.logit(None, f'b_random_like: {b_random_like}, set is_like: {is_like}')  # noqa
 
-                # like
-                if b_random_like:
-                    if tweet_url in self.set_url_liked:
-                        self.logit(None, 'Already liked before, skip ...')
-                    else:
-                        try:
-                            b_ret = self.inst_x.x_like()
-                        except Exception as e:
-                            self.logit(None, f'x_like error: {e}')
-                            b_ret = False
-                        if b_ret:
-                            tab.wait(2)
-                            self.status_append(
-                                s_op_type='like',
-                                s_url=tweet_url,
-                                s_msg='',
-                                s_status=DEF_INTERACTION_OK,
-                            )
-                            counts['like'] = 1
-                            b_ret = True
+            # like
+            if b_random_like:
+                if tweet_url in self.set_url_liked:
+                    self.logit(None, 'Already liked before, skip ...')
+                else:
+                    try:
+                        b_ret = self.inst_x.x_like()
+                    except Exception as e:
+                        self.logit(None, f'x_like error: {e}')
+                        b_ret = False
+                    if b_ret:
+                        tab.wait(2)
+                        self.status_append(
+                            s_op_type='like',
+                            s_url=tweet_url,
+                            s_msg='',
+                            s_status=DEF_INTERACTION_OK,
+                        )
+                        counts['like'] = 1
+                        b_ret = True
 
             # retweet
             if is_retweet:
