@@ -678,6 +678,8 @@ class XWool():
         return None
 
     def clean_reply(self, s_reply):
+        if not s_reply:
+            return s_reply
         # 去掉换行符
         s_reply = s_reply.replace('\n', ' ')
 
@@ -865,6 +867,8 @@ class XWool():
         max_attempts = 8
         for attempt in range(1, max_attempts + 1):
             self.logit(None, f'quality check attempt: {attempt}/{max_attempts}')  # noqa
+            if not s_reply:
+                s_reply = ''
             s_reply = self.clean_reply(s_reply)
 
             self.logit(None, f'[To Verify]reply_by_llm: {s_reply}')
