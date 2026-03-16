@@ -44,6 +44,8 @@ from conf import WHITELIST_USER_NEW_POST_HOUR
 from conf import WHITELIST_USER_MAX_NUM_POST_PER_ROUND
 # from conf import SILENCE_TIME_RANGE
 
+from conf import WHITELIST_USER_MAX_NUM_AD_USER_PER_ROUND
+
 from conf import FILENAME_LOG
 from conf import logger
 
@@ -2350,6 +2352,42 @@ class XWool():
             tab.wait.doc_loaded()
             self.browser.wait(3)
 
+    def reply_ad_user(self):
+        """
+        Reply ad user
+        """
+        n_proc_success = 0
+        if self.args.ad_user:
+            self.lst_ad_user = []
+            lst_x_user = load_ad_user(self.file_ad_user)
+            for x_user in lst_x_user:
+                if self.i_xuser != x_user:
+                    self.lst_ad_user.append(x_user)
+
+            self.logit(None, f'len(self.lst_ad_user)={len(self.lst_ad_user)}')
+            # 打乱顺序，最多取n个
+            lst_random = copy.deepcopy(self.lst_ad_user)
+            random.shuffle(lst_random)
+            n_max_proc = WHITELIST_USER_MAX_NUM_AD_USER_PER_ROUND
+            for x_user, x_nickname in lst_random:
+                if n_proc_success >= n_max_proc:
+                    break
+
+                # 检查是否已达到每日关注限制
+                is_follow_limit, _, follow_msg = self.check_daily_limits(
+                    'follow', 0, self.args.max_follow)
+                if is_follow_limit:
+                    self.logit(None, f'Daily follow limit reached: '
+                               f'{follow_msg}')
+                    self.logit(None, 'Stop processing ad users due to limit')
+                    break
+
+                is_success = self.proc_ad_user(x_user, x_nickname)
+                if is_success:
+                    n_proc_success += 1
+
+        return n_proc_success
+
     def xwool_run(self):
         self.browser = self.inst_dp.get_browser(self.args.s_profile)
 
@@ -2451,36 +2489,6 @@ class XWool():
             # self.check_follow(2, -1)
             self.check_follow(2, self.args.max_follow_page)
 
-        if self.args.ad_user:
-            self.lst_ad_user = []
-            lst_x_user = load_ad_user(self.file_ad_user)
-            for x_user in lst_x_user:
-                if self.i_xuser != x_user:
-                    self.lst_ad_user.append(x_user)
-
-            self.logit(None, f'len(self.lst_ad_user)={len(self.lst_ad_user)}')
-            # 打乱顺序，最多取n个
-            lst_random = copy.deepcopy(self.lst_ad_user)
-            random.shuffle(lst_random)
-            n_max_proc = 5
-            n_proc_success = 0
-            for x_user, x_nickname in lst_random:
-                if n_proc_success >= n_max_proc:
-                    break
-
-                # 检查是否已达到每日关注限制
-                is_follow_limit, _, follow_msg = self.check_daily_limits(
-                    'follow', 0, self.args.max_follow)
-                if is_follow_limit:
-                    self.logit(None, f'Daily follow limit reached: '
-                               f'{follow_msg}')
-                    self.logit(None, 'Stop processing ad users due to limit')
-                    break
-
-                is_success = self.proc_ad_user(x_user, x_nickname)
-                if is_success:
-                    n_proc_success += 1
-
         if self.args.water:
             # 加载广告 URL
             self.load_ad_tw_urls()
@@ -2493,6 +2501,7 @@ class XWool():
         n_max_run = self.args.max_interactions
         for i in range(1, n_max_run+1):
             self.logit(None, f'Run {i}/{n_max_run} times ...')
+            self.reply_ad_user()
             self.click_home()
 
             lst_tabs = self.list_tabs()
