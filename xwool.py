@@ -2168,6 +2168,92 @@ class XWool():
                 return True
         return False
 
+    def get_notice_num(self):
+        """
+        Get notice number
+        aria-label="提醒（6 条未读 提醒）"
+        """
+        tab = self.browser.latest_tab
+        ele_a = tab.ele('@@tag()=a@@href=/notifications', timeout=2)
+        if not isinstance(ele_a, NoneElement):
+            s_text = ele_a.attr('aria-label')
+            self.logit(None, f'Notice number: {s_text}')
+            # 提取数字
+            s_num = re.search(r'\d+', s_text)
+            if s_num:
+                s_num = s_num.group()
+                return int(s_num)
+        return 0
+
+    def click_notice(self):
+        """
+        Click notice button
+        """
+        tab = self.browser.latest_tab
+        ele_btn = tab.ele('@@tag()=a@@href=/notifications', timeout=2)
+        if not isinstance(ele_btn, NoneElement):
+            self.logit(None, 'Click notice button')
+            if ele_btn.wait.clickable(timeout=5) is not False:
+                ele_btn.click()
+                tab.wait(3)
+                return True
+        return False
+
+    def get_notice_users(self):
+        """
+        # noqa
+        Get notice users
+
+        M11.996 2c-4.062 0-7.49 3.021-7.999 7.051L2.866 18H7.1c.463 2.282 2.481 4 4.9 4s4.437-1.718 4.9-4h4.236l-1.143-8.958C19.48 5.017 16.054 2 11.996 2zM9.171 18h5.658c-.412 1.165-1.523 2-2.829 2s-2.417-.835-2.829-2z
+        """
+        lst_users = []
+        tab = self.browser.latest_tab
+        ele_blk_notice = NoneElement
+        ele_blks = tab.eles('@@tag()=article@@role=article', timeout=2)
+        for ele_blk in ele_blks:
+            ele_notice = ele_blk.ele('@@tag()=path@@d=M11.996 2c-4.062 0-7.49 3.021-7.999 7.051L2.866 18H7.1c.463 2.282 2.481 4 4.9 4s4.437-1.718 4.9-4h4.236l-1.143-8.958C19.48 5.017 16.054 2 11.996 2zM9.171 18h5.658c-.412 1.165-1.523 2-2.829 2s-2.417-.835-2.829-2z', timeout=2) # noqa
+            if not isinstance(ele_notice, NoneElement):
+                ele_blk_notice = ele_blk
+                break
+
+        if not isinstance(ele_blk_notice, NoneElement):
+            ele_ul = ele_blk_notice.ele('@@tag()=ul@@role=list', timeout=2)
+            if not isinstance(ele_ul, NoneElement):
+                ele_a_lst = ele_ul.eles('@@tag()=a@@href:/', timeout=2)
+                for ele_a in ele_a_lst:
+                    s_href = ele_a.attr('href')
+                    s_user = s_href.split('/')[-1]
+                    # self.logit(None, f'Notice user: {s_user}')
+                    lst_users.append(s_user)
+
+        return lst_users
+
+    def monitor_notice_users(self):
+        """
+        Ding notice users
+        """
+        n_notice = self.get_notice_num()
+        if n_notice <= 0:
+            return
+
+        self.click_notice()
+        tab = self.browser.latest_tab
+        tab.wait.doc_loaded()
+
+        lst_users = self.get_notice_users()
+        if not lst_users:
+            return
+
+        s_info = ''
+        for s_user in lst_users:
+            s_info += f'{s_user}\n'
+
+        d_cont = {
+            'title': f'Notice Users: {n_notice}',
+            'text': s_info
+        }
+        ding_msg(d_cont, DEF_DING_TOKEN, msgtype="markdown")
+
     def gene_new_post_text_by_llm(self, n_len=120):
         """
         Generate new post text by LLM
@@ -2473,6 +2559,12 @@ class XWool():
             pdb.set_trace()
 
         self.inst_x.twitter_run()
+
+        if self.args.debug:
+            self.logit(None, 'Debug mode, pause ...')
+            pdb.set_trace()
+
+        # self.monitor_notice_users()
 
         s_x_status = self.inst_x.get_x_status()
         if not s_x_status:
