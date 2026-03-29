@@ -138,6 +138,9 @@ class XWool():
 
         self.n_follow = 0
 
+        # Notice user list
+        self.lst_users_pre = []
+
     def update_daily_stats(self, date, op_type, count=1, inc_session=True):
         """
         更新每日操作统计
@@ -2228,28 +2231,85 @@ class XWool():
 
         return lst_users
 
+    def get_new_notice_users(self, lst_pre, lst_cur):
+        """
+        Get newly inserted notice users at the head of current list.
+
+        lst_pre: ['a1', 'a2', 'a3', 'a4']
+        lst_cur: ['a5', 'a1', 'a2', 'a3']
+        return: ['a5']
+
+        lst_pre: ['a1', 'a2', 'a3', 'a4']
+        lst_cur: ['a4', 'a1', 'a2', 'a3']
+        return: ['a4']
+        """
+        if not lst_cur:
+            return []
+
+        if not lst_pre:
+            return lst_cur
+
+        n_pre_len = len(lst_pre)
+        dic_pre_index = {s_user: idx for idx, s_user in enumerate(lst_pre)}
+
+        for cur_offset in range(len(lst_cur)):
+            lst_suffix = lst_cur[cur_offset:]
+            idx_pre = -1
+            is_subsequence = True
+
+            for s_user in lst_suffix:
+                if s_user not in dic_pre_index:
+                    is_subsequence = False
+                    break
+                if dic_pre_index[s_user] <= idx_pre:
+                    is_subsequence = False
+                    break
+                idx_pre = dic_pre_index[s_user]
+
+            if is_subsequence:
+                return lst_cur[:cur_offset]
+
+        return lst_cur
+
     def monitor_notice_users(self):
         """
         Ding notice users
         """
         n_notice = self.get_notice_num()
         if n_notice <= 0:
-            return
+            pass
+            # return
 
         self.click_notice()
         tab = self.browser.latest_tab
         tab.wait.doc_loaded()
 
-        lst_users = self.get_notice_users()
-        if not lst_users:
+        lst_users_cur = self.get_notice_users()
+        if not lst_users_cur:
+            return
+
+        s_pre = ' '.join(self.lst_users_pre)
+        s_cur = ' '.join(lst_users_cur)
+        self.logit(None, f's_pre: {s_pre}')
+        self.logit(None, f's_cur: {s_cur}')
+
+        lst_new_users = self.get_new_notice_users(
+            self.lst_users_pre, lst_users_cur)
+
+        s_new = ' '.join(lst_new_users)
+        self.logit(None, f's_new: {s_new}')
+
+        self.lst_users_pre = lst_users_cur
+
+        if not lst_new_users:
             return
 
         s_info = ''
-        for s_user in lst_users:
+        for s_user in lst_new_users:
             s_info += f'{s_user}\n'
 
         d_cont = {
-            'title': f'Notice Users: {n_notice}',
+            'title': f'Notice Users: {n_notice} [{lst_new_users[0]}]',
             'text': s_info
         }
         ding_msg(d_cont, DEF_DING_TOKEN, msgtype="markdown")
@@ -2564,7 +2624,9 @@ class XWool():
             self.logit(None, 'Debug mode, pause ...')
             pdb.set_trace()
 
-        # self.monitor_notice_users()
+        while True:
+            self.monitor_notice_users()
+            time.sleep(60)
 
         s_x_status = self.inst_x.get_x_status()
         if not s_x_status:
