@@ -2624,9 +2624,10 @@ class XWool():
             self.logit(None, 'Debug mode, pause ...')
             pdb.set_trace()
 
-        while True:
-            self.monitor_notice_users()
-            time.sleep(60)
+        if self.args.monitor_notice_users:
+            while True:
+                self.monitor_notice_users()
+                time.sleep(60)
 
         s_x_status = self.inst_x.get_x_status()
         if not s_x_status:
@@ -3157,6 +3158,11 @@ if __name__ == '__main__':
     parser.add_argument(
         '--ignore_tab_id', required=False, default='',
         help='Ignore tab id, multiple use comma to separate, like 0,1'
+    )
+
+    parser.add_argument(
+        '--monitor_notice_users', required=False, action='store_true',
+        help='Monitor notice users, default is False'
     )
 
     # 添加 --debug 参数，用于调试
