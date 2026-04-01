@@ -85,6 +85,8 @@ DEF_MODEL_ZHIPUAI = 'glm-4-plus'
 
 # 遇到异常发钉钉消息，如果没有，置空，则不发钉钉消息
 DEF_DING_TOKEN = ''  # noqa
+DEF_DING_TOKEN_ALERT = ''  # noqa
+DEF_DING_TOKEN_SILENT = ''  # noqa
 ############################################################
 
 # 账户列表

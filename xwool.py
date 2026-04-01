@@ -6,6 +6,7 @@ import time
 import copy
 import pdb  # noqa
 import shutil
+import json
 import math
 import re  # noqa
 from datetime import datetime, timedelta, timezone  # noqa
@@ -30,6 +31,8 @@ from conf import DEF_USE_HEADLESS
 from conf import DEF_DEBUG
 from conf import DEF_PATH_USER_DATA
 from conf import DEF_DING_TOKEN
+from conf import DEF_DING_TOKEN_ALERT
+from conf import DEF_DING_TOKEN_SILENT
 from conf import DEF_PATH_DATA_STATUS
 
 from conf import EXTENSION_ID_CAPMONSTER
@@ -124,6 +127,8 @@ class XWool():
 
         self.set_user_white = set([])
         self.set_user_black = set([])
+        self.set_notice_white = set([])
+        self.set_notice_black = set([])
 
         self.lst_advertise_url = []
         self.lst_attached_url = []
@@ -140,6 +145,14 @@ class XWool():
 
         # Notice user list
         self.lst_users_pre = []
+
+        # 候选回复（多风格），由 get_tweet_candidates_reply 填充
+        self.lst_candidate_replies = []
+
+        self.tw_url = ''
+        self.nickname = ''
+        self.tw_text = ''
+        self.llm_reply = []
 
     def update_daily_stats(self, date, op_type, count=1, inc_session=True):
         """
@@ -311,6 +324,12 @@ class XWool():
         self.file_ad_user = f'{DEF_PATH_DATA_STATUS}/xwool/ad_user.csv'
         self.file_user_white = f'{DEF_PATH_DATA_STATUS}/xwool/a_user_white.csv'
         self.file_user_black = f'{DEF_PATH_DATA_STATUS}/xwool/a_user_black.csv'
+        self.file_notice_white = (
+            f'{DEF_PATH_DATA_STATUS}/xwool/b_notice_white.csv'
+        )
+        self.file_notice_black = (
+            f'{DEF_PATH_DATA_STATUS}/xwool/b_notice_black.csv'
+        )
 
         self.file_statistics = (
             f'{DEF_PATH_DATA_STATUS}/xwool/statistics.csv'
@@ -323,12 +342,30 @@ class XWool():
 
         self.set_user_white = set([])
         self.set_user_black = set([])
+        self.set_notice_white = set([])
+        self.set_notice_black = set([])
 
         self.set_user_white = load_to_set(self.file_ad_user, self.set_user_white)  # noqa
         self.set_user_white = load_to_set(self.file_user_white, self.set_user_white)  # noqa
         self.set_user_black = load_to_set(self.file_user_black, self.set_user_black)  # noqa
+        self.reload_notice_user_lists()
         self.logit(None, f'set_user_white: {len(self.set_user_white)}')
         self.logit(None, f'set_user_black: {len(self.set_user_black)}')
+
+    def reload_notice_user_lists(self):
+        """
+        重新加载通知用户黑白名单
+        """
+        self.set_notice_white = set([])
+        self.set_notice_black = set([])
+        self.set_notice_white = load_to_set(
+            self.file_notice_white, self.set_notice_white
+        )
+        self.set_notice_black = load_to_set(
+            self.file_notice_black, self.set_notice_black
+        )
+        self.logit(None, f'set_notice_white: {len(self.set_notice_white)}')
+        self.logit(None, f'set_notice_black: {len(self.set_notice_black)}')
 
     def __del__(self):
         pass
@@ -1622,9 +1659,11 @@ class XWool():
 
         return b_ret
 
-    def proc_ad_user(self, x_user, x_nickname):
+    def proc_ad_user(self, x_user, x_nickname, s_src='ad_user'):
         """
         Like, Follow, Retweet, Comment
+
+        s_src: ad_user, notice_user
         """
         self.logit(None, f'proc_ad_user: {x_user} {x_nickname}')
         b_ret = False
@@ -2275,6 +2314,8 @@ class XWool():
         """
         Ding notice users
         """
+        self.reload_notice_user_lists()
+
         n_notice = self.get_notice_num()
         if n_notice <= 0:
             pass
@@ -2301,18 +2342,269 @@ class XWool():
 
         self.lst_users_pre = lst_users_cur
 
-        if not lst_new_users:
+        # 黑名单：忽略；白名单/其他均处理，钉钉路由不同
+        lst_to_process = []
+        for s_user in lst_new_users:
+            if s_user in self.set_notice_black:
+                self.logit(None, f'notice user in black list, skip: {s_user}')
+                continue
+            lst_to_process.append(s_user)
+
+        s_todo = ' '.join(lst_to_process)
+        self.logit(None, f's_to_process (non-black): {s_todo}')
+
+        if not lst_to_process:
             return
 
-        s_info = ''
-        for s_user in lst_new_users:
-            s_info += f'{s_user}\n'
+        lst_alert = [u for u in lst_to_process if u in self.set_notice_white]
+        lst_silent = [u for u in lst_to_process if u not in self.set_notice_white]
 
-        d_cont = {
-            'title': f'Notice Users: {n_notice} [{lst_new_users[0]}]',
-            'text': s_info
-        }
-        ding_msg(d_cont, DEF_DING_TOKEN, msgtype="markdown")
+        if lst_alert:
+            s_info = ''.join(f'{u}\n' for u in lst_alert)
+            d_cont = {
+                'title': (
+                    f'Notice Users [ALERT]: {n_notice} [{lst_alert[0]}]'
+                ),
+                'text': s_info,
+            }
+            ding_msg(d_cont, DEF_DING_TOKEN_ALERT, msgtype="markdown")
+
+        if lst_silent:
+            s_info = ''.join(f'{u}\n' for u in lst_silent)
+            d_cont = {
+                'title': (
+                    f'Notice Users [SILENT]: {n_notice} [{lst_silent[0]}]'
+                ),
+                'text': s_info,
+            }
+            ding_msg(d_cont, DEF_DING_TOKEN_SILENT, msgtype="markdown")
+
+        self.proc_all_notice_users(lst_to_process)
+
+
+    def proc_all_notice_users(self, lst_users):
+        """
+        Proc notice user
+        """
+        for s_user in reversed(lst_users):
+            self.proc_one_notice_user(s_user)
+
+            if not self.llm_reply:
+                continue
+
+            s_reply_text = '\n'.join([f'- {item}' for item in self.llm_reply])
+            s_md = (
+                f"### 👤 用户\n{s_user} ({self.nickname})\n\n"
+                f"### 🔗 推文链接\n{self.tw_url}\n\n"
+                f"### 🧾 原帖内容\n> {self.tw_text[:100]} ...\n\n"
+                f"### 🤖 LLM 回复\n{s_reply_text}"
+            )
+            s_token = (
+                DEF_DING_TOKEN_ALERT
+                if s_user in self.set_notice_white
+                else DEF_DING_TOKEN_SILENT
+            )
+            d_cont = {
+                'title': f'[{s_user} ({self.nickname})] LLM Reply',
+                'text': s_md
+            }
+            ding_msg(d_cont, s_token, msgtype="markdown")
+
+        return True
+
+    def proc_one_notice_user(self, s_user):
+        """
+        Proc notice user
+        """
+        self.logit(None, f'Proc notice user: {s_user}')
+        # self.proc_ad_user(s_user, s_user, s_src='notice_user')
+
+        user_url = f'https://x.com/{s_user}'  # noqa
+        # tab = self.browser.new_tab(user_url)
+        tab = self.browser.latest_tab
+        tab.get(user_url)
+        tab.wait.doc_loaded()
+        tab.wait(5)
+
+        ele_blks_top = self.get_tweet_blks()
+        n_blks_top = len(ele_blks_top)
+        self.logit(None, f'len(ele_blks_top)={n_blks_top}')
+        if not ele_blks_top:
+            self.inst_x.wrong_retry()
+            return False
+
+        for i in range(n_blks_top):
+            if self.args.debug:
+                pdb.set_trace()
+            ele_blks_top = self.get_tweet_blks()
+            if i >= len(ele_blks_top):
+                break
+            ele_blk = ele_blks_top[i]
+
+            ele_user_nickname = ele_blk.ele(
+                '@@tag()=div@@data-testid=User-Name', timeout=3
+            )
+            if not isinstance(ele_user_nickname, NoneElement):
+                # XXXName\n@chairbtc\n·\n8分钟
+                self.nickname = ele_user_nickname.text.split('\n')[0]
+                self.logit(None, f'user_nickname: {self.nickname}')
+            else:
+                self.nickname = ''
+                self.logit(None, 'user_nickname is not found')
+
+            ele_tweet_url = ele_blk.ele(
+                '@@tag()=a@@href:status@@dir=ltr', timeout=3
+            )
+            if not isinstance(ele_tweet_url, NoneElement):
+                tweet_url = ele_tweet_url.attr('href')
+                self.logit(None, f'tweet_url: {tweet_url}')
+                try:
+                    x_user = tweet_url.split('/')[3]
+                    if self.i_xuser == x_user:
+                        continue
+                except:  # noqa
+                    continue
+
+                if tweet_url in self.set_url_ignored:
+                    self.logit(None, 'Already ignored before, skip ...')
+                    continue
+
+                b_is_new_post = self.is_new_post(ele_blk)
+                if (not b_is_new_post):
+                    self.logit(None, 'Not a new post, skip')
+                    continue
+                # tab.actions.move_to(ele_blk).click()
+                if ele_tweet_url.wait.clickable(timeout=5) is not False:
+                    ele_tweet_url.click()
+                    tab.wait.doc_loaded()
+                    tab.wait(3)
+                if tab.url == 'https://x.com/home':
+                    self.logit(
+                        None,
+                        'tab.url is home, failed to click tweet url ...')
+                    continue
+
+                self.tw_url = tweet_url
+                self.get_tweet_candidates_reply()
+                tab.wait(2)
+                self.click_back()
+                tab.wait(2)
+                break
+
+        return True
+
+
+    def get_tweet_candidates_reply(self):
+        """
+        对当前帖子一次 LLM 请求生成 3 种风格候选回复：友好风格、表示赞同、幽默风趣
+        """
+        self.tw_text = ''
+        self.llm_reply = []
+
+        tab = self.browser.latest_tab
+        ele_tweet_text = tab.ele(
+            '@@tag()=div@@data-testid=tweetText', timeout=3
+        )
+        if isinstance(ele_tweet_text, NoneElement):
+            self.logit(None, 'tweet_text is not found')
+            self.click_back()
+            return False
+
+        s_tweet_text = ele_tweet_text.text.replace('\n', ' ')
+        self.logit(None, f'tweet_text: {s_tweet_text[:50]} ...')  # noqa
+
+        lst_styles = (
+            ("友好风格", "语气友善、亲切自然，积极正面，让对方感到被尊重。"),
+            ("表示赞同", "明确表达对推文观点的认同与支持，可简短呼应原文要点。"),
+            ("幽默风趣", "轻松俏皮、适度幽默，不失礼貌，避免冒犯或低俗。"),
+        )
+        s_styles_block = ''.join(
+            f"- 「{name}」：{desc}\n" for name, desc in lst_styles
+        )
+
+        s_prompt = (
+            "# 【功能】\n"
+            "阅读给定推文，一次性输出 3 条不同风格的回复候选。\n"
+            "\n"
+            "# 【重要：语言要求】\n"
+            "必须使用与原推文相同的语言撰写每条回复！原推文是英文就用英文，"
+            "原推文是中文就用中文。\n"
+            "\n"
+            "# 【三种风格说明】\n"
+            f"{s_styles_block}"
+            "\n"
+            "# 【通用要求】\n"
+            "每条回复要简短；与推文相关；单条字数控制在 70 字以内；"
+            "每条回复字符串内不要换行；不要输出与 JSON 无关的说明文字。\n"
+            "\n"
+            "# 【输出格式】\n"
+            "仅输出一个 JSON 对象，三个键名必须为："
+            "\"友好风格\"、\"表示赞同\"、\"幽默风趣\"，值为对应回复正文。\n"
+            "示例："
+            '{"友好风格":"...","表示赞同":"...","幽默风趣":"..."}\n'
+            "\n"
+            "# 【参考推文内容如下】\n"
+            f"{s_tweet_text}"
+        )
+
+        self.logit(None, 'generate 3 candidate replies (single request) ...')
+        try:
+            s_raw = gene_by_llm(s_prompt)
+        except Exception as e:
+            self.logit(None, f'Error calling gene_by_llm: {e}')
+            self.lst_candidate_replies = []
+            return False
+
+        if not s_raw:
+            self.logit(None, 'gene_by_llm returned empty')
+            self.lst_candidate_replies = []
+            return False
+
+        s_trim = s_raw.strip()
+        m_fence = re.match(
+            r'^```(?:json)?\s*\n?(.*?)\n?```\s*$',
+            s_trim,
+            re.DOTALL | re.IGNORECASE,
+        )
+        if m_fence:
+            s_trim = m_fence.group(1).strip()
+
+        dic = None
+        try:
+            dic = json.loads(s_trim)
+        except json.JSONDecodeError:
+            i0, i1 = s_trim.find('{'), s_trim.rfind('}')
+            if i0 >= 0 and i1 > i0:
+                try:
+                    dic = json.loads(s_trim[i0 : i1 + 1])
+                except json.JSONDecodeError:
+                    pass
+        if not isinstance(dic, dict):
+            self.logit(None, f'failed to parse JSON from LLM: {s_raw[:200]}')
+            self.lst_candidate_replies = []
+            return False
+
+        self.lst_candidate_replies = []
+        for s_name, _ in lst_styles:
+            s_reply = dic.get(s_name, '')
+            if not isinstance(s_reply, str):
+                s_reply = str(s_reply) if s_reply is not None else ''
+            s_reply = s_reply.replace('\n', ' ').strip()
+            self.lst_candidate_replies.append(
+                {'style': s_name, 'reply': s_reply}
+            )
+
+        for item in self.lst_candidate_replies:
+            preview = (item['reply'] or '')[:100]
+            self.logit(
+                None,
+                f"candidate [{item['style']}]: {preview}"
+                + ('...' if len(item['reply'] or '') > 100 else '')
+            )
+            self.llm_reply.append(f'{item["style"]}: {item["reply"]}')
+        self.tw_text = s_tweet_text.strip()
+
+        return True
 
     def gene_new_post_text_by_llm(self, n_len=120):
         """
