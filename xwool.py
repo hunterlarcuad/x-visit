@@ -152,7 +152,15 @@ class XWool():
         self.tw_url = ''
         self.nickname = ''
         self.tw_text = ''
-        self.llm_reply = []
+
+    def reset_vals(self):
+        """
+        Reset variables
+        """
+        self.tw_url = ''
+        self.nickname = ''
+        self.tw_text = ''
+        self.lst_candidate_replies = []
 
     def update_daily_stats(self, date, op_type, count=1, inc_session=True):
         """
@@ -2288,7 +2296,7 @@ class XWool():
         if not lst_pre:
             return lst_cur
 
-        n_pre_len = len(lst_pre)
+        # n_pre_len = len(lst_pre)
         dic_pre_index = {s_user: idx for idx, s_user in enumerate(lst_pre)}
 
         for cur_offset in range(len(lst_cur)):
@@ -2357,7 +2365,9 @@ class XWool():
             return
 
         lst_alert = [u for u in lst_to_process if u in self.set_notice_white]
-        lst_silent = [u for u in lst_to_process if u not in self.set_notice_white]
+        lst_silent = [
+            u for u in lst_to_process if u not in self.set_notice_white
+        ]
 
         if lst_alert:
             s_info = ''.join(f'{u}\n' for u in lst_alert)
@@ -2381,7 +2391,6 @@ class XWool():
 
         self.proc_all_notice_users(lst_to_process)
 
-
     def proc_all_notice_users(self, lst_users):
         """
         Proc notice user
@@ -2389,10 +2398,13 @@ class XWool():
         for s_user in reversed(lst_users):
             self.proc_one_notice_user(s_user)
 
-            if not self.llm_reply:
+            if not self.lst_candidate_replies:
                 continue
 
-            s_reply_text = '\n'.join([f'- {item}' for item in self.llm_reply])
+            s_reply_text = '\n'.join(
+                f'- {item["style"]}: {item["reply"]}'
+                for item in self.lst_candidate_replies
+            )
             s_md = (
                 f"### 👤 用户\n{s_user} ({self.nickname})\n\n"
                 f"### 🔗 推文链接\n{self.tw_url}\n\n"
@@ -2493,25 +2505,81 @@ class XWool():
 
         return True
 
+    def get_article_text(self):
+        """
+        Get article text
+        """
+        s_title = ''
+        s_content = ''
+
+        tab = self.browser.latest_tab
+        ele_article_blk = tab.ele(
+            '@@tag()=article@@data-testid=tweet', timeout=3
+        )
+        if isinstance(ele_article_blk, NoneElement):
+            # self.logit(None, 'article_text is not found')
+            return s_title, s_content
+
+        ele_title = ele_article_blk.ele(
+            '@@tag()=div@@data-testid=twitter-article-title', timeout=3
+        )
+        if not isinstance(ele_title, NoneElement):
+            s_title = ele_title.text
+
+        ele_content = ele_article_blk.ele(
+            '@@tag()=div@@data-testid=twitterArticleRichTextView', timeout=3
+        )
+        if not isinstance(ele_content, NoneElement):
+            s_content = ele_content.text
+
+        return s_title, s_content
+
+    def get_short_tweet_text(self):
+        """
+        Get short tweet text
+        """
+        s_content = ''
+
+        tab = self.browser.latest_tab
+        ele_tweet_text = tab.ele(
+            '@@tag()=div@@data-testid=tweetText', timeout=3
+        )
+        if not isinstance(ele_tweet_text, NoneElement):
+            s_content = ele_tweet_text.text
+
+        return s_content
+
+    def get_tweet_text(self):
+        """
+        Get tweet text
+        """
+        s_title = ''
+        s_content = ''
+
+        s_content = self.get_short_tweet_text()
+        if not s_content:
+            s_title, s_content = self.get_article_text()
+
+        return s_title, s_content
 
     def get_tweet_candidates_reply(self):
         """
         对当前帖子一次 LLM 请求生成 3 种风格候选回复：友好风格、表示赞同、幽默风趣
         """
         self.tw_text = ''
-        self.llm_reply = []
+        self.lst_candidate_replies = []
 
-        tab = self.browser.latest_tab
-        ele_tweet_text = tab.ele(
-            '@@tag()=div@@data-testid=tweetText', timeout=3
-        )
-        if isinstance(ele_tweet_text, NoneElement):
+        s_title, s_tweet_text = self.get_tweet_text()
+        if not s_tweet_text:
             self.logit(None, 'tweet_text is not found')
             self.click_back()
             return False
 
-        s_tweet_text = ele_tweet_text.text.replace('\n', ' ')
+        s_tweet_text = s_tweet_text.replace('\n', ' ')
         self.logit(None, f'tweet_text: {s_tweet_text[:50]} ...')  # noqa
+
+        if s_title:
+            s_tweet_text = f'【标题】{s_title}\n【正文】{s_tweet_text}'
 
         lst_styles = (
             ("友好风格", "语气友善、亲切自然，积极正面，让对方感到被尊重。"),
@@ -2576,7 +2644,7 @@ class XWool():
             i0, i1 = s_trim.find('{'), s_trim.rfind('}')
             if i0 >= 0 and i1 > i0:
                 try:
-                    dic = json.loads(s_trim[i0 : i1 + 1])
+                    dic = json.loads(s_trim[i0:i1 + 1])
                 except json.JSONDecodeError:
                     pass
         if not isinstance(dic, dict):
@@ -2601,7 +2669,6 @@ class XWool():
                 f"candidate [{item['style']}]: {preview}"
                 + ('...' if len(item['reply'] or '') > 100 else '')
             )
-            self.llm_reply.append(f'{item["style"]}: {item["reply"]}')
         self.tw_text = s_tweet_text.strip()
 
         return True
