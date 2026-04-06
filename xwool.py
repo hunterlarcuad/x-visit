@@ -2393,9 +2393,12 @@ class XWool():
 
     def proc_all_notice_users(self, lst_users):
         """
-        Proc notice user
+        Proc notice user（白名单优先，两组内各自 reversed 以保持原通知列表处理方向）
         """
-        for s_user in reversed(lst_users):
+        lst_white = [u for u in lst_users if u in self.set_notice_white]
+        lst_rest = [u for u in lst_users if u not in self.set_notice_white]
+        lst_ordered = list(reversed(lst_white)) + list(reversed(lst_rest))
+        for s_user in lst_ordered:
             self.proc_one_notice_user(s_user)
 
             if not self.lst_candidate_replies:
