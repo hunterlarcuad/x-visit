@@ -13,7 +13,11 @@ from datetime import datetime, timedelta, timezone  # noqa
 
 from DrissionPage._elements.none_element import NoneElement
 
-from fun_utils import ding_msg
+from fun_utils import is_bot_telegram
+from fun_utils import is_text_notify_configured
+from fun_utils import notify_msg_markdown
+from fun_utils import notify_msg_text
+from fun_utils import notify_telegram_llm_replies
 from fun_utils import format_ts
 from fun_utils import time_difference
 from fun_utils import get_index_from_header
@@ -895,7 +899,7 @@ class XWool():
                 self.logit(None, f'Error Message: {s_error_msg}')
 
                 s_msg = f'[{self.args.s_profile}]{s_error_msg}'
-                ding_msg(s_msg, DEF_DING_TOKEN, msgtype='text')
+                notify_msg_text(s_msg, DEF_DING_TOKEN)
 
                 return False
             self.status_append(
@@ -1918,7 +1922,7 @@ class XWool():
         if is_limit:
             s_msg = f'[{s_type}] Rate limit reached, n_follow={self.n_follow}, wait 1 hour ... [{self.args.s_profile}]'  # noqa
             self.logit(None, s_msg)
-            ding_msg(s_msg, DEF_DING_TOKEN, msgtype='text')
+            notify_msg_text(s_msg, DEF_DING_TOKEN)
             time.sleep(3600)  # 1 hour
             self.n_follow = 0
             return True
@@ -2377,7 +2381,7 @@ class XWool():
                 ),
                 'text': s_info,
             }
-            ding_msg(d_cont, DEF_DING_TOKEN_ALERT, msgtype="markdown")
+            notify_msg_markdown(d_cont, DEF_DING_TOKEN_ALERT, 'alert')
 
         if lst_silent:
             s_info = ''.join(f'{u}\n' for u in lst_silent)
@@ -2387,7 +2391,7 @@ class XWool():
                 ),
                 'text': s_info,
             }
-            ding_msg(d_cont, DEF_DING_TOKEN_SILENT, msgtype="markdown")
+            notify_msg_markdown(d_cont, DEF_DING_TOKEN_SILENT, 'silent')
 
         self.proc_all_notice_users(lst_to_process)
 
@@ -2402,6 +2406,20 @@ class XWool():
             self.proc_one_notice_user(s_user)
 
             if not self.lst_candidate_replies:
+                continue
+
+            s_tg_ch = (
+                'alert' if s_user in self.set_notice_white else 'silent'
+            )
+            if is_bot_telegram():
+                notify_telegram_llm_replies(
+                    s_user,
+                    self.nickname,
+                    self.tw_url,
+                    self.tw_text,
+                    self.lst_candidate_replies,
+                    s_tg_ch,
+                )
                 continue
 
             s_reply_text = '\n'.join(
@@ -2423,7 +2441,7 @@ class XWool():
                 'title': f'[{s_user} ({self.nickname})] LLM Reply',
                 'text': s_md
             }
-            ding_msg(d_cont, s_token, msgtype="markdown")
+            notify_msg_markdown(d_cont, s_token, s_tg_ch)
 
         return True
 
@@ -2944,7 +2962,7 @@ class XWool():
         if num_visit_pre >= 5 and s_status == self.inst_x.DEF_STATUS_EXCEED_ATTEMPT:  # noqa
             self.logit('twitter_run', 'Too many wrong visits, return ...')
             s_msg = f'[{self.args.s_profile}]发生了错误。你已超过允许尝试次数，请稍后再试。' # noqa
-            ding_msg(s_msg, DEF_DING_TOKEN, msgtype='text')
+            notify_msg_text(s_msg, DEF_DING_TOKEN)
             return True
 
         # 根据配置决定是否执行扩展检测
@@ -3168,7 +3186,7 @@ class XWool():
 
 
 def send_msg(x_wool, lst_success):
-    if len(DEF_DING_TOKEN) > 0 and len(lst_success) > 0:
+    if is_text_notify_configured() and len(lst_success) > 0:
         s_info = ''
         for s_profile in lst_success:
             lst_status = None
@@ -3191,7 +3209,7 @@ def send_msg(x_wool, lst_success):
                 .format(s_info)
             )
         }
-        ding_msg(d_cont, DEF_DING_TOKEN, msgtype="markdown")
+        notify_msg_markdown(d_cont, DEF_DING_TOKEN, 'default')
 
 
 def show_msg(args):

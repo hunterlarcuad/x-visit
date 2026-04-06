@@ -1,6 +1,7 @@
 """
 utils
 """
+import html
 import os
 import sys
 import json
@@ -16,6 +17,7 @@ import random
 import string
 
 from conf import TZ_OFFSET
+from conf import DEF_BOT_TYPE
 
 
 DEF_URL_DINGTALK = "https://oapi.dingtalk.com/robot/send"
@@ -169,6 +171,150 @@ def ding_msg(content, access_token, msgtype="markdown"):
         except Exception as e:
             print(f"钉钉消息发送失败: {str(e)}")
             pass
+
+
+def _bot_type_normalized():
+    return (DEF_BOT_TYPE or 'dingding').strip().lower()
+
+
+def is_bot_telegram():
+    return _bot_type_normalized() == 'telegram'
+
+
+def _tg_credentials(tg_channel):
+    from conf import (
+        DEF_TG_TOKEN_ALERT,
+        DEF_TG_TOKEN_SILENT,
+        DEF_TG_CHAT_ID_ALERT,
+        DEF_TG_CHAT_ID_SILENT,
+    )
+    if tg_channel == 'silent':
+        return DEF_TG_TOKEN_SILENT, DEF_TG_CHAT_ID_SILENT
+    return DEF_TG_TOKEN_ALERT, DEF_TG_CHAT_ID_ALERT
+
+
+def _telegram_send_text(bot_token, chat_id, text, parse_mode=None):
+    if not bot_token or chat_id is None or str(chat_id).strip() == '':
+        return None
+    if len(text) > 4096:
+        text = text[:4093] + '...'
+    url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+    payload = {"chat_id": chat_id, "text": text}
+    if parse_mode:
+        payload["parse_mode"] = parse_mode
+    max_retries = 3
+    timeout = 10
+    for i in range(max_retries):
+        try:
+            resp = requests.post(url, json=payload, timeout=timeout)
+            print(resp.content)
+            if resp.ok:
+                return resp
+        except requests.exceptions.Timeout:
+            if i == max_retries - 1:
+                print(f"Telegram 消息发送失败: 超时 {max_retries} 次")
+            else:
+                print(f"Telegram 消息发送超时, 正在进行第 {i + 1} 次重试...")
+                time.sleep(3)
+        except Exception as e:
+            print(f"Telegram 消息发送失败: {str(e)}")
+            break
+    return None
+
+
+def _telegram_send_pre_copyable(bot_token, chat_id, plain_text):
+    """
+    使用 HTML <pre>，Telegram 客户端可点按整块复制。
+    """
+    s = (plain_text or '').strip()
+    if not s:
+        return None
+    suffix = ''
+    trial = s
+    while trial:
+        inner = html.escape(trial + suffix)
+        full = f"<pre>{inner}</pre>"
+        if len(full) <= 4096:
+            return _telegram_send_text(
+                bot_token, chat_id, full, parse_mode='HTML')
+        trial = trial[:-1]
+        suffix = '...'
+    return _telegram_send_text(
+        bot_token, chat_id, '<pre>…</pre>', parse_mode='HTML')
+
+
+def notify_msg_text(s_msg, ding_token, tg_channel='alert'):
+    """
+    按 DEF_BOT_TYPE 发送文本：dingding 用钉钉机器人；telegram 用对应频道 Bot。
+    tg_channel: 'alert' | 'silent' | 'default'（default 与 alert 同一组 TG 配置）
+    """
+    bt = _bot_type_normalized()
+    if bt == 'telegram':
+        ch = 'silent' if tg_channel == 'silent' else 'alert'
+        tok, cid = _tg_credentials(ch)
+        return _telegram_send_text(tok, cid, s_msg)
+    if ding_token:
+        return ding_msg(s_msg, ding_token, msgtype='text')
+    return None
+
+
+def notify_msg_markdown(d_cont, ding_token, tg_channel='alert'):
+    """
+    按 DEF_BOT_TYPE 发送 markdown 结构通知（钉钉 markdown / Telegram 纯文本拼接）。
+    tg_channel: 'alert' | 'silent' | 'default'
+    """
+    bt = _bot_type_normalized()
+    if bt == 'telegram':
+        ch = 'silent' if tg_channel == 'silent' else 'alert'
+        tok, cid = _tg_credentials(ch)
+        if not tok or cid is None or str(cid).strip() == '':
+            return None
+        s_title = d_cont.get('title', '') or ''
+        s_body = d_cont.get('text', '') or ''
+        text = f"{s_title}\n\n{s_body}" if s_title else s_body
+        return _telegram_send_text(tok, cid, text)
+    if ding_token:
+        d_copy = {
+            'title': d_cont.get('title', ''),
+            'text': d_cont.get('text', ''),
+        }
+        return ding_msg(d_copy, ding_token, msgtype="markdown")
+    return None
+
+
+def notify_telegram_llm_replies(
+    s_user, nickname, tw_url, tw_text, lst_candidate_replies, tg_channel,
+):
+    """
+    Telegram：上下文一条，每条候选回复单独一条（<pre> 可点按复制），仅 reply 正文。
+    """
+    ch = 'silent' if tg_channel == 'silent' else 'alert'
+    tok, cid = _tg_credentials(ch)
+    if not tok or cid is None or str(cid).strip() == '':
+        return None
+    s_preview = (tw_text or '')[:100]
+    header = (
+        f"👤 {s_user} ({nickname})\n"
+        f"🔗 {tw_url}\n\n"
+        f"🧾 {s_preview} ..."
+    )
+    _telegram_send_text(tok, cid, header)
+    last = None
+    for item in lst_candidate_replies:
+        body = (item.get('reply') or '').strip()
+        if not body:
+            continue
+        last = _telegram_send_pre_copyable(tok, cid, body)
+    return last
+
+
+def is_text_notify_configured():
+    """普通文本通知（如日报、异常）是否已配置对应渠道。"""
+    if _bot_type_normalized() == 'telegram':
+        tok, cid = _tg_credentials('alert')
+        return bool(tok and str(cid).strip())
+    from conf import DEF_DING_TOKEN
+    return len(DEF_DING_TOKEN) > 0
 
 
 def ts_human(n_sec):

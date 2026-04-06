@@ -10,7 +10,8 @@ import pyotp
 
 from DrissionPage._elements.none_element import NoneElement
 
-from fun_utils import ding_msg
+from fun_utils import notify_msg_markdown
+from fun_utils import notify_msg_text
 from fun_utils import load_file
 from fun_utils import save2file
 from fun_utils import format_ts
@@ -701,7 +702,7 @@ class XUtils():
                     f'- vpn: {s_vpn}\n'
                 )
             }
-            ding_msg(d_cont, DEF_DING_TOKEN, msgtype="markdown")
+            notify_msg_markdown(d_cont, DEF_DING_TOKEN, 'default')
             return False
 
     def extract_between_at_and_com(self, text):
@@ -1191,7 +1192,7 @@ class XUtils():
         if num_visit_pre >= 5 and s_status == self.DEF_STATUS_EXCEED_ATTEMPT:
             self.logit('twitter_run', 'Too many wrong visits, return ...')
             s_msg = f'[{self.args.s_profile}]发生了错误。你已超过允许尝试次数，请稍后再试。' # noqa
-            ding_msg(s_msg, DEF_DING_TOKEN, msgtype='text')
+            notify_msg_text(s_msg, DEF_DING_TOKEN)
             return False
 
         self.update_num_visit()
@@ -1580,8 +1581,8 @@ class XUtils():
                         s_msg = (
                             f'[{self.args.s_profile}][Fail to reply] '
                             f'{s_info} [sleep {n_sleep} seconds ...]')
-                        self.logit('x_reply', f'ding_msg: {s_msg}')
-                        ding_msg(s_msg, DEF_DING_TOKEN, msgtype='text')
+                        self.logit('x_reply', f'notify_msg: {s_msg}')
+                        notify_msg_text(s_msg, DEF_DING_TOKEN)
                         time.sleep(n_sleep)
                         return False
 
@@ -1726,8 +1727,8 @@ class XUtils():
                         s_msg = (
                             f'[{self.args.s_profile}][Fail to post] '
                             f'{s_info} [sleep {n_sleep} seconds ...]')
-                        self.logit('x_post', f'ding_msg: {s_msg}')  # noqa
-                        ding_msg(s_msg, DEF_DING_TOKEN, msgtype='text')
+                        self.logit('x_post', f'notify_msg: {s_msg}')  # noqa
+                        notify_msg_text(s_msg, DEF_DING_TOKEN)
                         time.sleep(n_sleep)
                         return False
 
@@ -2435,7 +2436,7 @@ class XUtils():
                 current_vpn = self.dic_account[s_profile][idx_vpn]
 
                 s_msg = f'[{s_profile}] Please select vpn ({current_vpn}), Press Enter to continue ...' # noqa
-                ding_msg(s_msg, ding_token, msgtype='text')
+                notify_msg_text(s_msg, ding_token)
                 logger.info(s_msg)
                 input(s_msg)
                 self.check_vpn_location(ding_token)
@@ -2450,7 +2451,7 @@ class XUtils():
         else:
             self.logit(None, f'Failed to get VPN location: {result}')
             s_msg = f'Failed to get VPN location: {result}'
-            ding_msg(s_msg, ding_token, msgtype='text')
+            notify_msg_text(s_msg, ding_token)
             input('Press check the vpn status ...')
 
     def check_need_login(self):

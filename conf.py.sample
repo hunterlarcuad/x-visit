@@ -83,10 +83,15 @@ DEF_LLM_ZHIPUAI = 'set_your_secretkey'
 DEF_MODEL_ZHIPUAI = 'glm-4-plus'
 ############################################################
 
-# 遇到异常发钉钉消息，如果没有，置空，则不发钉钉消息
+# 通知渠道：dingding 使用下列钉钉 token；telegram 使用下列 Bot + chat_id
+DEF_BOT_TYPE = 'dingding'
 DEF_DING_TOKEN = ''  # noqa
 DEF_DING_TOKEN_ALERT = ''  # noqa
 DEF_DING_TOKEN_SILENT = ''  # noqa
+DEF_TG_TOKEN_ALERT = ''  # noqa
+DEF_TG_TOKEN_SILENT = ''  # noqa
+DEF_TG_CHAT_ID_ALERT = ''  # noqa
+DEF_TG_CHAT_ID_SILENT = ''  # noqa
 ############################################################
 
 # 账户列表
