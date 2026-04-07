@@ -13,6 +13,7 @@ from datetime import datetime, timedelta, timezone  # noqa
 
 from DrissionPage._elements.none_element import NoneElement
 
+from fun_utils import format_follow_count_cn
 from fun_utils import is_bot_telegram
 from fun_utils import is_text_notify_configured
 from fun_utils import notify_msg_markdown
@@ -89,6 +90,39 @@ DEF_INTERACTION_IGNORE = 'IGNORE'
 DEF_OKX = False
 
 
+def parse_follow_count_text(s):
+    """
+    从 X 关注/粉丝文案中解析整数；无法解析返回 -1。
+    例：4,651正在关注 -> 4651；1.1万 -> ×1e4；2.3亿 -> ×1e8。
+    """
+    if s is None:
+        return -1
+    s = str(s).strip()
+    if not s:
+        return -1
+    m_yi = re.search(r'([\d,]+\.?\d*)\s*亿', s)
+    if m_yi:
+        try:
+            v = float(m_yi.group(1).replace(',', ''))
+            return int(round(v * 100_000_000))
+        except ValueError:
+            return -1
+    m_wan = re.search(r'([\d,]+\.?\d*)\s*万', s)
+    if m_wan:
+        try:
+            v = float(m_wan.group(1).replace(',', ''))
+            return int(round(v * 10000))
+        except ValueError:
+            return -1
+    m_num = re.search(r'[\d,]+', s)
+    if m_num:
+        try:
+            return int(m_num.group(0).replace(',', ''))
+        except ValueError:
+            return -1
+    return -1
+
+
 class XWool():
     def __init__(self) -> None:
         self.args = None
@@ -150,21 +184,27 @@ class XWool():
         # Notice user list
         self.lst_users_pre = []
 
+        # 处理过的通知 URL
+        self.set_url_notice = set([])
+
         # 候选回复（多风格），由 get_tweet_candidates_reply 填充
         self.lst_candidate_replies = []
-
         self.tw_url = ''
         self.nickname = ''
         self.tw_text = ''
+        self.n_following = -1
+        self.n_followers = -1
 
     def reset_vals(self):
         """
         Reset variables
         """
+        self.lst_candidate_replies = []
         self.tw_url = ''
         self.nickname = ''
         self.tw_text = ''
-        self.lst_candidate_replies = []
+        self.n_following = -1
+        self.n_followers = -1
 
     def update_daily_stats(self, date, op_type, count=1, inc_session=True):
         """
@@ -2419,6 +2459,8 @@ class XWool():
                     self.tw_text,
                     self.lst_candidate_replies,
                     s_tg_ch,
+                    n_following=self.n_following,
+                    n_followers=self.n_followers,
                 )
                 continue
 
@@ -2426,8 +2468,12 @@ class XWool():
                 f'- {item["style"]}: {item["reply"]}'
                 for item in self.lst_candidate_replies
             )
+            s_fo = format_follow_count_cn(self.n_following)
+            s_fe = format_follow_count_cn(self.n_followers)
             s_md = (
-                f"### 👤 用户\n{s_user} ({self.nickname})\n\n"
+                f"### 👤 用户\n{s_user} ({self.nickname})\n"
+                f"### 📊 关注 / 粉丝\n"
+                f"{s_fo} / {s_fe}\n\n"
                 f"### 🔗 推文链接\n{self.tw_url}\n\n"
                 f"### 🧾 原帖内容\n> {self.tw_text[:100]} ...\n\n"
                 f"### 🤖 LLM 回复\n{s_reply_text}"
@@ -2438,12 +2484,34 @@ class XWool():
                 else DEF_DING_TOKEN_SILENT
             )
             d_cont = {
-                'title': f'[{s_user} ({self.nickname})] LLM Reply',
+                'title': (
+                    f'[{s_user} ({self.nickname}) '
+                    f'粉{s_fe}] LLM Reply'
+                ),
                 'text': s_md
             }
             notify_msg_markdown(d_cont, s_token, s_tg_ch)
 
         return True
+
+    def get_follow_num(self):
+        """
+        Get follow number（千分位逗号、「万」「亿」见 parse_follow_count_text）。
+        任一侧为 -1 表示该侧获取失败（DOM 不符、文案无法解析等）。
+        """
+        n_following = -1
+        n_followers = -1
+
+        tab = self.browser.latest_tab
+        ele_follow_lst = tab.eles('@@tag()=a@@href:follow', timeout=2)
+        if len(ele_follow_lst) >= 2:
+            try:
+                n_following = parse_follow_count_text(ele_follow_lst[0].text)
+                n_followers = parse_follow_count_text(ele_follow_lst[1].text)
+            except Exception as e:
+                self.logit(None, f'Error getting follow number: {e}')
+
+        return (n_following, n_followers)
 
     def proc_one_notice_user(self, s_user):
         """
@@ -2465,6 +2533,13 @@ class XWool():
         if not ele_blks_top:
             self.inst_x.wrong_retry()
             return False
+
+        self.n_following, self.n_followers = self.get_follow_num()
+        self.logit(
+            None,
+            f'n_following: {self.n_following}, '
+            f'n_followers: {self.n_followers}',
+        )
 
         for i in range(n_blks_top):
             if self.args.debug:
@@ -2498,6 +2573,10 @@ class XWool():
                 except:  # noqa
                     continue
 
+                if tweet_url in self.set_url_notice:
+                    self.logit(None, 'Already processed before, skip ...')
+                    continue
+
                 if tweet_url in self.set_url_ignored:
                     self.logit(None, 'Already ignored before, skip ...')
                     continue
@@ -2522,6 +2601,9 @@ class XWool():
                 tab.wait(2)
                 self.click_back()
                 tab.wait(2)
+
+                self.set_url_notice.add(tweet_url)
+
                 break
 
         return True

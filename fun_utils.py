@@ -282,8 +282,42 @@ def notify_msg_markdown(d_cont, ding_token, tg_channel='alert'):
     return None
 
 
+def format_follow_count_cn(n):
+    """
+    展示关注/粉丝数：未满万用千分位逗号（如 4,651）；万、亿用中文单位。
+    """
+    try:
+        n = int(n)
+    except (TypeError, ValueError):
+        return str(n)
+    if n < 0:
+        return '—'
+    if n < 1000:
+        return str(n)
+    if n < 10000:
+        return f'{n:,}'
+
+    def scaled(val, unit):
+        ir = int(round(val))
+        if abs(val - ir) < 1e-9:
+            return f'{ir}{unit}'
+        s = f'{round(val, 1):.1f}'.rstrip('0').rstrip('.')
+        return f'{s}{unit}'
+
+    if n < 100_000_000:
+        return scaled(n / 10000, '万')
+    return scaled(n / 100_000_000, '亿')
+
+
 def notify_telegram_llm_replies(
-    s_user, nickname, tw_url, tw_text, lst_candidate_replies, tg_channel,
+    s_user,
+    nickname,
+    tw_url,
+    tw_text,
+    lst_candidate_replies,
+    tg_channel,
+    n_following=-1,
+    n_followers=-1,
 ):
     """
     Telegram：上下文一条，每条候选回复单独一条（<pre> 可点按复制），仅 reply 正文。
@@ -293,11 +327,23 @@ def notify_telegram_llm_replies(
     if not tok or cid is None or str(cid).strip() == '':
         return None
     s_preview = (tw_text or '')[:100]
-    header = (
-        f"👤 {s_user} ({nickname})\n"
-        f"🔗 {tw_url}\n\n"
-        f"🧾 {s_preview} ..."
+    header_lines = [
+        f"👤 {s_user} ({nickname})",
+    ]
+    if n_following >= 0 or n_followers >= 0:
+        header_lines.append(
+            "📊 关注 "
+            f"{format_follow_count_cn(n_following)} · "
+            f"粉丝 {format_follow_count_cn(n_followers)}"
+        )
+    header_lines.extend(
+        [
+            f"🔗 {tw_url}",
+            "",
+            f"🧾 {s_preview} ...",
+        ]
     )
+    header = "\n".join(header_lines)
     _telegram_send_text(tok, cid, header)
     last = None
     for item in lst_candidate_replies:
