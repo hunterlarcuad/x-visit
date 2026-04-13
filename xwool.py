@@ -2437,20 +2437,24 @@ class XWool():
 
     def proc_all_notice_users(self, lst_users):
         """
-        Proc notice user（白名单优先，两组内各自 reversed 以保持原通知列表处理方向）
+        Proc notice user（白名单优先，两组内各自 reversed）。
+        白名单：拉取推文并调用大模型生成候选回复，TG/钉钉含 LLM 段落。
+        非白名单：同样发 TG/钉钉，但不调用大模型，内容不含 LLM 回复。
         """
         lst_white = [u for u in lst_users if u in self.set_notice_white]
         lst_rest = [u for u in lst_users if u not in self.set_notice_white]
         lst_ordered = list(reversed(lst_white)) + list(reversed(lst_rest))
         for s_user in lst_ordered:
-            self.proc_one_notice_user(s_user)
+            is_white = s_user in self.set_notice_white
+            self.proc_one_notice_user(s_user, skip_llm=not is_white)
 
-            if not self.lst_candidate_replies:
+            if is_white:
+                if not self.lst_candidate_replies:
+                    continue
+            elif not self.tw_url:
                 continue
 
-            s_tg_ch = (
-                'alert' if s_user in self.set_notice_white else 'silent'
-            )
+            s_tg_ch = 'alert' if is_white else 'silent'
             if is_bot_telegram():
                 notify_telegram_llm_replies(
                     s_user,
@@ -2464,10 +2468,6 @@ class XWool():
                 )
                 continue
 
-            s_reply_text = '\n'.join(
-                f'- {item["style"]}: {item["reply"]}'
-                for item in self.lst_candidate_replies
-            )
             s_fo = format_follow_count_cn(self.n_following)
             s_fe = format_follow_count_cn(self.n_followers)
             s_md = (
@@ -2475,18 +2475,26 @@ class XWool():
                 f"### 📊 关注 / 粉丝\n"
                 f"{s_fo} / {s_fe}\n\n"
                 f"### 🔗 推文链接\n{self.tw_url}\n\n"
-                f"### 🧾 原帖内容\n> {self.tw_text[:100]} ...\n\n"
-                f"### 🤖 LLM 回复\n{s_reply_text}"
+                f"### 🧾 原帖内容\n> {self.tw_text[:100]} ...\n"
+            )
+            if self.lst_candidate_replies:
+                s_reply_text = '\n'.join(
+                    f'- {item["style"]}: {item["reply"]}'
+                    for item in self.lst_candidate_replies
+                )
+                s_md += f"\n\n### 🤖 LLM 回复\n{s_reply_text}"
+            s_title_tail = (
+                'LLM Reply' if self.lst_candidate_replies else 'Notice'
             )
             s_token = (
                 DEF_DING_TOKEN_ALERT
-                if s_user in self.set_notice_white
+                if is_white
                 else DEF_DING_TOKEN_SILENT
             )
             d_cont = {
                 'title': (
                     f'[{s_user} ({self.nickname}) '
-                    f'粉{s_fe}] LLM Reply'
+                    f'粉{s_fe}] {s_title_tail}'
                 ),
                 'text': s_md
             }
@@ -2513,10 +2521,11 @@ class XWool():
 
         return (n_following, n_followers)
 
-    def proc_one_notice_user(self, s_user):
+    def proc_one_notice_user(self, s_user, skip_llm=False):
         """
-        Proc notice user
+        Proc notice user。skip_llm=True 时仅抓取推文上下文，不调用大模型。
         """
+        self.reset_vals()
         self.logit(None, f'Proc notice user: {s_user}')
         # self.proc_ad_user(s_user, s_user, s_src='notice_user')
 
@@ -2597,7 +2606,7 @@ class XWool():
                     continue
 
                 self.tw_url = tweet_url
-                self.get_tweet_candidates_reply()
+                self.get_tweet_candidates_reply(skip_llm=skip_llm)
                 tab.wait(2)
                 self.click_back()
                 tab.wait(2)
@@ -2665,9 +2674,10 @@ class XWool():
 
         return s_title, s_content
 
-    def get_tweet_candidates_reply(self):
+    def get_tweet_candidates_reply(self, skip_llm=False):
         """
-        对当前帖子一次 LLM 请求生成 3 种风格候选回复：友好风格、表示赞同、幽默风趣
+        对当前帖子一次 LLM 请求生成 3 种风格候选回复：友好风格、表示赞同、幽默风趣。
+        skip_llm=True 时只填充 tw_text，不请求大模型。
         """
         self.tw_text = ''
         self.lst_candidate_replies = []
@@ -2683,6 +2693,12 @@ class XWool():
 
         if s_title:
             s_tweet_text = f'【标题】{s_title}\n【正文】{s_tweet_text}'
+
+        if skip_llm:
+            self.tw_text = s_tweet_text.strip()
+            self.lst_candidate_replies = []
+            self.logit(None, 'skip_llm: 仅通知，不生成候选回复')
+            return True
 
         lst_styles = (
             ("友好风格", "语气友善、亲切自然，积极正面，让对方感到被尊重。"),
