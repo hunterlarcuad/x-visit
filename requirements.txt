@@ -17,3 +17,4 @@ screeninfo
 Flask==3.0.0
 Werkzeug==3.0.1
 psutil==5.9.8
+pymysql

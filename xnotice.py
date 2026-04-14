@@ -10,6 +10,8 @@ import json
 import math
 import re  # noqa
 from datetime import datetime, timedelta, timezone  # noqa
+import multiprocessing
+from fun_db import DBManager
 
 from DrissionPage._elements.none_element import NoneElement
 
@@ -32,7 +34,7 @@ from fun_okx import OkxUtils
 from fun_x import XUtils
 from fun_dp import DpUtils
 
-from conf import DEF_USE_HEADLESS
+from conf import DEF_USE_HEADLESS, DEF_LOCAL_PORT
 from conf import DEF_DEBUG
 from conf import DEF_PATH_USER_DATA
 from conf import DEF_DING_TOKEN
@@ -144,6 +146,9 @@ class XNotice():
 
         self.inst_dp = DpUtils()
         self.inst_x = XUtils()
+        self.db = DBManager()
+        self.user_queue = None
+        self.tweet_queue = None
 
         self.inst_dp.plugin_yescapcha = True
         self.inst_dp.plugin_capmonster = True
@@ -186,6 +191,7 @@ class XNotice():
         self.tw_text = ''
         self.n_following = -1
         self.n_followers = -1
+        self.user_desc = ''
 
     def reset_vals(self):
         """
@@ -197,10 +203,15 @@ class XNotice():
         self.tw_text = ''
         self.n_following = -1
         self.n_followers = -1
+        self.user_desc = ''
 
     def set_args(self, args):
         self.args = args
         self.is_update = False
+
+        # Propagate args to sub-instances
+        self.inst_dp.set_args(args)
+        self.inst_x.set_args(args)
 
         # Current X User
         self.i_xuser = None
@@ -429,9 +440,9 @@ class XNotice():
                 dt_post = dt_post.astimezone(timezone.utc)
             now_utc = datetime.now(timezone.utc)
             delta_hours = int((now_utc - dt_post).total_seconds() / 3600)
-            return delta_hours <= WHITELIST_USER_NEW_POST_HOUR
+            return delta_hours <= WHITELIST_USER_NEW_POST_HOUR, val_time
         except (ValueError, AttributeError):
-            return False
+            return False, None
 
     def click_home(self):
         """
@@ -487,7 +498,7 @@ class XNotice():
         """
         lst_users = []
         tab = self.browser.latest_tab
-        ele_blk_notice = NoneElement
+        ele_blk_notice = None
         ele_blks = tab.eles('@@tag()=article@@role=article', timeout=2)
         for ele_blk in ele_blks:
             ele_notice = ele_blk.ele('@@tag()=path@@d=M11.996 2c-4.062 0-7.49 3.021-7.999 7.051L2.866 18H7.1c.463 2.282 2.481 4 4.9 4s4.437-1.718 4.9-4h4.236l-1.143-8.958C19.48 5.017 16.054 2 11.996 2zM9.171 18h5.658c-.412 1.165-1.523 2-2.829 2s-2.417-.835-2.829-2z', timeout=2) # noqa
@@ -495,7 +506,7 @@ class XNotice():
                 ele_blk_notice = ele_blk
                 break
 
-        if not isinstance(ele_blk_notice, NoneElement):
+        if ele_blk_notice:
             ele_ul = ele_blk_notice.ele('@@tag()=ul@@role=list', timeout=2)
             if not isinstance(ele_ul, NoneElement):
                 ele_a_lst = ele_ul.eles('@@tag()=a@@href:/', timeout=2)
@@ -551,6 +562,21 @@ class XNotice():
         """
         Ding notice users
         """
+        tab = self.browser.latest_tab
+        # 如果当前不在通知页面或者 X 域名下，强制跳转一次
+        if 'x.com/notifications' not in tab.url:
+            logger.info("Navigate to notifications page...")
+            tab.get('https://x.com/notifications')
+            tab.wait(3)
+
+        if self.args.debug:
+            pdb.set_trace()
+
+        # 定期回收超时任务（10分钟未更新的任务）
+        self.db.recover_stale_tasks(timeout_seconds=600)
+        # 定期清理 3 天之前的已完成/失败任务
+        self.db.cleanup_done_tasks(days=3)
+        
         self.reload_notice_user_lists()
 
         n_notice = self.get_notice_num()
@@ -618,7 +644,19 @@ class XNotice():
             }
             notify_msg_markdown(d_cont, DEF_DING_TOKEN_SILENT, 'silent')
 
-        self.proc_all_notice_users(lst_to_process)
+        # 将发现的新通知用户存入数据库，并推送到持久化队列
+        for s_user in lst_to_process:
+            # notice_time 取当前时间（UTC）作为检测到通知的时间
+            notice_time = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
+            
+            # 这里先不向主表写详细信息（因为主进程没有打开用户主页），
+            # 详细信息落库逻辑在 Process B (User Worker) 访问用户主页时完成。
+            # 这里仅记录“发现通知”
+            
+            # 推送到数据库队列，白名单优先
+            priority = 10 if s_user in self.set_notice_white else 0
+            self.db.push_user_queue(s_user, priority=priority)
+            self.logit(None, f'Pushed user to db queue: {s_user} (priority={priority})')
 
     def proc_all_notice_users(self, lst_users):
         """
@@ -706,6 +744,16 @@ class XNotice():
 
         return (n_following, n_followers)
 
+    def get_user_desc(self):
+        """
+        Get user description.
+        """
+        tab = self.browser.latest_tab
+        ele_bio = tab.ele('@@tag()=div@@data-testid=UserDescription', timeout=1)
+        if not isinstance(ele_bio, NoneElement):
+            return ele_bio.text
+        return ''
+
     def proc_one_notice_user(self, s_user, skip_llm=False):
         """
         Proc notice user。skip_llm=True 时仅抓取推文上下文，不调用大模型。
@@ -720,6 +768,9 @@ class XNotice():
         tab.get(user_url)
         tab.wait.doc_loaded()
         tab.wait(5)
+
+        self.user_desc = self.get_user_desc()
+        # self.logit(None, f'user_desc: {self.user_desc}')
 
         ele_blks_top = self.get_tweet_blks()
         n_blks_top = len(ele_blks_top)
@@ -775,7 +826,7 @@ class XNotice():
                     self.logit(None, 'Already ignored before, skip ...')
                     continue
 
-                b_is_new_post = self.is_new_post(ele_blk)
+                b_is_new_post, tweet_publish_time = self.is_new_post(ele_blk)
                 if (not b_is_new_post):
                     self.logit(None, 'Not a new post, skip')
                     continue
@@ -791,13 +842,49 @@ class XNotice():
                     continue
 
                 self.tw_url = tweet_url
-                self.get_tweet_candidates_reply(skip_llm=skip_llm)
+                # 在抓取阶段只获取文本，不调用 LLM
+                self.get_tweet_candidates_reply(skip_llm=True)
+                
+                # 保存用户信息 (含历史记录自动触发)
+                user_data = {
+                    'username': s_user,
+                    'user_url': user_url,
+                    'nickname': self.nickname,
+                    'following_count': self.n_following,
+                    'follower_count': self.n_followers,
+                    'description': self.user_desc,
+                    'last_notice_time': datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
+                }
+                self.db.add_user(user_data)
+
+                # 保存推文到数据表
+                tweet_data_db = {
+                    'tweet_url': tweet_url,
+                    'content': self.tw_text,
+                    'tweet_publish_time': tweet_publish_time.replace('T', ' ').replace('Z', '') if tweet_publish_time else None
+                }
+                self.db.add_tweet(tweet_data_db)
+
+                # 推送到推文生产队列，如果是白名单则高优先级
+                is_white = not skip_llm
+                priority = 10 if is_white else 0
+                tweet_data_queue = {
+                    's_user': s_user,
+                    'nickname': self.nickname,
+                    'tw_url': self.tw_url,
+                    'tw_text': self.tw_text,
+                    'n_following': self.n_following,
+                    'n_followers': self.n_followers,
+                    'is_white': is_white
+                }
+                self.db.push_tweet_queue(tweet_data_queue, priority=priority)
+                self.logit(None, f'Pushed tweet to db queue: {tweet_url} (priority={priority})')
+
                 tab.wait(2)
                 self.click_back()
                 tab.wait(2)
 
                 self.set_url_notice.add(tweet_url)
-
                 break
 
         return True
@@ -1113,6 +1200,124 @@ def send_msg(x_notice, lst_success):
         notify_msg_markdown(d_cont, DEF_DING_TOKEN, 'default')
 
 
+def user_worker(args):
+    """
+    子进程 B：消费用户信息，从数据库队列抓取推文。
+    """
+    logger.info("User Worker (Process B) started.")
+    x_notice = XNotice()
+    x_notice.set_args(args)
+    db = DBManager()
+
+    # 初始化浏览器逻辑
+    x_notice.browser = x_notice.inst_dp.get_browser(args.s_profile)
+    x_notice.inst_x.status_load()
+    x_notice.inst_x.set_browser(x_notice.browser)
+    
+    while True:
+        try:
+            # 从数据库队列获取任务
+            task = db.pop_user_queue()
+            if not task:
+                time.sleep(3)
+                continue
+
+            username = task['username']
+            logger.info(f"User Worker: processing user {username}")
+            
+            # 抓取推文逻辑
+            is_white = username in x_notice.set_notice_white
+            x_notice.proc_one_notice_user(username, skip_llm=not is_white)
+            
+            # 标记任务完成
+            db.finish_task('queue_users', task['id'])
+            
+        except Exception as e:
+            logger.error(f"User Worker error: {e}")
+            time.sleep(5)
+    
+    x_notice.close()
+
+
+def reply_worker():
+    """
+    子进程 C：消费推文信息，调用 LLM 并分发通知。
+    """
+    logger.info("Reply Worker (Process C) started.")
+    db = DBManager()
+    while True:
+        try:
+            # 从数据库队列获取任务
+            tweet_data = db.pop_tweet_queue()
+            if not tweet_data:
+                time.sleep(3)
+                continue
+            
+            logger.info(f"Reply Worker: processing tweet {tweet_data['tweet_url']}")
+            
+            candidate_replies = []
+            if tweet_data['is_white']:
+                from xnotice import XNotice
+                xn = XNotice() 
+                xn.tw_text = tweet_data['content']
+                if xn.get_tweet_candidates_reply(skip_llm=False):
+                    candidate_replies = xn.lst_candidate_replies
+            
+            # 发送通知
+            s_tg_ch = 'alert' if tweet_data['is_white'] else 'silent'
+            if is_bot_telegram():
+                notify_telegram_llm_replies(
+                    tweet_data['username'],
+                    tweet_data['nickname'],
+                    tweet_data['tweet_url'],
+                    tweet_data['content'],
+                    candidate_replies,
+                    s_tg_ch,
+                    n_following=tweet_data['following_count'],
+                    n_followers=tweet_data['followers_count'],
+                )
+            else:
+                s_fo = format_follow_count_cn(tweet_data['following_count'])
+                s_fe = format_follow_count_cn(tweet_data['followers_count'])
+                s_md = (
+                    f"### 👤 用户\n{tweet_data['username']} ({tweet_data['nickname']})\n"
+                    f"### 📊 关注 / 粉丝\n"
+                    f"{s_fo} / {s_fe}\n\n"
+                    f"### 🔗 推文链接\n{tweet_data['tweet_url']}\n\n"
+                    f"### 🧾 原帖内容\n> {tweet_data['content'][:100]} ...\n"
+                )
+                if candidate_replies:
+                    s_reply_text = '\n'.join(
+                        f'- {item["style"]}: {item["reply"]}'
+                        for item in candidate_replies
+                    )
+                    s_md += f"\n\n### 🤖 LLM 回复\n{s_reply_text}"
+                
+                s_title_tail = 'LLM Reply' if candidate_replies else 'Notice'
+                s_token = DEF_DING_TOKEN_ALERT if tweet_data['is_white'] else DEF_DING_TOKEN_SILENT
+                d_cont = {
+                    'title': f"[{tweet_data['username']} ({tweet_data['nickname']}) 粉{s_fe}] {s_title_tail}",
+                    'text': s_md
+                }
+                notify_msg_markdown(d_cont, s_token, s_tg_ch)
+            
+            # 记录回复归档并更新对列状态
+            reply_record = {
+                'tweet_url': tweet_data['tweet_url'],
+                'reply_username': tweet_data['username'],
+                'reply_content': 'Bot Notification Sent', # 目前仅为通知摘要
+                'reply_time': datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S'),
+                'llm_replies_json': json.dumps(candidate_replies),
+                'llm_generated_at': datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
+            }
+            db.add_reply(reply_record)
+            db.finish_task('queue_tweets', tweet_data['id'])
+            
+        except Exception as e:
+            logger.error(f"Reply Worker error: {e}")
+            time.sleep(5)
+
+
 def show_msg(args):
     current_directory = os.getcwd()
     FILE_LOG = f'{current_directory}/{FILENAME_LOG}'
@@ -1140,6 +1345,35 @@ def main(args):
 
     x_notice = XNotice()
 
+    if args.debug:
+        pdb.set_trace()
+
+    # 如果指定了 --init_db，则初始化并退出
+    if getattr(args, 'init_db', False):
+        logger.info("Initializing database...")
+        x_notice.db.init_db()
+        return True
+
+    # 如果是独立 Worker 模式，则不启动主循环
+    if getattr(args, 'run_user_worker', False):
+        # 确定 profiles 以获取默认 s_profile
+        if len(args.profile) > 0:
+            profiles = args.profile.split(',')
+        else:
+            profiles = list(x_notice.inst_x.dic_account.keys())
+        if profiles:
+            args.s_profile = profiles[0]
+
+        logger.info(f"Starting as standalone User Worker (Process B) with profile: {args.s_profile}")
+        user_worker(args)
+        return True
+    
+    if getattr(args, 'run_reply_worker', False):
+        logger.info("Starting as standalone Reply Worker (Process C)...")
+        reply_worker()
+        return True
+
+    # 确定 profiles 列表
     if len(args.profile) > 0:
         items = args.profile.split(',')
     else:
@@ -1147,6 +1381,41 @@ def main(args):
         items = list(x_notice.inst_x.dic_account.keys())
 
     profiles = copy.deepcopy(items)
+    if not profiles:
+        logger.error("No profiles found. Exiting.")
+        return False
+        
+    # 为子进程/主采集进程设置默认的 s_profile
+    if not hasattr(args, 's_profile') or not args.s_profile:
+        args.s_profile = profiles[0]
+
+    # 如果指定了 monitor 模式，则仅运行采集器循环
+    if args.monitor_notice_users:
+        logger.info(f"Starting as standalone Collector (Process A) with profile: {args.s_profile}")
+        # 首先设置参数，确保 inst_dp 等组件被正确初始化
+        x_notice.set_args(args)
+        # 在进入循环前初始化浏览器
+        x_notice.browser = x_notice.inst_dp.get_browser(args.s_profile)
+        while True:
+            # 循环中保持参数同步
+            x_notice.set_args(args)
+            x_notice.monitor_notice_users()
+            time.sleep(60)
+        return True
+
+    # 如果没有指定任何独立模式，启动原有的所有并发逻辑（保持向后兼容）
+    # 启动工作进程（Process B & Process C）
+    p_user = multiprocessing.Process(
+        target=user_worker, args=(args,), name="Process-B"
+    )
+    p_reply = multiprocessing.Process(
+        target=reply_worker, name="Process-C"
+    )
+    p_user.daemon = True
+    p_reply.daemon = True
+    p_user.start()
+    p_reply.start()
+    logger.info(f"Database-backed Multiprocessing workers started with default profile: {args.s_profile}")
 
     # 每次随机取一个出来，并从原列表中删除，直到原列表为空
     total = len(profiles)
@@ -1170,7 +1439,6 @@ def main(args):
         s_profile = profiles[i]
         if s_profile in x_notice.inst_x.dic_status:
             lst_status = x_notice.inst_x.dic_status[s_profile]
-
         else:
             continue
     logger.info('#'*40)
@@ -1325,6 +1593,11 @@ if __name__ == '__main__':
         help='[默认为 10] 最大互动次数，控制每个账号的互动轮数'
     )
 
+    parser.add_argument(
+        '--init_db', required=False, action='store_true',
+        help='Initialize database tables'
+    )
+
     # 扩展检测相关参数
     parser.add_argument(
         '--do_extension_check', required=False, action='store_true',
@@ -1341,7 +1614,22 @@ if __name__ == '__main__':
 
     parser.add_argument(
         '--monitor_notice_users', required=False, action='store_true',
-        help='Monitor notice users, default is False'
+        help='Run as Collector: Monitor notice users and push to queue'
+    )
+
+    parser.add_argument(
+        '--run_user_worker', required=False, action='store_true',
+        help='Run as User Worker: Fetch tweets from user queue'
+    )
+
+    parser.add_argument(
+        '--run_reply_worker', required=False, action='store_true',
+        help='Run as Reply Worker: Process replies from tweet queue'
+    )
+
+    parser.add_argument(
+        '--port', required=False, default=None, type=int,
+        help=f'[默认为 {DEF_LOCAL_PORT}] 浏览器启动端口'
     )
 
     # 添加 --debug 参数，用于调试
@@ -1356,7 +1644,9 @@ if __name__ == '__main__':
         main(args)
     else:
         while True:
-            main(args)
+            should_exit = main(args)
+            if should_exit:
+                break
             logger.info('#####***** Loop sleep {} seconds ...'.format(args.loop_interval))  # noqa
             time.sleep(args.loop_interval)
 
@@ -1364,4 +1654,21 @@ if __name__ == '__main__':
 # noqa
 python xnotice.py --auto_like --manual_exit --monitor_notice_users --profile=g01
 
+在新环境中初始化数据库，您可以使用以下两种方式之一（请确保 conf.py 中的数据库配置正确）：
+python3 xnotice.py --init_db
+python3 fun_db.py
+
+
+推荐运行方式：
+您可以开启三个终端标签页分别运行：
+
+终端 1:
+python3 xnotice.py --monitor_notice_users --profile=g01
+# 使用自定义端口 启动浏览器
+python3 xnotice.py --monitor_notice_users --profile=g01 --port=9400
+
+终端 2:
+python3 xnotice.py --run_user_worker --profile=g01
+终端 3:
+python3 xnotice.py --run_reply_worker
 """

@@ -117,6 +117,13 @@ DEF_PATH_DATA_STATUS = 'datas/status'
 DEF_HEADER_STATUS = 'account,status,visit_date,num_visit,update_time'
 
 ############################################################
+# MySQL Configuration
+MYSQL_HOST = '127.0.0.1'
+MYSQL_PORT = 3306
+MYSQL_USER = 'root'
+MYSQL_PWD = 'set_your_mysql_password'
+MYSQL_DB = 'db_xvisit'
+############################################################
 # 配置日志
 s_format = '%(asctime)s %(levelname)s %(message)s'
 logging.basicConfig(

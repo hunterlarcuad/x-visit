@@ -132,7 +132,10 @@ class DpUtils():
             co = ChromiumOptions()
 
         # 设置本地启动端口
-        co.set_local_port(port=DEF_LOCAL_PORT)
+        n_port = DEF_LOCAL_PORT
+        if self.args and getattr(self.args, 'port', None):
+            n_port = self.args.port
+        co.set_local_port(port=n_port)
         if len(DEF_PATH_BROWSER) > 0:
             co.set_paths(browser_path=DEF_PATH_BROWSER)
 
