@@ -1497,8 +1497,15 @@ class XWool():
                 dt_post = dt_post.replace(tzinfo=timezone.utc)
             else:
                 dt_post = dt_post.astimezone(timezone.utc)
-            now_utc = datetime.now(timezone.utc)
-            delta_hours = int((now_utc - dt_post).total_seconds() / 3600)
+
+            # 使用配置的时区获取当前时间进行比较
+            tz_target = timezone(timedelta(hours=TZ_OFFSET))
+            now_local = datetime.now(tz_target)
+            # 将发帖时间也转为时区对齐后的本地时间
+            dt_post_local = dt_post.astimezone(tz_target)
+
+            secs = (now_local - dt_post_local).total_seconds()
+            delta_hours = int(secs / 3600)
             return delta_hours <= WHITELIST_USER_NEW_POST_HOUR
         except (ValueError, AttributeError):
             return False
@@ -3189,7 +3196,7 @@ class XWool():
         self.logit(None, 'Statistics mode, print daily stats ...')
 
         op_types = ('follow', 'like', 'reply', 'retweet', 'unfollow', 'post')
-        tz_off = timezone(timedelta(hours=TZ_OFFSET))
+        tz_target = timezone(timedelta(hours=TZ_OFFSET))
 
         # 按天：使用文件中出现的日期，取最近 3 天（即文件中实际存在的最后 3 个日期）
         daily_dates = sorted(self.dic_date_count.keys())[-3:]
@@ -3227,7 +3234,11 @@ class XWool():
                             dt = datetime.strptime(s_ts, '%Y-%m-%dT%H:%M:%S')
                         else:
                             continue
-                        utc_ts = dt.replace(tzinfo=tz_off).timestamp()
+
+                        # 文件的 s_datetime 通常已经是本地时间，或者是带时区的。
+                        # 这里为了计算 timestamp，将其视为 TZ_OFFSET 时区的时间
+                        dt = dt.replace(tzinfo=tz_target)
+                        utc_ts = dt.timestamp()
                         parsed.append((utc_ts, s_op_type, dt))
                     except Exception:
                         continue

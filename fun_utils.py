@@ -34,7 +34,7 @@ def conv_time(ts, style=1):
         4: 20:51
         5: 2022-10-20 20:51:11
     """
-    to_zone = tz.gettz('Asia/Shanghai')
+    to_zone = timezone(timedelta(hours=TZ_OFFSET))
     if style == 1:
         t_format = "%Y-%m-%d"
     elif style == 2:
@@ -48,9 +48,11 @@ def conv_time(ts, style=1):
     else:
         print("conv_time parameter is error.")
         sys.exit(1)
-    dt = datetime.utcfromtimestamp(ts)
-    # local = dt.astimezone(to_zone)
-    local = dt.replace(tzinfo=timezone.utc).astimezone(to_zone)
+    
+    # 将时间戳转换为 UTC datetime
+    dt = datetime.fromtimestamp(ts, tz=timezone.utc)
+    # 转换为目标时区
+    local = dt.astimezone(to_zone)
     s_date = local.strftime(t_format)
     return s_date
 
@@ -385,9 +387,10 @@ def ts_human(n_sec):
     return s_ret
 
 
-def get_date(is_utc=True):
-    # 获取当前 UTC 时间的日期
-    now = datetime.utcnow()
+def get_date(is_utc=False):
+    # 根据 TZ_OFFSET 获取本地日期
+    tz_target = timezone(timedelta(hours=TZ_OFFSET))
+    now = datetime.now(tz_target)
 
     # 格式化为 yyyymmdd
     s_date = now.strftime('%Y%m%d')
@@ -496,11 +499,12 @@ def time_difference(input_time_str):
     # 将传入的时间字符串转换为datetime对象
     input_time = datetime.strptime(input_time_str, "%Y-%m-%dT%H:%M:%S%z")
 
-    # 获取当前时间，并设置为UTC时区
-    current_time_utc = datetime.now(timezone.utc)
+    # 获取当前时间，使用配置的时区
+    tz_target = timezone(timedelta(hours=TZ_OFFSET))
+    current_time_local = datetime.now(tz_target)
 
     # 将当前时间转换为传入时间的时区
-    current_time = current_time_utc.astimezone(input_time.tzinfo)
+    current_time = current_time_local.astimezone(input_time.tzinfo)
 
     # 计算时间差并转换为秒
     time_diff_seconds = (input_time - current_time).total_seconds()

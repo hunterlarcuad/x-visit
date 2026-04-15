@@ -30,15 +30,13 @@ from conf import DEF_DING_TOKEN
 from conf import DEF_PATH_DATA_STATUS
 from conf import EXTENSION_ID_OKX
 
-# from conf import TZ_OFFSET
+from conf import TZ_OFFSET
 from conf import DEL_PROFILE_DIR
 
 from conf import FILENAME_LOG
 from conf import logger
 
 # gm Check-in use UTC Time
-# TZ_OFFSET = 0
-TZ_OFFSET = 8
 
 DEF_INSUFFICIENT_ETH = 'Insufficient ETH balance'
 DEF_SUCCESS = 'Success'

@@ -43,14 +43,13 @@ from conf import EXTENSION_ID_OKX
 from conf import EXTENSION_ID_CAPMONSTER
 from conf import EXTENSION_ID_YESCAPTCHA
 
-# from conf import TZ_OFFSET
+from conf import TZ_OFFSET
 from conf import DEL_PROFILE_DIR
 
 from conf import FILENAME_LOG
 from conf import logger
 
 # gm Check-in use UTC Time
-TZ_OFFSET = 0
 
 DEF_INSUFFICIENT_ETH = 'Insufficient ETH balance'
 DEF_SUCCESS = 'Success'

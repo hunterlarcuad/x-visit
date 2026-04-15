@@ -3,7 +3,7 @@ import pymysql.cursors
 import time
 import json
 from datetime import datetime, timezone
-from conf import MYSQL_HOST, MYSQL_PORT, MYSQL_USER, MYSQL_PWD, MYSQL_DB
+from conf import MYSQL_HOST, MYSQL_PORT, MYSQL_USER, MYSQL_PWD, MYSQL_DB, TZ_OFFSET
 from conf import logger
 
 class DBManager:
@@ -23,7 +23,7 @@ class DBManager:
             database=self.db if use_db else None,
             cursorclass=pymysql.cursors.DictCursor,
             autocommit=True,
-            init_command='SET time_zone = "+00:00"'
+            init_command=f'SET time_zone = "+{TZ_OFFSET:02d}:00"' if TZ_OFFSET >= 0 else f'SET time_zone = "-{abs(TZ_OFFSET):02d}:00"'
         )
 
     def init_db(self):

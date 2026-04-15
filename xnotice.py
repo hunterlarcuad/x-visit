@@ -438,8 +438,14 @@ class XNotice():
                 dt_post = dt_post.replace(tzinfo=timezone.utc)
             else:
                 dt_post = dt_post.astimezone(timezone.utc)
-            now_utc = datetime.now(timezone.utc)
-            delta_hours = int((now_utc - dt_post).total_seconds() / 3600)
+            
+            # 使用配置的时区获取当前时间进行比较
+            tz_target = timezone(timedelta(hours=TZ_OFFSET))
+            now_local = datetime.now(tz_target)
+            # 将发帖时间也转为目标时区
+            dt_post_local = dt_post.astimezone(tz_target)
+            
+            delta_hours = int((now_local - dt_post_local).total_seconds() / 3600)
             return delta_hours <= WHITELIST_USER_NEW_POST_HOUR, val_time
         except (ValueError, AttributeError):
             return False, None
@@ -646,8 +652,9 @@ class XNotice():
 
         # 将发现的新通知用户存入数据库，并推送到持久化队列
         for s_user in lst_to_process:
-            # notice_time 取当前时间（UTC）作为检测到通知的时间
-            notice_time = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
+            # notice_time 取当前时间（本地时区）作为检测到通知的时间
+            tz_target = timezone(timedelta(hours=TZ_OFFSET))
+            notice_time = datetime.now(tz_target).strftime('%Y-%m-%d %H:%M:%S')
             
             # 这里先不向主表写详细信息（因为主进程没有打开用户主页），
             # 详细信息落库逻辑在 Process B (User Worker) 访问用户主页时完成。
@@ -853,7 +860,7 @@ class XNotice():
                     'following_count': self.n_following,
                     'follower_count': self.n_followers,
                     'description': self.user_desc,
-                    'last_notice_time': datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
+                    'last_notice_time': datetime.now(timezone(timedelta(hours=TZ_OFFSET))).strftime('%Y-%m-%d %H:%M:%S')
                 }
                 self.db.add_user(user_data)
 
@@ -946,19 +953,23 @@ class XNotice():
 
         return s_title, s_content
 
-    def get_tweet_candidates_reply(self, skip_llm=False):
+    def get_tweet_candidates_reply(self, skip_llm=False, s_tweet_text=None):
         """
         对当前帖子一次 LLM 请求生成 3 种风格候选回复：友好风格、表示赞同、幽默风趣。
         skip_llm=True 时只填充 tw_text，不请求大模型。
+        s_tweet_text 提供时，跳过浏览器抓取，直接使用此文本。
         """
         self.tw_text = ''
         self.lst_candidate_replies = []
 
-        s_title, s_tweet_text = self.get_tweet_text()
-        if not s_tweet_text:
-            self.logit(None, 'tweet_text is not found')
-            self.click_back()
-            return False
+        if s_tweet_text is None:
+            s_title, s_tweet_text = self.get_tweet_text()
+            if not s_tweet_text:
+                self.logit(None, 'tweet_text is not found')
+                self.click_back()
+                return False
+        else:
+            s_title = ''
 
         s_tweet_text = s_tweet_text.replace('\n', ' ')
         self.logit(None, f'tweet_text: {s_tweet_text[:50]} ...')  # noqa
@@ -1239,11 +1250,13 @@ def user_worker(args):
     x_notice.close()
 
 
-def reply_worker():
+def reply_worker(args):
     """
     子进程 C：消费推文信息，调用 LLM 并分发通知。
     """
     logger.info("Reply Worker (Process C) started.")
+    xn = XNotice()
+    xn.set_args(args)
     db = DBManager()
     while True:
         try:
@@ -1257,10 +1270,7 @@ def reply_worker():
             
             candidate_replies = []
             if tweet_data['is_white']:
-                from xnotice import XNotice
-                xn = XNotice() 
-                xn.tw_text = tweet_data['content']
-                if xn.get_tweet_candidates_reply(skip_llm=False):
+                if xn.get_tweet_candidates_reply(skip_llm=False, s_tweet_text=tweet_data['content']):
                     candidate_replies = xn.lst_candidate_replies
             
             # 发送通知
@@ -1306,9 +1316,9 @@ def reply_worker():
                 'tweet_url': tweet_data['tweet_url'],
                 'reply_username': tweet_data['username'],
                 'reply_content': 'Bot Notification Sent', # 目前仅为通知摘要
-                'reply_time': datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S'),
+                'reply_time': datetime.now(timezone(timedelta(hours=TZ_OFFSET))).strftime('%Y-%m-%d %H:%M:%S'),
                 'llm_replies_json': json.dumps(candidate_replies),
-                'llm_generated_at': datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
+                'llm_generated_at': datetime.now(timezone(timedelta(hours=TZ_OFFSET))).strftime('%Y-%m-%d %H:%M:%S')
             }
             db.add_reply(reply_record)
             db.finish_task('queue_tweets', tweet_data['id'])
@@ -1354,40 +1364,38 @@ def main(args):
         x_notice.db.init_db()
         return True
 
+    # 确定 profiles 列表和默认 s_profile
+    if len(args.profile) > 0:
+        items = args.profile.split(',')
+    else:
+        # 从配置文件里获取名称列表
+        x_notice.inst_x.status_load()
+        items = list(x_notice.inst_x.dic_account.keys())
+    profiles = copy.deepcopy(items)
+    if profiles and (not hasattr(args, 's_profile') or not args.s_profile):
+        args.s_profile = profiles[0]
+
     # 如果是独立 Worker 模式，则不启动主循环
     if getattr(args, 'run_user_worker', False):
-        # 确定 profiles 以获取默认 s_profile
-        if len(args.profile) > 0:
-            profiles = args.profile.split(',')
-        else:
-            profiles = list(x_notice.inst_x.dic_account.keys())
-        if profiles:
-            args.s_profile = profiles[0]
-
+        if not profiles:
+            logger.error("No profiles found for User Worker. Exiting.")
+            return False
         logger.info(f"Starting as standalone User Worker (Process B) with profile: {args.s_profile}")
         user_worker(args)
         return True
     
     if getattr(args, 'run_reply_worker', False):
-        logger.info("Starting as standalone Reply Worker (Process C)...")
-        reply_worker()
+        if not args.s_profile:
+             logger.error("No s_profile specified/found for Reply Worker. Exiting.")
+             return False
+        logger.info(f"Starting as standalone Reply Worker (Process C) with profile: {args.s_profile}")
+        reply_worker(args)
         return True
 
-    # 确定 profiles 列表
-    if len(args.profile) > 0:
-        items = args.profile.split(',')
-    else:
-        # 从配置文件里获取钱包名称列表
-        items = list(x_notice.inst_x.dic_account.keys())
-
-    profiles = copy.deepcopy(items)
+    # 主循环逻辑
     if not profiles:
         logger.error("No profiles found. Exiting.")
         return False
-        
-    # 为子进程/主采集进程设置默认的 s_profile
-    if not hasattr(args, 's_profile') or not args.s_profile:
-        args.s_profile = profiles[0]
 
     # 如果指定了 monitor 模式，则仅运行采集器循环
     if args.monitor_notice_users:
