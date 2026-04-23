@@ -148,6 +148,8 @@ class DpUtils():
         # 阻止“要恢复页面吗？Chrome未正确关闭”的提示气泡
         co.set_argument('--hide-crash-restore-bubble')
 
+        co.set_argument('--log-level=3')  # 只显示严重错误
+
         # 关闭沙盒模式
         # co.set_argument('--no-sandbox')
 
