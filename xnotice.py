@@ -388,7 +388,7 @@ class XNotice():
         tab = self.browser.latest_tab
         for i in range(1, 5):
             ele_blks_top = tab.eles(
-                '@@tag()=div@@class=css-175oi2r@@data-testid=cellInnerDiv',
+                '@@tag()=div@@class:css-@@data-testid=cellInnerDiv',
                 timeout=3
             )
             if len(ele_blks_top) > 0:
@@ -1224,7 +1224,13 @@ def user_worker(args):
     x_notice.browser = x_notice.inst_dp.get_browser(args.s_profile)
     x_notice.inst_x.status_load()
     x_notice.inst_x.set_browser(x_notice.browser)
-    
+
+    if x_notice.inst_dp.init_capmonster() is False:
+        return False
+
+    if x_notice.inst_dp.init_yescaptcha() is False:
+        return False
+
     while True:
         try:
             # 从数据库队列获取任务
