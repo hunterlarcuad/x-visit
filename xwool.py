@@ -26,7 +26,7 @@ from fun_utils import load_advertising_urls
 from fun_utils import load_ad_user
 from fun_utils import load_to_set
 
-from fun_glm import gene_by_llm
+from fun_openai import gene_by_llm
 
 from fun_okx import OkxUtils
 from fun_x import XUtils

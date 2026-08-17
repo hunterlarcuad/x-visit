@@ -81,6 +81,12 @@ DEF_CLASH_API_SECRETKEY = 'set_your_secretkey'
 # GLM API Key
 DEF_LLM_ZHIPUAI = 'set_your_secretkey'
 DEF_MODEL_ZHIPUAI = 'glm-4-plus'
+
+# OpenAI 协议（官方 OpenAI 或兼容网关）
+DEF_LLM_OPENAI = 'set_your_secretkey'
+DEF_MODEL_OPENAI = 'gemini-3.6-flash-medium'
+DEF_BASE_URL_OPENAI = 'https://aiapi.xxone.xyz/v1'
+DEF_MAX_TOKENS_OPENAI = 8192
 ############################################################
 
 # 通知渠道：dingding 使用下列钉钉 token；telegram 使用下列 Bot + chat_id

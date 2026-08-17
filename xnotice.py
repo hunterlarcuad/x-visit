@@ -28,7 +28,7 @@ from fun_utils import load_advertising_urls
 from fun_utils import load_ad_user
 from fun_utils import load_to_set
 
-from fun_glm import gene_by_llm
+from fun_openai import gene_by_llm
 
 from fun_okx import OkxUtils
 from fun_x import XUtils
@@ -668,8 +668,8 @@ class XNotice():
     def proc_all_notice_users(self, lst_users):
         """
         Proc notice user（白名单优先，两组内各自 reversed）。
-        白名单：拉取推文并调用大模型生成候选回复，TG/钉钉含 LLM 段落。
-        非白名单：同样发 TG/钉钉，但不调用大模型，内容不含 LLM 回复。
+        所有用户均入队，由 reply_worker 调用大模型生成候选回复后发 TG/钉钉。
+        白名单走 alert 通道（高优先级），其余走 silent 通道。
         """
         lst_white = [u for u in lst_users if u in self.set_notice_white]
         lst_rest = [u for u in lst_users if u not in self.set_notice_white]
@@ -678,10 +678,7 @@ class XNotice():
             is_white = s_user in self.set_notice_white
             self.proc_one_notice_user(s_user, skip_llm=not is_white)
 
-            if is_white:
-                if not self.lst_candidate_replies:
-                    continue
-            elif not self.tw_url:
+            if not self.tw_url:
                 continue
 
             s_tg_ch = 'alert' if is_white else 'silent'
@@ -763,7 +760,8 @@ class XNotice():
 
     def proc_one_notice_user(self, s_user, skip_llm=False):
         """
-        Proc notice user。skip_llm=True 时仅抓取推文上下文，不调用大模型。
+        Proc notice user。抓取阶段只取推文文本，大模型在 reply_worker 中调用。
+        skip_llm 仅用于队列优先级：False 视为白名单高优先级。
         """
         self.reset_vals()
         self.logit(None, f'Proc notice user: {s_user}')
@@ -849,9 +847,11 @@ class XNotice():
                     continue
 
                 self.tw_url = tweet_url
-                # 在抓取阶段只获取文本，不调用 LLM
-                self.get_tweet_candidates_reply(skip_llm=True)
-                
+                if not self.fill_tweet_text():
+                    self.click_back()
+                    continue
+
+
                 # 保存用户信息 (含历史记录自动触发)
                 user_data = {
                     'username': s_user,
@@ -953,35 +953,36 @@ class XNotice():
 
         return s_title, s_content
 
-    def get_tweet_candidates_reply(self, skip_llm=False, s_tweet_text=None):
+    def fill_tweet_text(self, s_tweet_text=None):
         """
-        对当前帖子一次 LLM 请求生成 3 种风格候选回复：友好风格、表示赞同、幽默风趣。
-        skip_llm=True 时只填充 tw_text，不请求大模型。
-        s_tweet_text 提供时，跳过浏览器抓取，直接使用此文本。
+        填充 self.tw_text。s_tweet_text 为空时从当前页面抓取。
         """
         self.tw_text = ''
-        self.lst_candidate_replies = []
-
+        s_title = ''
         if s_tweet_text is None:
             s_title, s_tweet_text = self.get_tweet_text()
             if not s_tweet_text:
                 self.logit(None, 'tweet_text is not found')
-                self.click_back()
                 return False
-        else:
-            s_title = ''
-
         s_tweet_text = s_tweet_text.replace('\n', ' ')
-        self.logit(None, f'tweet_text: {s_tweet_text[:50]} ...')  # noqa
-
         if s_title:
             s_tweet_text = f'【标题】{s_title}\n【正文】{s_tweet_text}'
+        self.tw_text = s_tweet_text.strip()
+        self.logit(None, f'tweet_text: {self.tw_text[:50]} ...')
+        return True
 
-        if skip_llm:
-            self.tw_text = s_tweet_text.strip()
-            self.lst_candidate_replies = []
-            self.logit(None, 'skip_llm: 仅通知，不生成候选回复')
-            return True
+    def get_tweet_candidates_reply(self, s_tweet_text=None):
+        """
+        对当前帖子一次 LLM 请求生成 3 种风格候选回复：友好风格、表示赞同、幽默风趣。
+        s_tweet_text 提供时，跳过浏览器抓取，直接使用此文本。
+        """
+        self.lst_candidate_replies = []
+        if not self.fill_tweet_text(s_tweet_text=s_tweet_text):
+            if s_tweet_text is None:
+                self.click_back()
+            return False
+
+        s_tweet_text = self.tw_text
 
         lst_styles = (
             ("友好风格", "语气友善、亲切自然，积极正面，让对方感到被尊重。"),
@@ -1242,7 +1243,7 @@ def user_worker(args):
             username = task['username']
             logger.info(f"User Worker: processing user {username}")
             
-            # 抓取推文逻辑
+            # 抓取推文逻辑；skip_llm 仅影响入队优先级，LLM 在 reply_worker 统一调用
             is_white = username in x_notice.set_notice_white
             x_notice.proc_one_notice_user(username, skip_llm=not is_white)
             
@@ -1275,9 +1276,10 @@ def reply_worker(args):
             logger.info(f"Reply Worker: processing tweet {tweet_data['tweet_url']}")
             
             candidate_replies = []
-            if tweet_data['is_white']:
-                if xn.get_tweet_candidates_reply(skip_llm=False, s_tweet_text=tweet_data['content']):
-                    candidate_replies = xn.lst_candidate_replies
+            if xn.get_tweet_candidates_reply(
+                s_tweet_text=tweet_data['content']
+            ):
+                candidate_replies = xn.lst_candidate_replies
             
             # 发送通知
             s_tg_ch = 'alert' if tweet_data['is_white'] else 'silent'

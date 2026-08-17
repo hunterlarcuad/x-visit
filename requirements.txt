@@ -4,6 +4,7 @@ requests
 pyotp
 sniffio
 zhipuai
+openai
 mnemonic
 google-api-python-client
 google-auth-httplib2

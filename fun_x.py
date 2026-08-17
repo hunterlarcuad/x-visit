@@ -22,7 +22,7 @@ from fun_utils import rm_url
 from fun_encode import decrypt
 from fun_gmail import get_verify_code_from_gmail
 
-from fun_glm import gene_repeal_msg
+from fun_openai import gene_repeal_msg
 
 from proxy_api import set_proxy
 from proxy_api import get_country_info
